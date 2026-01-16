@@ -16,7 +16,9 @@ namespace FunClass.Core
         StudentCalmed,
         StudentReturnedToSeat,
         StudentStoppedAction,
-        ObjectTakenAway
+        ObjectTakenAway,
+        StudentReacted,
+        ReactionEnded
     }
 
     public class StudentEvent
@@ -48,6 +50,7 @@ namespace FunClass.Core
         public static StudentEventManager Instance { get; private set; }
 
         public event Action<StudentEvent> OnStudentEvent;
+        public event Action<StudentEvent> OnEventLogged;
 
         void Awake()
         {
@@ -65,6 +68,7 @@ namespace FunClass.Core
         {
             Debug.Log(studentEvent.ToString());
             OnStudentEvent?.Invoke(studentEvent);
+            OnEventLogged?.Invoke(studentEvent);
         }
 
         public void LogEvent(StudentAgent student, StudentEventType eventType, string description, GameObject targetObject = null)

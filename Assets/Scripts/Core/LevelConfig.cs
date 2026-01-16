@@ -13,5 +13,11 @@ namespace FunClass.Core
 
         [Header("Students")]
         public List<StudentConfig> students = new List<StudentConfig>();
+
+        [Header("Interaction Sequences")]
+        public List<StudentSequenceConfig> availableSequences = new List<StudentSequenceConfig>();
+
+        [Header("Level Goals")]
+        public LevelGoalConfig levelGoal;
     }
 }

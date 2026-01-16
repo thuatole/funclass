@@ -256,7 +256,7 @@ namespace FunClass.Core
             {
                 if (currentStudentTarget != null)
                 {
-                    currentStudentTarget.CalmDown();
+                    currentStudentTarget.HandleTeacherAction(TeacherActionType.Calm);
                 }
             }
 
@@ -264,7 +264,7 @@ namespace FunClass.Core
             {
                 if (currentStudentTarget != null)
                 {
-                    currentStudentTarget.ReturnToSeat();
+                    currentStudentTarget.HandleTeacherAction(TeacherActionType.SendToSeat);
                 }
             }
 
@@ -272,7 +272,7 @@ namespace FunClass.Core
             {
                 if (currentStudentTarget != null)
                 {
-                    currentStudentTarget.StopCurrentAction();
+                    currentStudentTarget.HandleTeacherAction(TeacherActionType.Stop);
                 }
             }
 
@@ -281,6 +281,30 @@ namespace FunClass.Core
                 if (currentStudentTarget != null && currentHeldItem != null)
                 {
                     UseItemOnStudent(currentStudentTarget, currentHeldItem.gameObject);
+                }
+            }
+
+            if (Input.GetKeyDown(KeyCode.Alpha5))
+            {
+                if (currentStudentTarget != null)
+                {
+                    currentStudentTarget.HandleTeacherAction(TeacherActionType.Scold);
+                }
+            }
+
+            if (Input.GetKeyDown(KeyCode.Alpha6))
+            {
+                if (currentStudentTarget != null)
+                {
+                    currentStudentTarget.HandleTeacherAction(TeacherActionType.Talk);
+                }
+            }
+
+            if (Input.GetKeyDown(KeyCode.Alpha7))
+            {
+                if (currentStudentTarget != null)
+                {
+                    currentStudentTarget.HandleTeacherAction(TeacherActionType.Praise);
                 }
             }
         }
@@ -301,21 +325,16 @@ namespace FunClass.Core
 
             student.InteractWithTeacher(this);
 
-            switch (student.CurrentState)
+            TeacherActionType action = student.CurrentState switch
             {
-                case StudentState.Calm:
-                    Debug.Log($"[TeacherController] Talking to {student.Config?.studentName}");
-                    break;
-                case StudentState.Distracted:
-                    student.CalmDown();
-                    break;
-                case StudentState.ActingOut:
-                    student.StopCurrentAction();
-                    break;
-                case StudentState.Critical:
-                    student.ReturnToSeat();
-                    break;
-            }
+                StudentState.Calm => TeacherActionType.Talk,
+                StudentState.Distracted => TeacherActionType.Calm,
+                StudentState.ActingOut => TeacherActionType.Stop,
+                StudentState.Critical => TeacherActionType.SendToSeat,
+                _ => TeacherActionType.Talk
+            };
+
+            student.HandleTeacherAction(action);
         }
 
         private void UseItemOnStudent(StudentAgent student, GameObject item)
