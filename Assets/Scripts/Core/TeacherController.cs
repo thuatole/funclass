@@ -12,6 +12,7 @@ namespace FunClass.Core
         [SerializeField] private float gravity = -9.81f;
 
         [Header("Camera")]
+        [SerializeField] private Camera playerCamera;
         [SerializeField] private Transform cameraTransform;
         [SerializeField] private float lookSensitivity = 2f;
         [SerializeField] private float maxLookAngle = 80f;
@@ -31,6 +32,8 @@ namespace FunClass.Core
         private InteractableObject currentLookTarget;
         private StudentAgent currentStudentTarget;
 
+        public Camera PlayerCamera => playerCamera;
+
         void Awake()
         {
             if (Instance != null && Instance != this)
@@ -42,9 +45,14 @@ namespace FunClass.Core
             Instance = this;
             characterController = GetComponent<CharacterController>();
 
-            if (cameraTransform == null)
+            if (playerCamera == null)
             {
-                cameraTransform = Camera.main?.transform;
+                playerCamera = Camera.main;
+            }
+
+            if (cameraTransform == null && playerCamera != null)
+            {
+                cameraTransform = playerCamera.transform;
             }
         }
 
@@ -197,7 +205,7 @@ namespace FunClass.Core
 
             if (Physics.Raycast(ray, out hit, interactionRange, interactionLayer))
             {
-                StudentAgent student = hit.collider.GetComponent<StudentAgent>();
+                StudentAgent student = hit.collider.GetComponentInParent<StudentAgent>();
                 
                 if (student != null)
                 {
