@@ -25,10 +25,18 @@ namespace FunClass.Core
 
         public void KnockOver(StudentAgent student)
         {
-            if (!canBeKnockedOver) return;
+            Debug.Log($"[StudentInteractableObject] KnockOver called on {objectName}, canBeKnockedOver: {canBeKnockedOver}");
+            
+            if (!canBeKnockedOver)
+            {
+                Debug.Log($"[StudentInteractableObject] {objectName} cannot be knocked over - returning");
+                return;
+            }
 
             isKnockedOver = true;
             transform.rotation = Quaternion.Euler(90f, transform.eulerAngles.y, transform.eulerAngles.z);
+
+            Debug.Log($"[StudentInteractableObject] {objectName} knocked over, logging event...");
 
             if (StudentEventManager.Instance != null)
             {
@@ -39,11 +47,21 @@ namespace FunClass.Core
                     gameObject
                 );
             }
+            else
+            {
+                Debug.LogWarning($"[StudentInteractableObject] StudentEventManager.Instance is null!");
+            }
         }
 
         public void MakeNoise(StudentAgent student)
         {
-            if (!canMakeNoise) return;
+            Debug.Log($"[StudentInteractableObject] MakeNoise called on {objectName}, canMakeNoise: {canMakeNoise}");
+            
+            if (!canMakeNoise)
+            {
+                Debug.Log($"[StudentInteractableObject] {objectName} cannot make noise - returning");
+                return;
+            }
 
             if (StudentEventManager.Instance != null)
             {
@@ -58,7 +76,13 @@ namespace FunClass.Core
 
         public void Drop(StudentAgent student)
         {
-            if (!canBeDropped) return;
+            Debug.Log($"[StudentInteractableObject] Drop called on {objectName}, canBeDropped: {canBeDropped}");
+            
+            if (!canBeDropped)
+            {
+                Debug.Log($"[StudentInteractableObject] {objectName} cannot be dropped - returning");
+                return;
+            }
 
             Vector3 dropPosition = student.transform.position + student.transform.forward * 0.5f;
             transform.position = dropPosition;
@@ -76,10 +100,18 @@ namespace FunClass.Core
 
         public void Throw(StudentAgent student)
         {
-            if (!canBeThrown) return;
+            Debug.Log($"[StudentInteractableObject] Throw called on {objectName}, canBeThrown: {canBeThrown}");
+            
+            if (!canBeThrown)
+            {
+                Debug.Log($"[StudentInteractableObject] {objectName} cannot be thrown - returning");
+                return;
+            }
 
             Vector3 throwDirection = student.transform.forward + Vector3.up * 0.5f;
             transform.position += throwDirection * 2f;
+
+            Debug.Log($"[StudentInteractableObject] {objectName} thrown, logging event... StudentEventManager.Instance: {(StudentEventManager.Instance != null ? "OK" : "NULL")}");
 
             if (StudentEventManager.Instance != null)
             {
@@ -89,11 +121,18 @@ namespace FunClass.Core
                     $"threw {objectName}",
                     gameObject
                 );
+                Debug.Log($"[StudentInteractableObject] {objectName} event logged successfully");
+            }
+            else
+            {
+                Debug.LogWarning($"[StudentInteractableObject] StudentEventManager.Instance is null!");
             }
         }
 
         public void Touch(StudentAgent student)
         {
+            Debug.Log($"[StudentInteractableObject] Touch called on {objectName}");
+            
             if (StudentEventManager.Instance != null)
             {
                 StudentEventManager.Instance.LogEvent(

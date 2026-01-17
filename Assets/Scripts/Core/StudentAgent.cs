@@ -156,15 +156,16 @@ namespace FunClass.Core
             if (config == null) return;
 
             float interactionChance = GetInteractionChanceForState();
-            bool shouldInteractWithObject = UnityEngine.Random.value < interactionChance;
+            float roll = UnityEngine.Random.value;
+            bool shouldInteractWithObject = roll < interactionChance;
+
+            Debug.Log($"[StudentAgent] {config?.studentName} behavior check - State: {CurrentState}, InteractionChance: {interactionChance:F2}, Roll: {roll:F2}, ShouldInteract: {shouldInteractWithObject}");
 
             if (shouldInteractWithObject)
             {
                 TryInteractWithNearbyObject();
                 return;
             }
-
-            float roll = UnityEngine.Random.value;
 
             if (CurrentState == StudentState.Calm)
             {
@@ -318,7 +319,12 @@ namespace FunClass.Core
             
             if (nearbyObject != null)
             {
+                Debug.Log($"[StudentAgent] {config?.studentName} found nearby object: {nearbyObject.objectName}");
                 PerformObjectInteraction(nearbyObject);
+            }
+            else
+            {
+                Debug.Log($"[StudentAgent] {config?.studentName} no nearby objects found (range: {config?.interactionRange})");
             }
         }
 
@@ -340,37 +346,63 @@ namespace FunClass.Core
             return null;
         }
 
+        private enum ObjectInteractionType
+        {
+            KnockOver,
+            MakeNoise,
+            Throw,
+            Drop,
+            Touch
+        }
+
         private void PerformObjectInteraction(StudentInteractableObject obj)
         {
             if (config == null || obj == null) return;
 
             float roll = UnityEngine.Random.value;
+            Debug.Log($"[StudentAgent] {config?.studentName} interaction roll: {roll:F2}, checking permissions...");
+            Debug.Log($"[StudentAgent] canKnockOver: {config.canKnockOverObjects}, canMakeNoise: {config.canMakeNoiseWithObjects}, canThrow: {config.canThrowObjects}, canDrop: {config.canDropItems}, canTouch: {config.canTouchObjects}");
 
             if (config.canKnockOverObjects && obj.canBeKnockedOver && roll < 0.3f)
             {
-                WalkToObjectAndInteract(obj, () => obj.KnockOver(this));
+                Debug.Log($"[StudentAgent] {config?.studentName} will knock over {obj.objectName}");
+                WalkToObjectAndInteract(obj, ObjectInteractionType.KnockOver);
             }
             else if (config.canMakeNoiseWithObjects && obj.canMakeNoise && roll < 0.5f)
             {
-                WalkToObjectAndInteract(obj, () => obj.MakeNoise(this));
+                Debug.Log($"[StudentAgent] {config?.studentName} will make noise with {obj.objectName}");
+                WalkToObjectAndInteract(obj, ObjectInteractionType.MakeNoise);
             }
             else if (config.canThrowObjects && obj.canBeThrown && roll < 0.7f)
             {
-                WalkToObjectAndInteract(obj, () => obj.Throw(this));
+                Debug.Log($"[StudentAgent] {config?.studentName} will throw {obj.objectName}");
+                WalkToObjectAndInteract(obj, ObjectInteractionType.Throw);
             }
             else if (config.canDropItems && obj.canBeDropped && roll < 0.85f)
             {
-                WalkToObjectAndInteract(obj, () => obj.Drop(this));
+                Debug.Log($"[StudentAgent] {config?.studentName} will drop {obj.objectName}");
+                WalkToObjectAndInteract(obj, ObjectInteractionType.Drop);
             }
             else if (config.canTouchObjects)
             {
-                WalkToObjectAndInteract(obj, () => obj.Touch(this));
+                Debug.Log($"[StudentAgent] {config?.studentName} will touch {obj.objectName}");
+                WalkToObjectAndInteract(obj, ObjectInteractionType.Touch);
+            }
+            else
+            {
+                Debug.Log($"[StudentAgent] {config?.studentName} no valid interaction with {obj.objectName} (roll: {roll:F2})");
             }
         }
 
-        private void WalkToObjectAndInteract(StudentInteractableObject obj, System.Action interactionAction)
+        private void WalkToObjectAndInteract(StudentInteractableObject obj, ObjectInteractionType interactionType)
         {
-            if (obj == null) return;
+            if (obj == null)
+            {
+                Debug.LogWarning($"[StudentAgent] {config?.studentName} WalkToObjectAndInteract called with null obj!");
+                return;
+            }
+
+            Debug.Log($"[StudentAgent] {config?.studentName} WalkToObjectAndInteract - obj: {obj.objectName}, type: {obj.GetType().Name}, interaction: {interactionType}");
 
             targetObject = obj;
             isPerformingSequence = true;
@@ -396,7 +428,35 @@ namespace FunClass.Core
             Vector3 moveToPosition = targetPosition + (-direction * 1f);
             transform.position = moveToPosition;
 
-            interactionAction?.Invoke();
+            Debug.Log($"[StudentAgent] {config?.studentName} reached {obj.objectName}, performing {interactionType}...");
+            
+            try
+            {
+                switch (interactionType)
+                {
+                    case ObjectInteractionType.KnockOver:
+                        obj.KnockOver(this);
+                        break;
+                    case ObjectInteractionType.MakeNoise:
+                        obj.MakeNoise(this);
+                        break;
+                    case ObjectInteractionType.Throw:
+                        obj.Throw(this);
+                        break;
+                    case ObjectInteractionType.Drop:
+                        obj.Drop(this);
+                        break;
+                    case ObjectInteractionType.Touch:
+                        obj.Touch(this);
+                        break;
+                }
+                Debug.Log($"[StudentAgent] {config?.studentName} interaction {interactionType} completed");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[StudentAgent] {config?.studentName} interaction {interactionType} threw exception: {e.Message}");
+                Debug.LogException(e);
+            }
 
             isPerformingSequence = false;
             targetObject = null;
