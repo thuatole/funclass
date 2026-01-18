@@ -35,6 +35,14 @@ namespace FunClass.Editor.Data
         public float maxAllowedOutsideGracePeriod = 10f;
         public float timeLimitSeconds = 300f;
         public int requiredResolvedProblems = 5;
+        public int requiredCalmDowns = 3;
+        
+        // Disruption Timeout
+        public bool enableDisruptionTimeout = false;
+        public float disruptionTimeoutThreshold = 80f;
+        public float disruptionTimeoutSeconds = 60f;
+        public float disruptionTimeoutWarningSeconds = 15f;
+        
         public int oneStarScore = 100;
         public int twoStarScore = 250;
         public int threeStarScore = 500;

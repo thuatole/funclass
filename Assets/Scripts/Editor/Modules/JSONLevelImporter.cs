@@ -134,6 +134,14 @@ namespace FunClass.Editor.Modules
                 goalConfig.maxAllowedOutsideGracePeriod = data.goalSettings.maxAllowedOutsideGracePeriod;
                 goalConfig.timeLimitSeconds = data.goalSettings.timeLimitSeconds;
                 goalConfig.requiredResolvedProblems = data.goalSettings.requiredResolvedProblems;
+                goalConfig.requiredCalmDowns = data.goalSettings.requiredCalmDowns;
+                
+                // Disruption Timeout
+                goalConfig.enableDisruptionTimeout = data.goalSettings.enableDisruptionTimeout;
+                goalConfig.disruptionTimeoutThreshold = data.goalSettings.disruptionTimeoutThreshold;
+                goalConfig.disruptionTimeoutSeconds = data.goalSettings.disruptionTimeoutSeconds;
+                goalConfig.disruptionTimeoutWarningSeconds = data.goalSettings.disruptionTimeoutWarningSeconds;
+                
                 goalConfig.oneStarScore = data.goalSettings.oneStarScore;
                 goalConfig.twoStarScore = data.goalSettings.twoStarScore;
                 goalConfig.threeStarScore = data.goalSettings.threeStarScore;

@@ -44,6 +44,20 @@ namespace FunClass.Core
         [Tooltip("Score needed for 3 stars (perfect)")]
         public int threeStarScore = 500;
 
+        [Header("Disruption Timeout")]
+        [Tooltip("Enable timeout lose condition when disruption stays high")]
+        public bool enableDisruptionTimeout = false;
+        
+        [Tooltip("Disruption threshold that triggers timeout timer")]
+        [Range(0, 100)]
+        public float disruptionTimeoutThreshold = 80f;
+        
+        [Tooltip("How long disruption can stay above threshold before losing (seconds)")]
+        public float disruptionTimeoutSeconds = 60f;
+        
+        [Tooltip("When to show warning (seconds before timeout)")]
+        public float disruptionTimeoutWarningSeconds = 15f;
+
         [Header("Win Conditions")]
         [Tooltip("Final disruption must be below this to win")]
         [Range(0, 100)]

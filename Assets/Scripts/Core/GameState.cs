@@ -4,6 +4,7 @@ namespace FunClass.Core
     {
         Boot,
         InLevel,
-        LevelComplete
+        LevelComplete,
+        LevelFailed
     }
 }

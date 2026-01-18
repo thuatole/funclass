@@ -37,6 +37,13 @@ namespace FunClass.Core
         private Dictionary<StudentAgent, float> studentsOutside = new Dictionary<StudentAgent, float>();
         private float nextOutsideCheckTime = 0f;
         private float totalOutsideDisruptionApplied = 0f;
+        
+        // Disruption Timeout Tracking
+        private bool isDisruptionTimeoutActive = false;
+        private float disruptionTimeoutStartTime = 0f;
+        private bool hasShownTimeoutWarning = false;
+        public event Action<float> OnDisruptionTimeoutWarning; // Remaining seconds
+        public event Action OnDisruptionTimeoutLose;
 
         void Awake()
         {
@@ -107,6 +114,9 @@ namespace FunClass.Core
                 ProcessOutsideStudentDisruption();
                 nextOutsideCheckTime = Time.time + outsideCheckInterval;
             }
+            
+            // Check disruption timeout
+            CheckDisruptionTimeout();
         }
 
         private void HandleGameStateChanged(GameState oldState, GameState newState)
@@ -145,6 +155,7 @@ namespace FunClass.Core
             DisruptionLevel = 0f;
             OnDisruptionChanged?.Invoke(DisruptionLevel);
             ResetOutsideTracking();
+            ResetDisruptionTimeout();
             Debug.Log("[ClassroomManager] Disruption level reset to 0");
         }
 
@@ -348,6 +359,108 @@ namespace FunClass.Core
             OutsideStudentCount = 0;
             totalOutsideDisruptionApplied = 0f;
             nextOutsideCheckTime = Time.time + outsideCheckInterval;
+        }
+
+        /// <summary>
+        /// Checks if disruption has been above threshold for too long
+        /// </summary>
+        private void CheckDisruptionTimeout()
+        {
+            if (levelConfig == null || levelConfig.levelGoal == null) return;
+            if (!levelConfig.levelGoal.enableDisruptionTimeout) return;
+
+            float threshold = levelConfig.levelGoal.disruptionTimeoutThreshold;
+            float timeoutDuration = levelConfig.levelGoal.disruptionTimeoutSeconds;
+            float warningTime = levelConfig.levelGoal.disruptionTimeoutWarningSeconds;
+
+            // Check if disruption is above threshold
+            if (DisruptionLevel >= threshold)
+            {
+                // Start timeout if not already active
+                if (!isDisruptionTimeoutActive)
+                {
+                    isDisruptionTimeoutActive = true;
+                    disruptionTimeoutStartTime = Time.time;
+                    hasShownTimeoutWarning = false;
+                    Debug.LogWarning($"[ClassroomManager] ⚠️ Disruption Timeout Started! Disruption at {DisruptionLevel:F1}% (threshold: {threshold}%)");
+                }
+
+                // Calculate elapsed time
+                float elapsedTime = Time.time - disruptionTimeoutStartTime;
+                float remainingTime = timeoutDuration - elapsedTime;
+
+                // Show warning
+                if (!hasShownTimeoutWarning && remainingTime <= warningTime)
+                {
+                    hasShownTimeoutWarning = true;
+                    OnDisruptionTimeoutWarning?.Invoke(remainingTime);
+                    Debug.LogWarning($"[ClassroomManager] ⚠️ WARNING: {remainingTime:F0}s to reduce disruption below {threshold}%!");
+                }
+
+                // Check if timeout exceeded
+                if (elapsedTime >= timeoutDuration)
+                {
+                    TriggerDisruptionTimeoutLose();
+                }
+            }
+            else
+            {
+                // Reset timeout if disruption drops below threshold
+                if (isDisruptionTimeoutActive)
+                {
+                    ResetDisruptionTimeout();
+                    Debug.Log($"[ClassroomManager] ✅ Disruption Timeout Reset - disruption reduced to {DisruptionLevel:F1}%");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Resets disruption timeout tracking
+        /// </summary>
+        private void ResetDisruptionTimeout()
+        {
+            isDisruptionTimeoutActive = false;
+            disruptionTimeoutStartTime = 0f;
+            hasShownTimeoutWarning = false;
+        }
+
+        /// <summary>
+        /// Triggers lose condition due to disruption timeout
+        /// </summary>
+        private void TriggerDisruptionTimeoutLose()
+        {
+            Debug.LogError($"[ClassroomManager] 💥 GAME OVER - Disruption stayed above {levelConfig.levelGoal.disruptionTimeoutThreshold}% for {levelConfig.levelGoal.disruptionTimeoutSeconds}s!");
+            
+            OnDisruptionTimeoutLose?.Invoke();
+            
+            // Transition to lose state
+            if (GameStateManager.Instance != null)
+            {
+                GameStateManager.Instance.TransitionTo(GameState.LevelFailed);
+            }
+            
+            isDisruptionTimeoutActive = false;
+        }
+
+        /// <summary>
+        /// Gets remaining time before disruption timeout (0 if not active)
+        /// </summary>
+        public float GetDisruptionTimeoutRemaining()
+        {
+            if (!isDisruptionTimeoutActive || levelConfig == null || levelConfig.levelGoal == null)
+                return 0f;
+
+            float elapsed = Time.time - disruptionTimeoutStartTime;
+            float remaining = levelConfig.levelGoal.disruptionTimeoutSeconds - elapsed;
+            return Mathf.Max(0f, remaining);
+        }
+
+        /// <summary>
+        /// Checks if disruption timeout is currently active
+        /// </summary>
+        public bool IsDisruptionTimeoutActive()
+        {
+            return isDisruptionTimeoutActive;
         }
     }
 }

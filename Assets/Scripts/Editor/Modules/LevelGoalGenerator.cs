@@ -109,6 +109,13 @@ namespace FunClass.Editor.Modules
             
             // Low requirements
             config.requiredResolvedProblems = 3;
+            config.requiredCalmDowns = 2;
+            
+            // Disruption Timeout - Easy (generous)
+            config.enableDisruptionTimeout = true;
+            config.disruptionTimeoutThreshold = 90f;
+            config.disruptionTimeoutSeconds = 120f; // 2 minutes
+            config.disruptionTimeoutWarningSeconds = 30f;
             
             // Easy star thresholds
             config.oneStarScore = 50;
@@ -133,6 +140,13 @@ namespace FunClass.Editor.Modules
             
             // Moderate requirements
             config.requiredResolvedProblems = 5;
+            config.requiredCalmDowns = 3;
+            
+            // Disruption Timeout - Normal (moderate)
+            config.enableDisruptionTimeout = true;
+            config.disruptionTimeoutThreshold = 80f;
+            config.disruptionTimeoutSeconds = 60f; // 1 minute
+            config.disruptionTimeoutWarningSeconds = 15f;
             
             // Normal star thresholds
             config.oneStarScore = 100;
@@ -157,6 +171,13 @@ namespace FunClass.Editor.Modules
             
             // High requirements
             config.requiredResolvedProblems = 8;
+            config.requiredCalmDowns = 5;
+            
+            // Disruption Timeout - Hard (strict)
+            config.enableDisruptionTimeout = true;
+            config.disruptionTimeoutThreshold = 65f;
+            config.disruptionTimeoutSeconds = 45f; // 45 seconds
+            config.disruptionTimeoutWarningSeconds = 15f;
             
             // Hard star thresholds
             config.oneStarScore = 150;
