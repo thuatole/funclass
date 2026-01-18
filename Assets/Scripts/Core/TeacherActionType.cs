@@ -8,6 +8,9 @@ namespace FunClass.Core
         SendToSeat,
         UseItem,
         Scold,
-        Praise
+        Praise,
+        CallStudentBack,
+        EscortStudentBack,
+        ForceReturnToSeat
     }
 }

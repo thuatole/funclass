@@ -190,6 +190,11 @@ namespace FunClass.Core
             }
         }
 
+        public void ReduceDisruption(float amount)
+        {
+            AddDisruption(-amount, "item confiscated");
+        }
+
         private void UpdateClassroomStateBasedOnDisruption()
         {
             ClassroomState targetState = DisruptionLevel switch

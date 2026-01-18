@@ -23,6 +23,10 @@ namespace FunClass.Core
         private float reactionEndTime = 0f;
         private StudentInteractionSequence currentSequence = null;
         private List<StudentInteractionSequence> availableSequences = new List<StudentInteractionSequence>();
+        private bool isFollowingRoute = false;
+
+        public Vector3 OriginalSeatPosition => originalPosition;
+        public bool IsFollowingRoute => isFollowingRoute;
 
         void Start()
         {
@@ -59,7 +63,14 @@ namespace FunClass.Core
         {
             if (!isActive) return;
 
-            if (!isPerformingSequence && Time.time >= nextBehaviorTime)
+            // Check if following a route (managed by StudentMovementManager)
+            if (StudentMovementManager.Instance != null)
+            {
+                isFollowingRoute = StudentMovementManager.Instance.IsMoving(this);
+            }
+
+            // Skip autonomous behavior if following a route
+            if (!isPerformingSequence && !isFollowingRoute && Time.time >= nextBehaviorTime)
             {
                 PerformAutonomousBehavior();
                 ScheduleNextBehavior();
@@ -232,7 +243,7 @@ namespace FunClass.Core
             }
         }
 
-        private void EscalateState()
+        public void EscalateState()
         {
             StudentState nextState = CurrentState switch
             {
@@ -559,6 +570,12 @@ namespace FunClass.Core
 
         public void ReturnToSeat()
         {
+            // Stop any active route movement
+            if (StudentMovementManager.Instance != null)
+            {
+                StudentMovementManager.Instance.StopMovement(this);
+            }
+
             transform.position = originalPosition;
             transform.rotation = originalRotation;
 
@@ -591,20 +608,124 @@ namespace FunClass.Core
         {
             if (obj == null) return;
 
+            string itemName = obj.name;
+
             if (StudentEventManager.Instance != null)
             {
                 StudentEventManager.Instance.LogEvent(
                     this,
                     StudentEventType.ObjectTakenAway,
-                    $"had {obj.name} taken away",
+                    $"had {itemName} taken away",
                     obj
                 );
             }
 
             obj.SetActive(false);
-            DeescalateState();
 
-            Debug.Log($"[StudentAgent] Teacher took {obj.name} away from {config?.studentName}");
+            OnItemConfiscated(itemName);
+
+            Debug.Log($"[StudentAgent] Teacher took {itemName} away from {config?.studentName}");
+        }
+
+        /// <summary>
+        /// Hook method called when an item is confiscated from this student.
+        /// Determines the appropriate reaction and state change based on the item type.
+        /// This is the extension point for adding custom confiscation behavior.
+        /// </summary>
+        /// <param name="itemName">The name of the confiscated item</param>
+        public void OnItemConfiscated(string itemName)
+        {
+            if (config == null)
+            {
+                Debug.LogWarning($"[StudentAgent] OnItemConfiscated called but config is null");
+                return;
+            }
+
+            Debug.Log($"[StudentAgent] {config.studentName} processing confiscation of: {itemName}");
+
+            ItemConfiscationBehavior matchedBehavior = FindMatchingConfiscationBehavior(itemName);
+
+            if (matchedBehavior != null)
+            {
+                ApplyConfiscationBehavior(matchedBehavior, itemName);
+            }
+            else
+            {
+                ApplyDefaultConfiscationBehavior(itemName);
+            }
+        }
+
+        /// <summary>
+        /// Finds the first confiscation behavior that matches the given item name.
+        /// Returns null if no match is found.
+        /// </summary>
+        private ItemConfiscationBehavior FindMatchingConfiscationBehavior(string itemName)
+        {
+            if (config.confiscationBehaviors == null || config.confiscationBehaviors.Length == 0)
+            {
+                return null;
+            }
+
+            foreach (ItemConfiscationBehavior behavior in config.confiscationBehaviors)
+            {
+                if (behavior != null && behavior.MatchesItem(itemName))
+                {
+                    Debug.Log($"[StudentAgent] {config.studentName} matched confiscation behavior for: {itemName}");
+                    return behavior;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Applies a specific confiscation behavior (reaction, state change, disruption reduction).
+        /// </summary>
+        private void ApplyConfiscationBehavior(ItemConfiscationBehavior behavior, string itemName)
+        {
+            Debug.Log($"[StudentAgent] {config.studentName} applying custom confiscation behavior for: {itemName}");
+
+            if (behavior.reaction != StudentReactionType.None)
+            {
+                TriggerReaction(behavior.reaction, behavior.reactionDuration);
+            }
+
+            if (behavior.changeState)
+            {
+                StudentState oldState = CurrentState;
+                ChangeState(behavior.newState);
+                Debug.Log($"[StudentAgent] {config.studentName} state changed from {oldState} to {behavior.newState} due to confiscation of {itemName}");
+            }
+
+            if (behavior.disruptionReduction > 0f && ClassroomManager.Instance != null)
+            {
+                ClassroomManager.Instance.ReduceDisruption(behavior.disruptionReduction);
+                Debug.Log($"[StudentAgent] {config.studentName} confiscation reduced disruption by {behavior.disruptionReduction}");
+            }
+        }
+
+        /// <summary>
+        /// Applies the default confiscation behavior when no specific behavior matches.
+        /// </summary>
+        private void ApplyDefaultConfiscationBehavior(string itemName)
+        {
+            Debug.Log($"[StudentAgent] {config.studentName} applying default confiscation behavior for: {itemName}");
+
+            if (config.defaultConfiscationReaction != StudentReactionType.None)
+            {
+                TriggerReaction(config.defaultConfiscationReaction, config.defaultConfiscationReactionDuration);
+            }
+
+            if (config.defaultConfiscationChangesState)
+            {
+                StudentState oldState = CurrentState;
+                ChangeState(config.defaultConfiscationNewState);
+                Debug.Log($"[StudentAgent] {config.studentName} state changed from {oldState} to {config.defaultConfiscationNewState} due to default confiscation behavior");
+            }
+            else
+            {
+                DeescalateState();
+            }
         }
 
         public string GetInteractionPrompt()
@@ -879,7 +1000,79 @@ namespace FunClass.Core
                 case TeacherActionType.Praise:
                     TriggerReaction(StudentReactionType.Embarrassed, 3f);
                     break;
+                case TeacherActionType.CallStudentBack:
+                    // Student is being called back - show embarrassed or apologetic reaction
+                    if (CurrentState == StudentState.Critical)
+                    {
+                        TriggerReaction(StudentReactionType.Scared, 4f);
+                    }
+                    else
+                    {
+                        TriggerReaction(StudentReactionType.Embarrassed, 3f);
+                    }
+                    DeescalateState();
+                    break;
+                case TeacherActionType.EscortStudentBack:
+                    // Being escorted - show stronger reaction
+                    TriggerReaction(StudentReactionType.Apologize, 5f);
+                    DeescalateState();
+                    DeescalateState(); // Double de-escalate for escort
+                    break;
+                case TeacherActionType.ForceReturnToSeat:
+                    // Forced return - may trigger negative reaction
+                    if (UnityEngine.Random.value < 0.5f)
+                    {
+                        TriggerReaction(StudentReactionType.Angry, 2f);
+                    }
+                    else
+                    {
+                        TriggerReaction(StudentReactionType.Embarrassed, 3f);
+                    }
+                    break;
             }
+        }
+
+        /// <summary>
+        /// Starts the student on a predefined route
+        /// </summary>
+        public void StartRoute(StudentRoute route)
+        {
+            if (route == null)
+            {
+                Debug.LogWarning($"[StudentAgent] {config?.studentName} cannot start null route");
+                return;
+            }
+
+            if (StudentMovementManager.Instance != null)
+            {
+                StudentMovementManager.Instance.StartRoute(this, route);
+                Debug.Log($"[StudentAgent] {config?.studentName} starting route: {route.routeName}");
+            }
+        }
+
+        /// <summary>
+        /// Stops the student's current route movement
+        /// </summary>
+        public void StopRoute()
+        {
+            if (StudentMovementManager.Instance != null)
+            {
+                StudentMovementManager.Instance.StopMovement(this);
+                Debug.Log($"[StudentAgent] {config?.studentName} stopped route");
+            }
+        }
+
+
+        /// <summary>
+        /// Gets the current route the student is following (null if not on a route)
+        /// </summary>
+        public StudentRoute GetCurrentRoute()
+        {
+            if (StudentMovementManager.Instance != null)
+            {
+                return StudentMovementManager.Instance.GetCurrentRoute(this);
+            }
+            return null;
         }
     }
 }

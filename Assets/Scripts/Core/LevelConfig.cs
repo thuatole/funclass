@@ -19,5 +19,25 @@ namespace FunClass.Core
 
         [Header("Level Goals")]
         public LevelGoalConfig levelGoal;
+
+        [Header("Movement Routes")]
+        [Tooltip("Available routes students can follow in this level")]
+        public List<StudentRoute> availableRoutes = new List<StudentRoute>();
+        
+        [Tooltip("Escape route students take when panicking")]
+        public StudentRoute escapeRoute;
+        
+        [Tooltip("Return route for students coming back to class")]
+        public StudentRoute returnRoute;
+
+        [Header("Key Locations")]
+        [Tooltip("Classroom door position")]
+        public Transform classroomDoor;
+        
+        [Tooltip("Outside classroom area")]
+        public Transform outsideArea;
+        
+        [Tooltip("Default seat positions for students")]
+        public List<Transform> seatPositions = new List<Transform>();
     }
 }

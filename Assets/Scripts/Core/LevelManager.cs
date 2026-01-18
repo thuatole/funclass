@@ -107,6 +107,18 @@ namespace FunClass.Core
             Debug.Log("[LevelManager] Level started");
         }
 
+        /// <summary>
+        /// Gets the current level configuration
+        /// </summary>
+        public LevelConfig GetCurrentLevelConfig()
+        {
+            if (LevelLoader.Instance != null)
+            {
+                return LevelLoader.Instance.CurrentLevel;
+            }
+            return null;
+        }
+
         private void EndLevel()
         {
             IsLevelActive = false;

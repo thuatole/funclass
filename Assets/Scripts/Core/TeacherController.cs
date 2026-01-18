@@ -214,7 +214,8 @@ namespace FunClass.Core
                         currentStudentTarget = student;
                         currentLookTarget = null;
                         
-                        Debug.Log($"[TeacherController] Looking at: {currentStudentTarget.GetInteractionPrompt()}");
+                        string prompt = GetContextualPrompt(student);
+                        Debug.Log($"[TeacherController] Looking at: {prompt}");
                     }
                 }
                 else
@@ -252,7 +253,7 @@ namespace FunClass.Core
             {
                 if (currentStudentTarget != null)
                 {
-                    InteractWithStudent(currentStudentTarget);
+                    HandleContextualInteraction(currentStudentTarget);
                 }
                 else if (currentLookTarget != null)
                 {
@@ -360,6 +361,206 @@ namespace FunClass.Core
             else
             {
                 student.TakeObjectAway(item);
+            }
+        }
+
+        /// <summary>
+        /// Determines if a student is outside the classroom based on LevelConfig locations
+        /// </summary>
+        private bool IsStudentOutsideClassroom(StudentAgent student)
+        {
+            if (student == null || LevelManager.Instance == null) return false;
+
+            LevelConfig currentLevel = LevelManager.Instance.GetCurrentLevelConfig();
+            if (currentLevel == null || currentLevel.classroomDoor == null) return false;
+
+            // Check if student is beyond the classroom door
+            Vector3 doorPosition = currentLevel.classroomDoor.position;
+            Vector3 studentPosition = student.transform.position;
+            
+            // Simple distance check - can be made more sophisticated
+            float distanceFromDoor = Vector3.Distance(studentPosition, doorPosition);
+            
+            // If student is far from their seat and near/past the door, they're outside
+            float distanceFromSeat = Vector3.Distance(studentPosition, student.OriginalSeatPosition);
+            
+            return distanceFromSeat > 5f && distanceFromDoor < 10f;
+        }
+
+        /// <summary>
+        /// Gets a context-sensitive interaction prompt based on student location and state
+        /// </summary>
+        private string GetContextualPrompt(StudentAgent student)
+        {
+            if (student == null || student.Config == null) return "Interact with student";
+
+            string studentName = student.Config.studentName;
+            
+            // Check if student is outside classroom
+            bool isOutside = IsStudentOutsideClassroom(student);
+            
+            // Check if student is following a route
+            bool isOnRoute = student.IsFollowingRoute;
+            StudentRoute currentRoute = student.GetCurrentRoute();
+
+            if (isOutside || isOnRoute)
+            {
+                // Student is outside or escaping
+                if (student.CurrentState == StudentState.Critical)
+                {
+                    return $"Press E to escort {studentName} back to class";
+                }
+                else
+                {
+                    return $"Press E to call {studentName} back to class";
+                }
+            }
+            else
+            {
+                // Normal classroom interaction
+                return student.CurrentState switch
+                {
+                    StudentState.Calm => $"Talk to {studentName}",
+                    StudentState.Distracted => $"Calm down {studentName}",
+                    StudentState.ActingOut => $"Stop {studentName}",
+                    StudentState.Critical => $"Send {studentName} back to seat",
+                    _ => $"Interact with {studentName}"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Handles context-sensitive interaction based on student location and state
+        /// </summary>
+        private void HandleContextualInteraction(StudentAgent student)
+        {
+            if (student == null) return;
+
+            bool isOutside = IsStudentOutsideClassroom(student);
+            bool isOnRoute = student.IsFollowingRoute;
+
+            if (isOutside || isOnRoute)
+            {
+                // Student is outside or escaping - use recall actions
+                if (student.CurrentState == StudentState.Critical)
+                {
+                    EscortStudentBack(student);
+                }
+                else
+                {
+                    CallStudentBack(student);
+                }
+            }
+            else
+            {
+                // Normal classroom interaction
+                InteractWithStudent(student);
+            }
+        }
+
+        /// <summary>
+        /// Calls a student back to class using the return route
+        /// </summary>
+        private void CallStudentBack(StudentAgent student)
+        {
+            if (student == null) return;
+
+            Debug.Log($"[Teacher] Called {student.Config?.studentName} back to class");
+
+            // Stop current route/escape behavior
+            student.StopRoute();
+
+            // Get return route from level config
+            if (LevelManager.Instance != null)
+            {
+                LevelConfig currentLevel = LevelManager.Instance.GetCurrentLevelConfig();
+                if (currentLevel != null && currentLevel.returnRoute != null)
+                {
+                    student.StartRoute(currentLevel.returnRoute);
+                    Debug.Log($"[Teacher] {student.Config?.studentName} starting return route");
+                }
+                else
+                {
+                    // Fallback: direct return to seat
+                    student.ReturnToSeat();
+                }
+            }
+            else
+            {
+                student.ReturnToSeat();
+            }
+
+            // Trigger teacher action
+            student.HandleTeacherAction(TeacherActionType.CallStudentBack);
+
+            // Reduce classroom disruption
+            if (ClassroomManager.Instance != null)
+            {
+                ClassroomManager.Instance.AddDisruption(-10f, $"{student.Config?.studentName} called back");
+            }
+
+            // Log event
+            if (StudentEventManager.Instance != null)
+            {
+                StudentEventManager.Instance.LogEvent(
+                    student,
+                    StudentEventType.StudentCalmed,
+                    "was called back to class by teacher"
+                );
+            }
+        }
+
+        /// <summary>
+        /// Escorts a critical student back to their seat
+        /// </summary>
+        private void EscortStudentBack(StudentAgent student)
+        {
+            if (student == null) return;
+
+            Debug.Log($"[Teacher] Escorting {student.Config?.studentName} back to seat");
+
+            // Stop current behavior
+            student.StopRoute();
+
+            // Force immediate return
+            student.ReturnToSeat();
+
+            // Trigger teacher action
+            student.HandleTeacherAction(TeacherActionType.EscortStudentBack);
+
+            // Significant disruption reduction
+            if (ClassroomManager.Instance != null)
+            {
+                ClassroomManager.Instance.AddDisruption(-15f, $"{student.Config?.studentName} escorted back");
+            }
+
+            // Log event
+            if (StudentEventManager.Instance != null)
+            {
+                StudentEventManager.Instance.LogEvent(
+                    student,
+                    StudentEventType.StudentReturnedToSeat,
+                    "was escorted back to seat by teacher"
+                );
+            }
+        }
+
+        /// <summary>
+        /// Forces a student to return to their seat (can be called via input)
+        /// </summary>
+        public void ForceStudentReturnToSeat(StudentAgent student)
+        {
+            if (student == null) return;
+
+            Debug.Log($"[Teacher] Forcing {student.Config?.studentName} to return to seat");
+
+            student.StopRoute();
+            student.ReturnToSeat();
+            student.HandleTeacherAction(TeacherActionType.ForceReturnToSeat);
+
+            if (ClassroomManager.Instance != null)
+            {
+                ClassroomManager.Instance.AddDisruption(-5f, $"{student.Config?.studentName} forced to seat");
             }
         }
     }
