@@ -17,6 +17,16 @@ namespace FunClass.Core
         [Tooltip("If this many students reach Critical state simultaneously, instant lose")]
         public int catastrophicCriticalStudents = 4;
 
+        [Header("Outside Student Limits")]
+        [Tooltip("Maximum students allowed outside before triggering lose condition")]
+        public int maxAllowedOutsideStudents = 2;
+        [Tooltip("If this many students are outside simultaneously, instant lose")]
+        public int catastrophicOutsideStudents = 5;
+        [Tooltip("Maximum time a single student can be outside (seconds, 0 = no limit)")]
+        public float maxOutsideTimePerStudent = 60f;
+        [Tooltip("How long students can exceed maxAllowedOutsideStudents before losing (seconds)")]
+        public float maxAllowedOutsideGracePeriod = 10f;
+
         [Header("Time Limit")]
         public bool hasTimeLimit = true;
         public float timeLimitSeconds = 300f;

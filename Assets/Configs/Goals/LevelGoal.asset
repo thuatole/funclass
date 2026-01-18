@@ -16,10 +16,14 @@ MonoBehaviour:
   catastrophicDisruptionLevel: 95
   maxAllowedCriticalStudents: 2
   catastrophicCriticalStudents: 4
+  maxAllowedOutsideStudents: 2
+  catastrophicOutsideStudents: 5
+  maxOutsideTimePerStudent: 60
+  maxAllowedOutsideGracePeriod: 10
   hasTimeLimit: 1
   timeLimitSeconds: 300
-  requiredResolvedProblems: 5
-  requiredCalmDowns: 3
+  requiredResolvedProblems: 3
+  requiredCalmDowns: 2
   oneStarScore: 100
   twoStarScore: 250
   threeStarScore: 500

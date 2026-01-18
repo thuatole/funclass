@@ -12,25 +12,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8f2731a77cb567649808d888269f25be, type: 3}
   m_Name: S2_NoisyStudent
   m_EditorClassIdentifier: Assembly-CSharp::FunClass.Core.StudentConfig
-  studentId: 
-  studentName: 
-  initialState: 0
-  patience: 0.5
-  attentionSpan: 0.5
+  studentId: noisy_1
+  studentName: "Thu\u1EADt"
+  initialState: 2
+  patience: 0.6
+  attentionSpan: 0.4
   impulsiveness: 0.5
   canFidget: 1
   canLookAround: 1
-  canStandUp: 0
+  canStandUp: 1
   canMoveAround: 0
   canDropItems: 0
   canKnockOverObjects: 0
   canMakeNoiseWithObjects: 0
   canThrowObjects: 0
-  canTouchObjects: 1
-  interactionRange: 2
+  canTouchObjects: 0
+  interactionRange: 10
   minIdleTime: 2
   maxIdleTime: 8
-  calmInteractionChance: 0.1
-  distractedInteractionChance: 0.3
-  actingOutInteractionChance: 0.6
-  criticalInteractionChance: 0.9
+  calmInteractionChance: 1
+  distractedInteractionChance: 1
+  actingOutInteractionChance: 1
+  criticalInteractionChance: 1
+  confiscationBehaviors: []
+  defaultConfiscationReaction: 5
+  defaultConfiscationReactionDuration: 3
+  defaultConfiscationChangesState: 0
+  defaultConfiscationNewState: 0
+  influenceSusceptibility: 0.5
+  influenceResistance: 0.2
+  panicThreshold: 0.7
+  customInfluenceRadius: 0

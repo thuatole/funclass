@@ -1,0 +1,226 @@
+{
+  "levelName": "SampleLevel",
+  "difficulty": "Normal",
+  "goalSettings": {
+    "maxDisruptionThreshold": 80.0,
+    "catastrophicDisruptionLevel": 95.0,
+    "maxAllowedCriticalStudents": 2,
+    "catastrophicCriticalStudents": 4,
+    "maxAllowedOutsideStudents": 2,
+    "catastrophicOutsideStudents": 5,
+    "maxOutsideTimePerStudent": 60.0,
+    "maxAllowedOutsideGracePeriod": 10.0,
+    "timeLimitSeconds": 300.0,
+    "requiredResolvedProblems": 5,
+    "oneStarScore": 100,
+    "twoStarScore": 250,
+    "threeStarScore": 500
+  },
+  "students": [
+    {
+      "studentName": "Nam",
+      "position": {
+        "x": -2.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "personality": {
+        "patience": 0.5,
+        "attentionSpan": 0.6,
+        "impulsiveness": 0.4,
+        "influenceSusceptibility": 0.7,
+        "influenceResistance": 0.2,
+        "panicThreshold": 0.7
+      },
+      "behaviors": {
+        "canFidget": true,
+        "canLookAround": true,
+        "canStandUp": true,
+        "canMoveAround": false,
+        "canDropItems": true,
+        "canKnockOverObjects": false,
+        "canMakeNoiseWithObjects": true,
+        "canThrowObjects": false,
+        "minIdleTime": 2.0,
+        "maxIdleTime": 8.0
+      }
+    },
+    {
+      "studentName": "Lan",
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "personality": {
+        "patience": 0.7,
+        "attentionSpan": 0.8,
+        "impulsiveness": 0.3,
+        "influenceSusceptibility": 0.5,
+        "influenceResistance": 0.3,
+        "panicThreshold": 0.8
+      },
+      "behaviors": {
+        "canFidget": true,
+        "canLookAround": true,
+        "canStandUp": false,
+        "canMoveAround": false,
+        "canDropItems": false,
+        "canKnockOverObjects": false,
+        "canMakeNoiseWithObjects": true,
+        "canThrowObjects": false,
+        "minIdleTime": 3.0,
+        "maxIdleTime": 10.0
+      }
+    },
+    {
+      "studentName": "Minh",
+      "position": {
+        "x": 2.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "personality": {
+        "patience": 0.3,
+        "attentionSpan": 0.4,
+        "impulsiveness": 0.8,
+        "influenceSusceptibility": 0.9,
+        "influenceResistance": 0.1,
+        "panicThreshold": 0.6
+      },
+      "behaviors": {
+        "canFidget": true,
+        "canLookAround": true,
+        "canStandUp": true,
+        "canMoveAround": true,
+        "canDropItems": true,
+        "canKnockOverObjects": true,
+        "canMakeNoiseWithObjects": true,
+        "canThrowObjects": true,
+        "minIdleTime": 1.0,
+        "maxIdleTime": 5.0
+      }
+    }
+  ],
+  "routes": [
+    {
+      "routeName": "EscapeRoute",
+      "routeType": "Escape",
+      "waypoints": [
+        {
+          "waypointName": "Escape_0",
+          "position": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "waitDuration": 0.0,
+          "actionToTrigger": "Idle"
+        },
+        {
+          "waypointName": "Escape_1",
+          "position": {
+            "x": 5.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "waitDuration": 0.0,
+          "actionToTrigger": "Idle"
+        },
+        {
+          "waypointName": "Escape_2",
+          "position": {
+            "x": 10.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "waitDuration": 0.0,
+          "actionToTrigger": "Idle"
+        }
+      ],
+      "movementSpeed": 4.0,
+      "rotationSpeed": 360.0,
+      "isRunning": true,
+      "isLooping": false,
+      "isPingPong": false
+    },
+    {
+      "routeName": "ReturnRoute",
+      "routeType": "Return",
+      "waypoints": [
+        {
+          "waypointName": "Return_0",
+          "position": {
+            "x": 10.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "waitDuration": 0.0,
+          "actionToTrigger": "Idle"
+        },
+        {
+          "waypointName": "Return_1",
+          "position": {
+            "x": 5.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "waitDuration": 0.0,
+          "actionToTrigger": "Idle"
+        },
+        {
+          "waypointName": "Return_2",
+          "position": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "waitDuration": 0.0,
+          "actionToTrigger": "Idle"
+        }
+      ],
+      "movementSpeed": 2.0,
+      "rotationSpeed": 180.0,
+      "isRunning": false,
+      "isLooping": false,
+      "isPingPong": false
+    }
+  ],
+  "prefabs": [
+    {
+      "prefabName": "Desk_01",
+      "prefabType": "Furniture",
+      "position": {
+        "x": -2.0,
+        "y": 0.0,
+        "z": -1.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "prefabPath": ""
+    }
+  ],
+  "environment": {
+    "classroomSize": {
+      "x": 20.0,
+      "y": 5.0,
+      "z": 15.0
+    },
+    "doorPosition": {
+      "x": 10.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "windowPositions": [],
+    "floorMaterial": "",
+    "wallMaterial": ""
+  }
+}

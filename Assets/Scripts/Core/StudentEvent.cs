@@ -18,7 +18,10 @@ namespace FunClass.Core
         StudentStoppedAction,
         ObjectTakenAway,
         StudentReacted,
-        ReactionEnded
+        ReactionEnded,
+        MessCreated,
+        MessCleaned,
+        StudentActedOut
     }
 
     public class StudentEvent

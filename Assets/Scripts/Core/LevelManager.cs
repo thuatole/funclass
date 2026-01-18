@@ -18,6 +18,8 @@ namespace FunClass.Core
         private LevelGoalConfig currentGoal;
         private bool levelEnded = false;
         private int criticalStudentCount = 0;
+        private float outsideStudentsExceededTime = 0f;
+        private bool isTrackingOutsideExcess = false;
 
         void Awake()
         {
@@ -42,6 +44,11 @@ namespace FunClass.Core
             {
                 StudentEventManager.Instance.OnEventLogged += HandleStudentEvent;
             }
+
+            if (ClassroomManager.Instance != null)
+            {
+                ClassroomManager.Instance.OnOutsideStudentCountChanged += HandleOutsideStudentCountChanged;
+            }
         }
 
         void OnDisable()
@@ -54,6 +61,11 @@ namespace FunClass.Core
             if (StudentEventManager.Instance != null)
             {
                 StudentEventManager.Instance.OnEventLogged -= HandleStudentEvent;
+            }
+
+            if (ClassroomManager.Instance != null)
+            {
+                ClassroomManager.Instance.OnOutsideStudentCountChanged -= HandleOutsideStudentCountChanged;
             }
         }
 
@@ -94,6 +106,8 @@ namespace FunClass.Core
             levelEnded = false;
             LevelTimeElapsed = 0f;
             criticalStudentCount = 0;
+            outsideStudentsExceededTime = 0f;
+            isTrackingOutsideExcess = false;
 
             if (LevelLoader.Instance != null && LevelLoader.Instance.CurrentLevel != null)
             {
@@ -105,6 +119,15 @@ namespace FunClass.Core
             }
 
             Debug.Log("[LevelManager] Level started");
+        }
+
+        /// <summary>
+        /// Handles changes in the number of students outside the classroom
+        /// </summary>
+        private void HandleOutsideStudentCountChanged(int count)
+        {
+            // This event is used to trigger immediate checks if needed
+            // The actual lose condition checking happens in CheckLoseConditions()
         }
 
         /// <summary>
@@ -165,6 +188,61 @@ namespace FunClass.Core
                 {
                     LoseLevel("Disruption exceeded maximum threshold!");
                     return;
+                }
+
+                // Check outside student conditions
+                int outsideCount = ClassroomManager.Instance.OutsideStudentCount;
+
+                // Catastrophic: Too many students outside at once
+                if (outsideCount >= currentGoal.catastrophicOutsideStudents)
+                {
+                    LoseLevel($"LOSS: Too many students outside the classroom! ({outsideCount} students escaped)");
+                    return;
+                }
+
+                // Check if any individual student has been outside too long
+                if (currentGoal.maxOutsideTimePerStudent > 0)
+                {
+                    StudentAgent[] allStudents = FindObjectsOfType<StudentAgent>();
+                    foreach (StudentAgent student in allStudents)
+                    {
+                        float timeOutside = ClassroomManager.Instance.GetStudentOutsideDuration(student);
+                        if (timeOutside > currentGoal.maxOutsideTimePerStudent)
+                        {
+                            LoseLevel($"LOSS: {student.Config?.studentName} was outside for too long ({timeOutside:F0}s)");
+                            return;
+                        }
+                    }
+                }
+
+                // Track grace period for exceeding max allowed outside students
+                if (outsideCount > currentGoal.maxAllowedOutsideStudents)
+                {
+                    if (!isTrackingOutsideExcess)
+                    {
+                        isTrackingOutsideExcess = true;
+                        outsideStudentsExceededTime = 0f;
+                        Debug.LogWarning($"[LevelManager] Too many students outside ({outsideCount}/{currentGoal.maxAllowedOutsideStudents}), grace period started");
+                    }
+                    else
+                    {
+                        outsideStudentsExceededTime += Time.deltaTime;
+                        if (outsideStudentsExceededTime >= currentGoal.maxAllowedOutsideGracePeriod)
+                        {
+                            LoseLevel($"LOSS: Too many students remained outside for too long ({outsideCount} students)");
+                            return;
+                        }
+                    }
+                }
+                else
+                {
+                    // Reset grace period if count drops back down
+                    if (isTrackingOutsideExcess)
+                    {
+                        isTrackingOutsideExcess = false;
+                        outsideStudentsExceededTime = 0f;
+                        Debug.Log($"[LevelManager] Outside student count back to acceptable levels");
+                    }
                 }
             }
 

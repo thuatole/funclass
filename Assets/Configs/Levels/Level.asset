@@ -15,6 +15,15 @@ MonoBehaviour:
   levelId: 
   grade: 0
   description: 
-  students: []
-  availableSequences: []
-  levelGoal: {fileID: 0}
+  students:
+  - {fileID: 11400000, guid: b6dd42c11f14bcb49af4579d92854e26, type: 2}
+  - {fileID: 11400000, guid: 101cfb23962e21a4fb4532a1f0eb960e, type: 2}
+  availableSequences:
+  - {fileID: 11400000, guid: 28f9f8959a80e7145bceeaab11502c76, type: 2}
+  levelGoal: {fileID: 11400000, guid: 726371977d1222c439c9e5179833318c, type: 2}
+  availableRoutes: []
+  escapeRoute: {fileID: 0}
+  returnRoute: {fileID: 0}
+  classroomDoor: {fileID: 0}
+  outsideArea: {fileID: 0}
+  seatPositions: []

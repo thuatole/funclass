@@ -102,9 +102,15 @@ namespace FunClass.Core
         /// </summary>
         public void StartRoute(StudentAgent student, StudentRoute route)
         {
-            if (!isActive || student == null || route == null || !route.IsValid())
+            if (student == null || route == null)
             {
-                LogWarning($"[Movement] Cannot start route - invalid parameters");
+                Debug.LogWarning("[StudentMovementManager] Cannot start route - student or route is null");
+                return;
+            }
+
+            if (route.waypoints == null || route.waypoints.Count == 0)
+            {
+                Debug.LogWarning($"[StudentMovementManager] Route {route.routeName} has no waypoints");
                 return;
             }
 
@@ -112,7 +118,7 @@ namespace FunClass.Core
             StopMovement(student);
 
             // Create new movement state
-            StudentMovementState movementState = new StudentMovementState
+            StudentMovementState state = new StudentMovementState
             {
                 student = student,
                 route = route,
@@ -124,9 +130,15 @@ namespace FunClass.Core
                 isReversing = false
             };
 
-            activeMovements[student] = movementState;
+            activeMovements[student] = state;
 
             Log($"[Movement] {student.Config?.studentName} started route: {route.routeName}");
+
+            // Register student as outside if this is an escape route
+            if (route.routeName.ToLower().Contains("escape") && ClassroomManager.Instance != null)
+            {
+                ClassroomManager.Instance.RegisterStudentOutside(student);
+            }
 
             // Log event
             if (StudentEventManager.Instance != null)
@@ -390,6 +402,11 @@ namespace FunClass.Core
                     break;
 
                 case RouteCompletionBehavior.ReturnToSeat:
+                    // Unregister from outside tracking
+                    if (ClassroomManager.Instance != null)
+                    {
+                        ClassroomManager.Instance.UnregisterStudentOutside(student);
+                    }
                     ReturnToSeat(student);
                     break;
 

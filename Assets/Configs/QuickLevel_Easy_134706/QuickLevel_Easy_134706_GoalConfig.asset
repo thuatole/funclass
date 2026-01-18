@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a5c0edfc5c9265498f19e420247e7ed, type: 3}
+  m_Name: QuickLevel_Easy_134706_GoalConfig
+  m_EditorClassIdentifier: Assembly-CSharp::FunClass.Core.LevelGoalConfig
+  maxDisruptionThreshold: 90
+  catastrophicDisruptionLevel: 100
+  maxAllowedCriticalStudents: 3
+  catastrophicCriticalStudents: 5
+  maxAllowedOutsideStudents: 3
+  catastrophicOutsideStudents: 6
+  maxOutsideTimePerStudent: 90
+  maxAllowedOutsideGracePeriod: 15
+  hasTimeLimit: 1
+  timeLimitSeconds: 600
+  requiredResolvedProblems: 3
+  requiredCalmDowns: 3
+  oneStarScore: 50
+  twoStarScore: 150
+  threeStarScore: 300
+  winDisruptionThreshold: 50

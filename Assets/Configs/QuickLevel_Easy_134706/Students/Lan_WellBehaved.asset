@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f2731a77cb567649808d888269f25be, type: 3}
+  m_Name: Lan_WellBehaved
+  m_EditorClassIdentifier: Assembly-CSharp::FunClass.Core.StudentConfig
+  studentId: 
+  studentName: Lan
+  initialState: 0
+  patience: 0.7371174
+  attentionSpan: 0.842136
+  impulsiveness: 0.16096213
+  canFidget: 1
+  canLookAround: 1
+  canStandUp: 0
+  canMoveAround: 0
+  canDropItems: 0
+  canKnockOverObjects: 0
+  canMakeNoiseWithObjects: 0
+  canThrowObjects: 0
+  canTouchObjects: 1
+  interactionRange: 2
+  minIdleTime: 5
+  maxIdleTime: 15
+  calmInteractionChance: 0.1
+  distractedInteractionChance: 0.3
+  actingOutInteractionChance: 0.6
+  criticalInteractionChance: 0.9
+  confiscationBehaviors: []
+  defaultConfiscationReaction: 5
+  defaultConfiscationReactionDuration: 3
+  defaultConfiscationChangesState: 0
+  defaultConfiscationNewState: 0
+  influenceSusceptibility: 0.3036038
+  influenceResistance: 0.73605484
+  panicThreshold: 0.9272703
+  customInfluenceRadius: 0

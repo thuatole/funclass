@@ -25,6 +25,14 @@ namespace FunClass.Core
         [SerializeField] private float mediumInfluenceMultiplier = 0.6f;
         [SerializeField] private float weakInfluenceMultiplier = 0.3f;
 
+        [Header("Mess Influence Settings")]
+        [Tooltip("Base severity for vomit/mess influence events")]
+        [Range(0f, 1f)]
+        [SerializeField] private float vomitInfluenceBaseSeverity = 0.85f;
+        
+        [Tooltip("Maximum radius for vomit panic influence")]
+        [SerializeField] private float vomitPanicRadius = 6f;
+
         [Header("Debug")]
         [SerializeField] private bool enableDebugLogs = true;
 
@@ -133,6 +141,7 @@ namespace FunClass.Core
                 StudentEventType.KnockedOverObject => true,
                 StudentEventType.LeftSeat => true,
                 StudentEventType.WanderingAround => true,
+                StudentEventType.MessCreated => true,
                 StudentEventType.StudentReacted when IsHighIntensityReaction(eventType) => true,
                 _ => false
             };
@@ -152,6 +161,7 @@ namespace FunClass.Core
             return eventType switch
             {
                 StudentEventType.ThrowingObject => 0.9f,
+                StudentEventType.MessCreated => vomitInfluenceBaseSeverity,
                 StudentEventType.KnockedOverObject => 0.7f,
                 StudentEventType.MakingNoise => 0.6f,
                 StudentEventType.LeftSeat => 0.5f,
@@ -169,17 +179,29 @@ namespace FunClass.Core
             Vector3 sourcePosition = sourceStudent.transform.position;
             float baseSeverity = GetInfluenceSeverity(evt.eventType);
 
-            Log($"[Influence] {sourceStudent.Config?.studentName} triggered influence event: {evt.eventType}");
+            // Use special radius for mess events
+            float influenceRadius = (evt.eventType == StudentEventType.MessCreated) 
+                ? vomitPanicRadius 
+                : maxInfluenceRadius;
 
-            List<StudentAgent> affectedStudents = FindNearbyStudents(sourceStudent, maxInfluenceRadius);
+            if (evt.eventType == StudentEventType.MessCreated)
+            {
+                Log($"[Influence] Mess created by {sourceStudent.Config?.studentName} triggered panic influence");
+            }
+            else
+            {
+                Log($"[Influence] {sourceStudent.Config?.studentName} triggered influence event: {evt.eventType}");
+            }
+
+            List<StudentAgent> affectedStudents = FindNearbyStudents(sourceStudent, influenceRadius);
 
             if (affectedStudents.Count == 0)
             {
-                Log($"[Influence] No nearby students within {maxInfluenceRadius}m");
+                Log($"[Influence] No nearby students within {influenceRadius}m");
                 return;
             }
 
-            Log($"[Influence] {affectedStudents.Count} nearby students detected within {maxInfluenceRadius}m");
+            Log($"[Influence] {affectedStudents.Count} nearby students detected within {influenceRadius}m");
 
             foreach (StudentAgent targetStudent in affectedStudents)
             {

@@ -31,6 +31,7 @@ namespace FunClass.Core
         private bool isActive = false;
         private InteractableObject currentLookTarget;
         private StudentAgent currentStudentTarget;
+        private MessObject currentMessTarget;
 
         public Camera PlayerCamera => playerCamera;
 
@@ -38,29 +39,50 @@ namespace FunClass.Core
         {
             if (Instance != null && Instance != this)
             {
+                Debug.LogWarning("[TeacherController] Duplicate instance destroyed");
                 Destroy(gameObject);
                 return;
             }
 
             Instance = this;
             characterController = GetComponent<CharacterController>();
+            
+            if (characterController == null)
+            {
+                Debug.LogError("[TeacherController] CharacterController component missing!");
+            }
+            else
+            {
+                Debug.Log("[TeacherController] CharacterController found");
+            }
 
             if (playerCamera == null)
             {
                 playerCamera = Camera.main;
+                Debug.Log($"[TeacherController] Camera assigned from Camera.main: {playerCamera != null}");
             }
 
             if (cameraTransform == null && playerCamera != null)
             {
                 cameraTransform = playerCamera.transform;
             }
+            
+            Debug.Log($"[TeacherController] Awake complete - Camera: {playerCamera != null}, CameraTransform: {cameraTransform != null}");
         }
 
         void OnEnable()
         {
+            Debug.Log("[TeacherController] OnEnable called");
+            
             if (GameStateManager.Instance != null)
             {
+                Debug.Log("[TeacherController] GameStateManager.Instance found, subscribing to OnStateChanged");
                 GameStateManager.Instance.OnStateChanged += HandleGameStateChanged;
+                Debug.Log($"[TeacherController] ✅ Subscribed to OnStateChanged, Current state: {GameStateManager.Instance.CurrentState}");
+            }
+            else
+            {
+                Debug.LogWarning("[TeacherController] ⚠️ GameStateManager.Instance is NULL in OnEnable - will retry in Start()");
             }
         }
 
@@ -74,9 +96,27 @@ namespace FunClass.Core
 
         void Start()
         {
+            Debug.Log("[TeacherController] Start called");
+            
+            // Fallback: Subscribe if OnEnable failed (GameStateManager didn't exist yet)
             if (GameStateManager.Instance != null)
             {
-                HandleGameStateChanged(GameStateManager.Instance.CurrentState, GameStateManager.Instance.CurrentState);
+                Debug.Log($"[TeacherController] Current game state: {GameStateManager.Instance.CurrentState}");
+                
+                // Always try to subscribe (duplicate subscriptions are handled by C# events)
+                GameStateManager.Instance.OnStateChanged += HandleGameStateChanged;
+                Debug.Log("[TeacherController] Subscribed to OnStateChanged in Start()");
+                
+                // If already in InLevel, activate immediately
+                if (GameStateManager.Instance.CurrentState == GameState.InLevel)
+                {
+                    Debug.Log("[TeacherController] Already in InLevel, activating teacher");
+                    ActivateTeacher();
+                }
+            }
+            else
+            {
+                Debug.LogError("[TeacherController] GameStateManager.Instance is STILL null in Start()!");
             }
 
             Cursor.lockState = CursorLockMode.Locked;
@@ -95,12 +135,16 @@ namespace FunClass.Core
 
         private void HandleGameStateChanged(GameState oldState, GameState newState)
         {
+            Debug.Log($"[TeacherController] HandleGameStateChanged called: {oldState} -> {newState}");
+            
             if (newState == GameState.InLevel)
             {
+                Debug.Log("[TeacherController] State is InLevel, activating teacher");
                 ActivateTeacher();
             }
             else
             {
+                Debug.Log($"[TeacherController] State is {newState}, deactivating teacher");
                 DeactivateTeacher();
             }
         }
@@ -109,12 +153,14 @@ namespace FunClass.Core
         {
             isActive = true;
             enabled = true;
-            Debug.Log("[TeacherController] Teacher activated");
+            Debug.Log($"[TeacherController] ✅ Teacher ACTIVATED - isActive: {isActive}, enabled: {enabled}");
         }
 
         private void DeactivateTeacher()
         {
             isActive = false;
+            Debug.Log($"[TeacherController] ❌ Teacher DEACTIVATED - isActive: {isActive}");
+            Debug.LogWarning($"[TeacherController] DEACTIVATION STACK TRACE:", this);
             enabled = false;
             Debug.Log("[TeacherController] Teacher deactivated");
         }
@@ -220,16 +266,33 @@ namespace FunClass.Core
                 }
                 else
                 {
-                    InteractableObject interactable = hit.collider.GetComponent<InteractableObject>();
-                    
-                    if (interactable != currentLookTarget)
+                    // Check for mess objects first
+                    MessObject mess = hit.collider.GetComponent<MessObject>();
+                    if (mess != null)
                     {
-                        currentLookTarget = interactable;
-                        currentStudentTarget = null;
-                        
-                        if (currentLookTarget != null)
+                        if (mess != currentMessTarget)
                         {
-                            Debug.Log($"[TeacherController] Looking at: {currentLookTarget.GetInteractionPrompt()}");
+                            currentMessTarget = mess;
+                            currentLookTarget = null;
+                            currentStudentTarget = null;
+                            
+                            Debug.Log($"[TeacherController] Looking at: {currentMessTarget.GetInteractionPrompt()}");
+                        }
+                    }
+                    else
+                    {
+                        InteractableObject interactable = hit.collider.GetComponent<InteractableObject>();
+                        
+                        if (interactable != currentLookTarget)
+                        {
+                            currentLookTarget = interactable;
+                            currentStudentTarget = null;
+                            currentMessTarget = null;
+                            
+                            if (currentLookTarget != null)
+                            {
+                                Debug.Log($"[TeacherController] Looking at: {currentLookTarget.GetInteractionPrompt()}");
+                            }
                         }
                     }
                 }
@@ -244,6 +307,10 @@ namespace FunClass.Core
                 {
                     currentStudentTarget = null;
                 }
+                if (currentMessTarget != null)
+                {
+                    currentMessTarget = null;
+                }
             }
         }
 
@@ -251,7 +318,11 @@ namespace FunClass.Core
         {
             if (Input.GetKeyDown(KeyCode.E))
             {
-                if (currentStudentTarget != null)
+                if (currentMessTarget != null)
+                {
+                    CleanMess(currentMessTarget);
+                }
+                else if (currentStudentTarget != null)
                 {
                     HandleContextualInteraction(currentStudentTarget);
                 }
@@ -470,6 +541,12 @@ namespace FunClass.Core
             // Stop current route/escape behavior
             student.StopRoute();
 
+            // Unregister from outside tracking (they're being recalled)
+            if (ClassroomManager.Instance != null)
+            {
+                ClassroomManager.Instance.UnregisterStudentOutside(student);
+            }
+
             // Get return route from level config
             if (LevelManager.Instance != null)
             {
@@ -522,6 +599,12 @@ namespace FunClass.Core
             // Stop current behavior
             student.StopRoute();
 
+            // Unregister from outside tracking
+            if (ClassroomManager.Instance != null)
+            {
+                ClassroomManager.Instance.UnregisterStudentOutside(student);
+            }
+
             // Force immediate return
             student.ReturnToSeat();
 
@@ -562,6 +645,36 @@ namespace FunClass.Core
             {
                 ClassroomManager.Instance.AddDisruption(-5f, $"{student.Config?.studentName} forced to seat");
             }
+        }
+
+        /// <summary>
+        /// Cleans a mess object
+        /// </summary>
+        private void CleanMess(MessObject mess)
+        {
+            if (mess == null) return;
+
+            if (mess.IsCleaned())
+            {
+                Debug.LogWarning($"[Teacher] Attempted to clean already cleaned {mess.messName}");
+                return;
+            }
+
+            Debug.Log($"[Teacher] Cleaning {mess.messName}");
+
+            // Start cleanup process
+            mess.StartCleanup(this);
+
+            // Clear current target
+            currentMessTarget = null;
+        }
+
+        /// <summary>
+        /// Gets the current mess target the teacher is looking at
+        /// </summary>
+        public MessObject GetCurrentMessTarget()
+        {
+            return currentMessTarget;
         }
     }
 }

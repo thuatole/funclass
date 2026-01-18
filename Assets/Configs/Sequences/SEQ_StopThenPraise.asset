@@ -12,8 +12,36 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e66c7bb4a05d3c64a8b60159a9fdfadf, type: 3}
   m_Name: SEQ_StopThenPraise
   m_EditorClassIdentifier: Assembly-CSharp::FunClass.Core.StudentSequenceConfig
-  sequenceId: 
-  entryState: 0
-  entryTeacherAction: 0
-  steps: []
-  finalOutcomeDescription: 
+  sequenceId: stop_then_praise
+  entryState: 2
+  entryTeacherAction: 2
+  steps:
+  - requiredStudentState: 2
+    requiredTeacherAction: 2
+    resultingReaction: 4
+    changeState: 0
+    resultingStateChange: 0
+    stepDescription: Student becomes scared after being stopped
+    enableBranching: 0
+    successNextStepIndex: 0
+    failureNextStepIndex: 0
+    allowAnyActionToFail: 0
+    enableTimeout: 0
+    timeoutSeconds: 0
+    timeoutNextStepIndex: 0
+    timeoutReaction: 0
+  - requiredStudentState: 2
+    requiredTeacherAction: 6
+    resultingReaction: 2
+    changeState: 1
+    resultingStateChange: 0
+    stepDescription: Student apologizes and calms down after praise
+    enableBranching: 0
+    successNextStepIndex: 0
+    failureNextStepIndex: 0
+    allowAnyActionToFail: 0
+    enableTimeout: 0
+    timeoutSeconds: 0
+    timeoutNextStepIndex: 0
+    timeoutReaction: 0
+  finalOutcomeDescription: Student calmed down through stop then praise

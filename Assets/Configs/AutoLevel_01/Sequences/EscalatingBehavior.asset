@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e66c7bb4a05d3c64a8b60159a9fdfadf, type: 3}
+  m_Name: EscalatingBehavior
+  m_EditorClassIdentifier: Assembly-CSharp::FunClass.Core.StudentSequenceConfig
+  sequenceId: escalating_behavior
+  entryState: 0
+  entryTeacherAction: 0
+  steps:
+  - requiredStudentState: 0
+    requiredTeacherAction: 0
+    resultingReaction: 6
+    changeState: 1
+    resultingStateChange: 1
+    stepDescription: "Student gets bored \u2192 becomes distracted"
+    enableBranching: 0
+    successNextStepIndex: -1
+    failureNextStepIndex: -1
+    allowAnyActionToFail: 0
+    enableTimeout: 0
+    timeoutSeconds: 10
+    timeoutNextStepIndex: -1
+    timeoutReaction: 0
+  - requiredStudentState: 1
+    requiredTeacherAction: 0
+    resultingReaction: 3
+    changeState: 1
+    resultingStateChange: 2
+    stepDescription: "Student becomes frustrated \u2192 starts acting out"
+    enableBranching: 0
+    successNextStepIndex: -1
+    failureNextStepIndex: -1
+    allowAnyActionToFail: 0
+    enableTimeout: 0
+    timeoutSeconds: 10
+    timeoutNextStepIndex: -1
+    timeoutReaction: 0
+  - requiredStudentState: 2
+    requiredTeacherAction: 1
+    resultingReaction: 2
+    changeState: 1
+    resultingStateChange: 0
+    stepDescription: "Teacher calms student \u2192 Student feels relieved and calms
+      down"
+    enableBranching: 0
+    successNextStepIndex: -1
+    failureNextStepIndex: -1
+    allowAnyActionToFail: 0
+    enableTimeout: 0
+    timeoutSeconds: 10
+    timeoutNextStepIndex: -1
+    timeoutReaction: 0
+  finalOutcomeDescription: Student escalates through states until teacher intervenes

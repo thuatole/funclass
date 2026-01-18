@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f9082d06048fbc4da3673444f90583b, type: 3}
+  m_Name: AutoLevel_01_Config
+  m_EditorClassIdentifier: Assembly-CSharp::FunClass.Core.LevelConfig
+  levelId: 
+  grade: 0
+  description: 
+  students:
+  - {fileID: 11400000, guid: c9bc8e980b955e644b8ce9a9ce90df1c, type: 2}
+  - {fileID: 11400000, guid: 00a1032c26bc28e4d838370140a92db5, type: 2}
+  availableSequences:
+  - {fileID: 11400000, guid: f63a3652c56bb86439a7fee2cf3627a1, type: 2}
+  - {fileID: 11400000, guid: d3d2a197c30c50744bbf9eff85877c85, type: 2}
+  - {fileID: 11400000, guid: f71b817af30db1b45b9023d97166243c, type: 2}
+  - {fileID: 11400000, guid: 6cd702291a237a141a73700605a46be4, type: 2}
+  - {fileID: 11400000, guid: 47dfdad235bf2d74dbb81c2c931f7522, type: 2}
+  levelGoal: {fileID: 11400000, guid: bb3eaf3e586f8fe4dae8131a4ce641ea, type: 2}
+  availableRoutes:
+  - {fileID: 11400000, guid: b3b25999184930947af552ecd360cae0, type: 2}
+  - {fileID: 11400000, guid: 660d940cf1d7a0f45b4bc9c489a43836, type: 2}
+  escapeRoute: {fileID: 11400000, guid: b3b25999184930947af552ecd360cae0, type: 2}
+  returnRoute: {fileID: 11400000, guid: 660d940cf1d7a0f45b4bc9c489a43836, type: 2}
+  classroomDoor: {fileID: 0}
+  outsideArea: {fileID: 0}
+  seatPositions: []

@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e66c7bb4a05d3c64a8b60159a9fdfadf, type: 3}
+  m_Name: ObjectConfiscation
+  m_EditorClassIdentifier: Assembly-CSharp::FunClass.Core.StudentSequenceConfig
+  sequenceId: object_confiscation
+  entryState: 1
+  entryTeacherAction: 0
+  steps:
+  - requiredStudentState: 1
+    requiredTeacherAction: 0
+    resultingReaction: 0
+    changeState: 0
+    resultingStateChange: 0
+    stepDescription: "Student plays with object \u2192 becomes amused"
+    enableBranching: 0
+    successNextStepIndex: -1
+    failureNextStepIndex: -1
+    allowAnyActionToFail: 0
+    enableTimeout: 0
+    timeoutSeconds: 10
+    timeoutNextStepIndex: -1
+    timeoutReaction: 0
+  - requiredStudentState: 1
+    requiredTeacherAction: 4
+    resultingReaction: 5
+    changeState: 1
+    resultingStateChange: 0
+    stepDescription: "Teacher confiscates object \u2192 Student embarrassed, calms
+      down"
+    enableBranching: 0
+    successNextStepIndex: -1
+    failureNextStepIndex: -1
+    allowAnyActionToFail: 0
+    enableTimeout: 0
+    timeoutSeconds: 10
+    timeoutNextStepIndex: -1
+    timeoutReaction: 0
+  finalOutcomeDescription: Teacher confiscates object from student

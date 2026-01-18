@@ -11,6 +11,7 @@ namespace FunClass.Core
         Praise,
         CallStudentBack,
         EscortStudentBack,
-        ForceReturnToSeat
+        ForceReturnToSeat,
+        CleanMess
     }
 }

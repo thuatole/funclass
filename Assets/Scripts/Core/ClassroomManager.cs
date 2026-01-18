@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using System.Collections.Generic;
 
 namespace FunClass.Core
 {
@@ -7,15 +8,35 @@ namespace FunClass.Core
     {
         public static ClassroomManager Instance { get; private set; }
 
+        [Header("Level Configuration")]
+        public LevelConfig levelConfig;
+
         public ClassroomState CurrentState { get; private set; }
         public event Action<ClassroomState, ClassroomState> OnStateChanged;
 
         public float DisruptionLevel { get; private set; }
         public event Action<float> OnDisruptionChanged;
 
+        [Header("Outside Student Tracking")]
+        [Tooltip("Disruption added per student outside per check interval")]
+        [SerializeField] private float outsideDisruptionRate = 0.5f;
+        
+        [Tooltip("How often to check and apply outside student penalty (seconds)")]
+        [SerializeField] private float outsideCheckInterval = 5f;
+        
+        [Tooltip("Maximum disruption that can be added from students outside")]
+        [SerializeField] private float maxOutsideDisruptionPenalty = 30f;
+
+        public int OutsideStudentCount { get; private set; }
+        public event Action<int> OnOutsideStudentCountChanged;
+
         private bool isActive = false;
         private const float MAX_DISRUPTION = 100f;
         private const float MIN_DISRUPTION = 0f;
+        
+        private Dictionary<StudentAgent, float> studentsOutside = new Dictionary<StudentAgent, float>();
+        private float nextOutsideCheckTime = 0f;
+        private float totalOutsideDisruptionApplied = 0f;
 
         void Awake()
         {
@@ -57,20 +78,49 @@ namespace FunClass.Core
 
         void Start()
         {
+            Debug.Log("[ClassroomManager] Start called");
+            
+            // Don't manually call HandleGameStateChanged here
+            // Let the event system handle it when state actually transitions to InLevel
+            // This prevents premature deactivation when state is still Boot
+            
             if (GameStateManager.Instance != null)
             {
-                HandleGameStateChanged(GameStateManager.Instance.CurrentState, GameStateManager.Instance.CurrentState);
+                Debug.Log($"[ClassroomManager] Current game state: {GameStateManager.Instance.CurrentState}");
+                
+                // Only activate if already in InLevel (shouldn't happen normally)
+                if (GameStateManager.Instance.CurrentState == GameState.InLevel)
+                {
+                    Debug.Log("[ClassroomManager] Already in InLevel, activating classroom");
+                    ActivateClassroom();
+                }
+            }
+        }
+
+        void Update()
+        {
+            if (!isActive) return;
+
+            // Check for outside student disruption penalty
+            if (Time.time >= nextOutsideCheckTime)
+            {
+                ProcessOutsideStudentDisruption();
+                nextOutsideCheckTime = Time.time + outsideCheckInterval;
             }
         }
 
         private void HandleGameStateChanged(GameState oldState, GameState newState)
         {
+            Debug.Log($"[ClassroomManager] HandleGameStateChanged: {oldState} -> {newState}");
+            
             if (newState == GameState.InLevel)
             {
+                Debug.Log("[ClassroomManager] State is InLevel, activating classroom");
                 ActivateClassroom();
             }
             else
             {
+                Debug.Log($"[ClassroomManager] State is {newState}, deactivating classroom");
                 DeactivateClassroom();
             }
         }
@@ -79,13 +129,14 @@ namespace FunClass.Core
         {
             isActive = true;
             ResetClassroom();
-            Debug.Log("[ClassroomManager] Classroom activated");
+            Debug.Log($"[ClassroomManager] ✅ Classroom ACTIVATED - isActive: {isActive}");
         }
 
         private void DeactivateClassroom()
         {
             isActive = false;
-            Debug.Log("[ClassroomManager] Classroom deactivated");
+            Debug.Log($"[ClassroomManager] ❌ Classroom DEACTIVATED - isActive: {isActive}");
+            Debug.LogWarning("[ClassroomManager] DEACTIVATION STACK TRACE:", this);
         }
 
         private void ResetClassroom()
@@ -93,6 +144,7 @@ namespace FunClass.Core
             ChangeState(ClassroomState.Calm);
             DisruptionLevel = 0f;
             OnDisruptionChanged?.Invoke(DisruptionLevel);
+            ResetOutsideTracking();
             Debug.Log("[ClassroomManager] Disruption level reset to 0");
         }
 
@@ -214,6 +266,88 @@ namespace FunClass.Core
         public float GetDisruptionPercentage()
         {
             return DisruptionLevel / MAX_DISRUPTION;
+        }
+
+        /// <summary>
+        /// Registers a student as being outside the classroom
+        /// </summary>
+        public void RegisterStudentOutside(StudentAgent student)
+        {
+            if (student == null || studentsOutside.ContainsKey(student)) return;
+
+            studentsOutside[student] = Time.time;
+            OutsideStudentCount = studentsOutside.Count;
+            OnOutsideStudentCountChanged?.Invoke(OutsideStudentCount);
+
+            Debug.Log($"[ClassroomManager] {student.Config?.studentName} is now outside classroom (Total outside: {OutsideStudentCount})");
+        }
+
+        /// <summary>
+        /// Unregisters a student as being outside (they returned to classroom)
+        /// </summary>
+        public void UnregisterStudentOutside(StudentAgent student)
+        {
+            if (student == null || !studentsOutside.ContainsKey(student)) return;
+
+            float timeOutside = Time.time - studentsOutside[student];
+            studentsOutside.Remove(student);
+            OutsideStudentCount = studentsOutside.Count;
+            OnOutsideStudentCountChanged?.Invoke(OutsideStudentCount);
+
+            Debug.Log($"[ClassroomManager] {student.Config?.studentName} returned to classroom after {timeOutside:F1}s (Total outside: {OutsideStudentCount})");
+        }
+
+        /// <summary>
+        /// Gets how long a student has been outside (in seconds)
+        /// </summary>
+        public float GetStudentOutsideDuration(StudentAgent student)
+        {
+            if (student == null || !studentsOutside.ContainsKey(student)) return 0f;
+            return Time.time - studentsOutside[student];
+        }
+
+        /// <summary>
+        /// Checks if a student is currently registered as outside
+        /// </summary>
+        public bool IsStudentOutside(StudentAgent student)
+        {
+            return student != null && studentsOutside.ContainsKey(student);
+        }
+
+        /// <summary>
+        /// Processes continuous disruption increase from students outside
+        /// </summary>
+        private void ProcessOutsideStudentDisruption()
+        {
+            if (OutsideStudentCount == 0) return;
+
+            // Calculate disruption to add
+            float disruptionToAdd = OutsideStudentCount * outsideDisruptionRate;
+
+            // Check if we've exceeded max penalty
+            if (totalOutsideDisruptionApplied + disruptionToAdd > maxOutsideDisruptionPenalty)
+            {
+                disruptionToAdd = Mathf.Max(0, maxOutsideDisruptionPenalty - totalOutsideDisruptionApplied);
+            }
+
+            if (disruptionToAdd > 0.01f)
+            {
+                totalOutsideDisruptionApplied += disruptionToAdd;
+                AddDisruption(disruptionToAdd, $"{OutsideStudentCount} student(s) outside");
+                
+                Debug.Log($"[ClassroomManager] {OutsideStudentCount} students are currently outside classroom");
+            }
+        }
+
+        /// <summary>
+        /// Resets the outside student tracking (called when level starts)
+        /// </summary>
+        private void ResetOutsideTracking()
+        {
+            studentsOutside.Clear();
+            OutsideStudentCount = 0;
+            totalOutsideDisruptionApplied = 0f;
+            nextOutsideCheckTime = Time.time + outsideCheckInterval;
         }
     }
 }
