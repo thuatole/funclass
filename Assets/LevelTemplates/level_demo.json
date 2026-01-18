@@ -1,0 +1,93 @@
+{
+  "levelName": "Vomit_Panic_Scenario",
+  "difficulty": "Normal",
+  
+  "classroomDoor": { "x": 0, "y": 0, "z": 5 },
+  
+  "goalSettings": {
+    "maxDisruptionThreshold": 80,
+    "catastrophicDisruptionLevel": 95,
+    "timeLimitSeconds": 120,
+    "requiredCalmDowns": 2,
+    "requiredResolvedProblems": 2,
+    
+    "enableDisruptionTimeout": true,
+    "disruptionTimeoutThreshold": 70,
+    "disruptionTimeoutSeconds": 30,
+    "disruptionTimeoutWarningSeconds": 10,
+    
+    "oneStarScore": 100,
+    "twoStarScore": 200,
+    "threeStarScore": 400
+  },
+  
+  "students": [
+    {
+      "studentName": "Student_A",
+      "position": { "x": 0, "y": 0.1, "z": 0 },
+      "personality": {
+        "patience": 0.8,
+        "attentionSpan": 0.7,
+        "impulsiveness": 0.2,
+        "panicThreshold": 0.15,
+        "influenceSusceptibility": 1.0,
+        "influenceResistance": 0.0
+      },
+      "behaviors": {
+        "canFidget": true,
+        "canLookAround": true,
+        "canStandUp": false,
+        "canMoveAround": false,
+        "canDropItems": false,
+        "canKnockOverObjects": false,
+        "canMakeNoiseWithObjects": true,
+        "canThrowObjects": false,
+        "minIdleTime": 2,
+        "maxIdleTime": 4
+      }
+    },
+    {
+      "studentName": "Student_B",
+      "position": { "x": -0.8, "y": 0.1, "z": 0 },
+      "personality": {
+        "patience": 0.01,
+        "attentionSpan": 0.05,
+        "impulsiveness": 1.0,
+        "panicThreshold": 0.2,
+        "influenceSusceptibility": 0.3,
+        "influenceResistance": 0.0
+      },
+      "behaviors": {
+        "canFidget": true,
+        "canLookAround": true,
+        "canStandUp": false,
+        "canMoveAround": false,
+        "canDropItems": true,
+        "canKnockOverObjects": true,
+        "canMakeNoiseWithObjects": true,
+        "canThrowObjects": true,
+        "minIdleTime": 0.1,
+        "maxIdleTime": 0.5
+      }
+    }
+  ],
+  
+  "routes": [
+    {
+      "routeName": "EscapeRoute",
+      "routeType": "Escape",
+      "waypoints": [
+        { "waypointName": "Door", "position": { "x": 0, "y": 0, "z": 5 } },
+        { "waypointName": "Outside", "position": { "x": 0, "y": 0, "z": 10 } }
+      ]
+    },
+    {
+      "routeName": "ReturnRoute",
+      "routeType": "Return",
+      "waypoints": [
+        { "waypointName": "Door", "position": { "x": 0, "y": 0, "z": 5 } },
+        { "waypointName": "Seat", "position": { "x": -2, "y": 0, "z": 0 } }
+      ]
+    }
+  ]
+}

@@ -24,6 +24,11 @@ namespace FunClass.Core
         [SerializeField] private float interactionRange = 3f;
         [SerializeField] private LayerMask interactionLayer = ~0;
 
+        [Header("Auto Escort")]
+        [SerializeField] private bool autoEscortEnabled = false; // Disabled - player must manually interact
+        [SerializeField] private float escortCheckInterval = 2f;
+        private float lastEscortCheckTime;
+
         private CharacterController characterController;
         private HeldItem currentHeldItem;
         private float verticalVelocity;
@@ -131,6 +136,12 @@ namespace FunClass.Core
             HandleCamera();
             HandleInteractionDetection();
             HandleInteractionInput();
+            
+            // Auto-escort students who are outside
+            if (autoEscortEnabled)
+            {
+                CheckAndEscortOutsideStudents();
+            }
         }
 
         private void HandleGameStateChanged(GameState oldState, GameState newState)
@@ -443,7 +454,17 @@ namespace FunClass.Core
             if (student == null || LevelManager.Instance == null) return false;
 
             LevelConfig currentLevel = LevelManager.Instance.GetCurrentLevelConfig();
-            if (currentLevel == null || currentLevel.classroomDoor == null) return false;
+            if (currentLevel == null)
+            {
+                Debug.LogWarning("[Teacher] LevelConfig is null - cannot detect outside");
+                return false;
+            }
+            
+            if (currentLevel.classroomDoor == null)
+            {
+                Debug.LogWarning("[Teacher] classroomDoor is null - cannot detect outside");
+                return false;
+            }
 
             // Check if student is beyond the classroom door
             Vector3 doorPosition = currentLevel.classroomDoor.position;
@@ -455,7 +476,11 @@ namespace FunClass.Core
             // If student is far from their seat and near/past the door, they're outside
             float distanceFromSeat = Vector3.Distance(studentPosition, student.OriginalSeatPosition);
             
-            return distanceFromSeat > 5f && distanceFromDoor < 10f;
+            bool isOutside = distanceFromSeat > 5f && distanceFromDoor < 10f;
+            
+            Debug.Log($"[Teacher] {student.Config?.studentName} - distFromSeat: {distanceFromSeat:F2}m, distFromDoor: {distanceFromDoor:F2}m, isOutside: {isOutside}");
+            
+            return isOutside;
         }
 
         /// <summary>
@@ -509,10 +534,13 @@ namespace FunClass.Core
 
             bool isOutside = IsStudentOutsideClassroom(student);
             bool isOnRoute = student.IsFollowingRoute;
+            
+            Debug.Log($"[Teacher] Interacting with {student.Config?.studentName} - isOutside: {isOutside}, isOnRoute: {isOnRoute}, state: {student.CurrentState}");
 
             if (isOutside || isOnRoute)
             {
                 // Student is outside or escaping - use recall actions
+                Debug.Log($"[Teacher] Student is outside/on route - triggering recall");
                 if (student.CurrentState == StudentState.Critical)
                 {
                     EscortStudentBack(student);
@@ -525,6 +553,7 @@ namespace FunClass.Core
             else
             {
                 // Normal classroom interaction
+                Debug.Log($"[Teacher] Student not outside - normal interaction");
                 InteractWithStudent(student);
             }
         }
@@ -538,6 +567,25 @@ namespace FunClass.Core
 
             Debug.Log($"[Teacher] Called {student.Config?.studentName} back to class");
 
+            // Calm down student completely when teacher escorts
+            StudentState originalState = student.CurrentState;
+            if (originalState != StudentState.Calm)
+            {
+                Debug.Log($"[Teacher] Calming down {student.Config?.studentName} from {originalState}...");
+                
+                int deescalateCount = 0;
+                while (student.CurrentState != StudentState.Calm && deescalateCount < 10)
+                {
+                    student.DeescalateState();
+                    deescalateCount++;
+                }
+                
+                Debug.Log($"[Teacher] ✓ Calmed down {student.Config?.studentName} ({originalState} → {student.CurrentState})");
+            }
+            
+            // Set influence immunity to prevent re-escalation
+            student.SetInfluenceImmunity(15f); // 15 seconds immunity after escort
+            
             // Stop current route/escape behavior
             student.StopRoute();
 
@@ -551,20 +599,39 @@ namespace FunClass.Core
             if (LevelManager.Instance != null)
             {
                 LevelConfig currentLevel = LevelManager.Instance.GetCurrentLevelConfig();
+                Debug.Log($"[Teacher] LevelConfig: {(currentLevel != null ? "exists" : "null")}, ReturnRoute: {(currentLevel?.returnRoute != null ? currentLevel.returnRoute.routeName : "null")}");
+                
                 if (currentLevel != null && currentLevel.returnRoute != null)
                 {
+                    Debug.Log($"[Teacher] Starting return route: {currentLevel.returnRoute.routeName}");
                     student.StartRoute(currentLevel.returnRoute);
-                    Debug.Log($"[Teacher] {student.Config?.studentName} starting return route");
+                    Debug.Log($"[Teacher] {student.Config?.studentName} started return route");
                 }
                 else
                 {
-                    // Fallback: direct return to seat
-                    student.ReturnToSeat();
+                    // Fallback: direct return to seat with visual movement
+                    Debug.Log($"[Teacher] No return route available, using direct return to seat");
+                    if (StudentMovementManager.Instance != null)
+                    {
+                        StudentMovementManager.Instance.ReturnToSeat(student);
+                    }
+                    else
+                    {
+                        student.ReturnToSeat(); // Teleport fallback
+                    }
                 }
             }
             else
             {
-                student.ReturnToSeat();
+                Debug.Log($"[Teacher] LevelManager.Instance is null, using direct return to seat");
+                if (StudentMovementManager.Instance != null)
+                {
+                    StudentMovementManager.Instance.ReturnToSeat(student);
+                }
+                else
+                {
+                    student.ReturnToSeat(); // Teleport fallback
+                }
             }
 
             // Trigger teacher action
@@ -588,6 +655,53 @@ namespace FunClass.Core
         }
 
         /// <summary>
+        /// Checks for students outside classroom and automatically escorts them back
+        /// DISABLED - Player must manually escort students
+        /// </summary>
+        private void CheckAndEscortOutsideStudents()
+        {
+            // Auto-escort disabled - player must manually interact with students to escort them back
+            return;
+            
+            // Throttle checks to avoid performance issues
+            if (Time.time - lastEscortCheckTime < escortCheckInterval)
+                return;
+            
+            lastEscortCheckTime = Time.time;
+            
+            // Get all students who are currently outside
+            if (ClassroomManager.Instance == null) return;
+            
+            StudentAgent[] allStudents = FindObjectsOfType<StudentAgent>();
+            foreach (StudentAgent student in allStudents)
+            {
+                if (student == null) continue;
+                
+                // Check if student is outside classroom
+                bool isOutside = IsStudentOutsideClassroom(student);
+                if (!isOutside) continue;
+                
+                // Check how long they've been outside
+                float timeOutside = ClassroomManager.Instance.GetStudentOutsideDuration(student);
+                
+                // Auto-escort if they've been outside for more than 3 seconds
+                if (timeOutside > 3f)
+                {
+                    Debug.Log($"[Teacher] Auto-escorting {student.Config?.studentName} (outside for {timeOutside:F1}s)");
+                    
+                    if (student.CurrentState == StudentState.Critical)
+                    {
+                        EscortStudentBack(student);
+                    }
+                    else
+                    {
+                        CallStudentBack(student);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// Escorts a critical student back to their seat
         /// </summary>
         private void EscortStudentBack(StudentAgent student)
@@ -596,6 +710,25 @@ namespace FunClass.Core
 
             Debug.Log($"[Teacher] Escorting {student.Config?.studentName} back to seat");
 
+            // Calm down student completely when teacher escorts
+            StudentState originalState = student.CurrentState;
+            if (originalState != StudentState.Calm)
+            {
+                Debug.Log($"[Teacher] Calming down {student.Config?.studentName} from {originalState}...");
+                
+                int deescalateCount = 0;
+                while (student.CurrentState != StudentState.Calm && deescalateCount < 10)
+                {
+                    student.DeescalateState();
+                    deescalateCount++;
+                }
+                
+                Debug.Log($"[Teacher] ✓ Calmed down {student.Config?.studentName} ({originalState} → {student.CurrentState})");
+            }
+            
+            // Set influence immunity to prevent re-escalation
+            student.SetInfluenceImmunity(15f); // 15 seconds immunity after escort
+            
             // Stop current behavior
             student.StopRoute();
 
@@ -605,8 +738,16 @@ namespace FunClass.Core
                 ClassroomManager.Instance.UnregisterStudentOutside(student);
             }
 
-            // Force immediate return
-            student.ReturnToSeat();
+            // Force return with visual movement
+            Debug.Log($"[Teacher] Returning {student.Config?.studentName} to seat with visual movement");
+            if (StudentMovementManager.Instance != null)
+            {
+                StudentMovementManager.Instance.ReturnToSeat(student);
+            }
+            else
+            {
+                student.ReturnToSeat(); // Teleport fallback
+            }
 
             // Trigger teacher action
             student.HandleTeacherAction(TeacherActionType.EscortStudentBack);

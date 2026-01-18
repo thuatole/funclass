@@ -79,14 +79,28 @@ namespace FunClass.Core
 
         void Start()
         {
+            Log("[StudentInfluenceManager] Start() called");
+            
+            // Fallback subscription if OnEnable was called before GameStateManager existed
             if (GameStateManager.Instance != null)
             {
-                HandleGameStateChanged(GameStateManager.Instance.CurrentState, GameStateManager.Instance.CurrentState);
+                GameStateManager.Instance.OnStateChanged -= HandleGameStateChanged;
+                GameStateManager.Instance.OnStateChanged += HandleGameStateChanged;
+                Log("[StudentInfluenceManager] Subscribed to GameStateManager in Start()");
+            }
+            
+            if (StudentEventManager.Instance != null)
+            {
+                StudentEventManager.Instance.OnEventLogged -= HandleStudentEvent;
+                StudentEventManager.Instance.OnEventLogged += HandleStudentEvent;
+                Log("[StudentInfluenceManager] Subscribed to StudentEventManager in Start()");
             }
         }
 
         private void HandleGameStateChanged(GameState oldState, GameState newState)
         {
+            Log($"[StudentInfluenceManager] HandleGameStateChanged: {oldState} -> {newState}");
+            
             if (newState == GameState.InLevel)
             {
                 ActivateInfluenceSystem();
@@ -121,11 +135,28 @@ namespace FunClass.Core
 
         private void HandleStudentEvent(StudentEvent evt)
         {
-            if (!isActive || evt.student == null) return;
+            Log($"[StudentInfluenceManager] HandleStudentEvent called - Type: {evt.eventType}, Student: {evt.student?.Config?.studentName}, Active: {isActive}");
+            
+            if (!isActive)
+            {
+                Log("[StudentInfluenceManager] Event ignored - system not active");
+                return;
+            }
+            
+            if (evt.student == null)
+            {
+                Log("[StudentInfluenceManager] Event ignored - student is null");
+                return;
+            }
 
             if (IsInfluenceTrigger(evt.eventType))
             {
+                Log($"[StudentInfluenceManager] Processing influence for {evt.eventType}");
                 ProcessInfluence(evt);
+            }
+            else
+            {
+                Log($"[StudentInfluenceManager] Event type {evt.eventType} is not an influence trigger");
             }
         }
 
@@ -222,19 +253,40 @@ namespace FunClass.Core
         {
             List<StudentAgent> nearbyStudents = new List<StudentAgent>();
             Vector3 sourcePosition = sourceStudent.transform.position;
+            
+            Log($"[FindNearbyStudents] Searching for students near {sourceStudent.Config?.studentName} within {radius}m. Total students in list: {allStudents.Count}");
 
             foreach (StudentAgent student in allStudents)
             {
-                if (student == sourceStudent || student == null || student.Config == null)
+                if (student == sourceStudent)
+                {
+                    Log($"[FindNearbyStudents] Skipping source student: {student.Config?.studentName}");
                     continue;
+                }
+                
+                if (student == null)
+                {
+                    Log($"[FindNearbyStudents] Found null student in list");
+                    continue;
+                }
+                
+                if (student.Config == null)
+                {
+                    Log($"[FindNearbyStudents] Student has null config: {student.gameObject.name}");
+                    continue;
+                }
 
                 float distance = Vector3.Distance(sourcePosition, student.transform.position);
+                Log($"[FindNearbyStudents] {student.Config.studentName} at distance {distance:F2}m (radius: {radius}m)");
+                
                 if (distance <= radius)
                 {
                     nearbyStudents.Add(student);
+                    Log($"[FindNearbyStudents] ✓ Added {student.Config.studentName} to affected list");
                 }
             }
-
+            
+            Log($"[FindNearbyStudents] Found {nearbyStudents.Count} nearby students");
             return nearbyStudents;
         }
 
@@ -283,6 +335,13 @@ namespace FunClass.Core
             string sourceName = sourceStudent.Config?.studentName ?? "Unknown";
             float distance = Vector3.Distance(sourceStudent.transform.position, targetStudent.transform.position);
 
+            // Check if student is immune to influence (e.g., after being calmed down)
+            if (targetStudent.IsImmuneToInfluence())
+            {
+                Log($"[Influence] {targetName} is immune to influence, skipping");
+                return;
+            }
+
             Log($"[Influence] {targetName} affected by {sourceName} at {distance:F1}m with strength {strength:F2}");
 
             // Determine effect based on strength and student's panic threshold
@@ -316,20 +375,66 @@ namespace FunClass.Core
             }
 
             // Trigger panic or scared reaction
-            if (strength >= 0.8f)
+            if (strength >= 0.5f)
             {
                 targetStudent.TriggerReaction(StudentReactionType.Scared, 4f);
                 Log($"[Influence] {targetName} → reaction Scared (strength {strength:F2})");
                 
+                Log($"[Influence] Checking escape conditions - strength: {strength:F2}, panicThreshold: {targetStudent.Config.panicThreshold}, LevelManager exists: {LevelManager.Instance != null}");
+                
                 // Trigger escape behavior if panic threshold exceeded and escape route available
-                if (strength >= targetStudent.Config.panicThreshold && LevelManager.Instance != null)
+                if (strength >= targetStudent.Config.panicThreshold)
                 {
-                    LevelConfig currentLevel = LevelManager.Instance.GetCurrentLevelConfig();
-                    if (currentLevel != null && currentLevel.escapeRoute != null)
+                    Log($"[Influence] Strength >= panicThreshold, checking LevelManager...");
+                    
+                    if (LevelManager.Instance != null)
                     {
-                        targetStudent.StartRoute(currentLevel.escapeRoute);
-                        Log($"[Influence] {targetName} started escape route due to panic");
+                        Log($"[Influence] LevelManager exists, getting CurrentLevel...");
+                        LevelConfig currentLevel = LevelManager.Instance.GetCurrentLevelConfig();
+                        
+                        if (currentLevel != null && currentLevel.escapeRoute != null)
+                        {
+                            Log($"[Influence] === ESCAPE TRIGGERED ===");
+                            Log($"[Influence] Student: {targetName}");
+                            Log($"[Influence] Current State: {targetStudent.CurrentState}");
+                            Log($"[Influence] Influence Strength: {strength:F2}");
+                            Log($"[Influence] Panic Threshold: {targetStudent.Config.panicThreshold}");
+                            Log($"[Influence] Source: {sourceName}");
+                            Log($"[Influence] Already following route: {targetStudent.IsFollowingRoute}");
+                            
+                            // Only start escape if not already escaping AND in high panic state
+                            if (!targetStudent.IsFollowingRoute)
+                            {
+                                // Only trigger escape for ActingOut or Critical students
+                                if (targetStudent.CurrentState == StudentState.ActingOut || 
+                                    targetStudent.CurrentState == StudentState.Critical)
+                                {
+                                    targetStudent.StartRoute(currentLevel.escapeRoute);
+                                    Log($"[Influence] ✓ {targetName} started escape route");
+                                }
+                                else
+                                {
+                                    Log($"[Influence] ⚠ {targetName} not in panic state ({targetStudent.CurrentState}), skipping escape");
+                                }
+                            }
+                            else
+                            {
+                                Log($"[Influence] ⚠ {targetName} already following a route, skipping escape");
+                            }
+                        }
+                        else
+                        {
+                            Log($"[Influence] {targetName} wants to escape but no route available - Level: {(currentLevel != null ? "exists" : "null")}, Route: {(currentLevel?.escapeRoute != null ? "exists" : "null")}");
+                        }
                     }
+                    else
+                    {
+                        Log($"[Influence] LevelManager.Instance is NULL - cannot trigger escape");
+                    }
+                }
+                else
+                {
+                    Log($"[Influence] Strength {strength:F2} < panicThreshold {targetStudent.Config.panicThreshold} - no escape triggered");
                 }
             }
             else

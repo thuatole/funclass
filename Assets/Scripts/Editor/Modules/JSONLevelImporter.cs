@@ -80,27 +80,163 @@ namespace FunClass.Editor.Modules
 
                 // 3. Create student configs
                 var studentConfigs = CreateStudentConfigsFromData(data);
+                
+                // Assign students to levelConfig
+                if (studentConfigs != null && studentConfigs.Length > 0)
+                {
+                    levelConfig.students = new System.Collections.Generic.List<FunClass.Core.StudentConfig>(studentConfigs);
+                    EditorUtility.SetDirty(levelConfig);
+                    Debug.Log($"[JSONLevelImporter] Assigned {studentConfigs.Length} students to LevelConfig");
+                }
+                
                 EditorUtility.DisplayProgressBar("Import Level", "Creating student configs...", 0.5f);
 
-                // 4. Create routes
-                if (data.routes != null && data.routes.Count > 0)
-                {
-                    CreateRoutesFromData(data);
-                    EditorUtility.DisplayProgressBar("Import Level", "Creating routes...", 0.7f);
-                }
-
-                // 5. Create scene hierarchy
+                // 4. Create scene hierarchy FIRST (so Waypoints group exists for routes)
                 SceneHierarchyBuilder.CreateManagersGroup();
                 SceneHierarchyBuilder.CreateClassroomGroup();
                 SceneHierarchyBuilder.CreateTeacherGroup();
                 SceneHierarchyBuilder.CreateUIGroup();
-                SceneHierarchyBuilder.CreateStudentsGroup(data.students.Count, studentConfigs, data.levelName);
-                EditorUtility.DisplayProgressBar("Import Level", "Creating scene...", 0.9f);
+                
+                // Pass student data with positions to SceneHierarchyBuilder
+                var studentDataArray = data.students?.ToArray();
+                SceneHierarchyBuilder.CreateStudentsGroup(data.students.Count, studentConfigs, data.levelName, studentDataArray);
+                EditorUtility.DisplayProgressBar("Import Level", "Creating scene...", 0.6f);
 
-                // 6. Create prefabs if specified
+                // 5. Create routes (after scene hierarchy so Waypoints group exists)
+                Debug.Log($"[JSONLevelImporter] Routes in data: {(data.routes != null ? data.routes.Count : 0)}");
+                if (data.routes != null && data.routes.Count > 0)
+                {
+                    var routes = CreateRoutesFromData(data);
+                    Debug.Log($"[JSONLevelImporter] Created {routes.Count} routes");
+                    
+                    // Assign escape route to level config
+                    var escapeRoute = routes.Find(r => r.routeName.ToLower().Contains("escape"));
+                    if (escapeRoute != null)
+                    {
+                        levelConfig.escapeRoute = escapeRoute;
+                        EditorUtility.SetDirty(levelConfig);
+                        AssetDatabase.SaveAssets();
+                        AssetDatabase.Refresh();
+                        
+                        // Verify assignment
+                        if (levelConfig.escapeRoute != null)
+                        {
+                            Debug.Log($"[JSONLevelImporter] ✓ Assigned escape route '{escapeRoute.routeName}' to LevelConfig - Verified: {levelConfig.escapeRoute.routeName}");
+                        }
+                        else
+                        {
+                            Debug.LogError($"[JSONLevelImporter] ✗ Escape route assignment failed - escapeRoute is null after assignment!");
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[JSONLevelImporter] No escape route found in {routes.Count} routes. Route names: {string.Join(", ", routes.ConvertAll(r => r.routeName))}");
+                    }
+                    
+                    EditorUtility.DisplayProgressBar("Import Level", "Creating routes...", 0.8f);
+                }
+                else
+                {
+                    Debug.LogWarning("[JSONLevelImporter] No routes in JSON data");
+                }
+
+                // 6. Create and assign classroom door reference
+                GameObject classroomGroup = GameObject.Find("=== CLASSROOM ===");
+                if (classroomGroup != null && levelConfig != null)
+                {
+                    // Create Door marker at position (0, 0, 5) - same as Door waypoint
+                    GameObject doorMarker = new GameObject("ClassroomDoor");
+                    doorMarker.transform.SetParent(classroomGroup.transform);
+                    doorMarker.transform.position = new UnityEngine.Vector3(0, 0, 5);
+                    
+                    levelConfig.classroomDoor = doorMarker.transform;
+                    EditorUtility.SetDirty(levelConfig);
+                    AssetDatabase.SaveAssets();
+                    Debug.Log($"[JSONLevelImporter] Created and assigned classroom door at {doorMarker.transform.position}");
+                }
+                
+                // Verify all critical references before continuing
+                if (levelConfig != null)
+                {
+                    Debug.Log($"[JSONLevelImporter] === LevelConfig Verification ===");
+                    Debug.Log($"[JSONLevelImporter] Escape Route: {(levelConfig.escapeRoute != null ? levelConfig.escapeRoute.routeName : "NULL")}");
+                    Debug.Log($"[JSONLevelImporter] Classroom Door: {(levelConfig.classroomDoor != null ? levelConfig.classroomDoor.position.ToString() : "NULL")}");
+                    Debug.Log($"[JSONLevelImporter] Return Route: {(levelConfig.returnRoute != null ? levelConfig.returnRoute.routeName : "NULL")}");
+                }
+
+                // 7. Assign level config to LevelLoader
+                var levelLoader = UnityEngine.Object.FindObjectOfType<FunClass.Core.LevelLoader>();
+                if (levelLoader != null)
+                {
+                    var levelLoaderField = typeof(FunClass.Core.LevelLoader).GetField("currentLevel", 
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    if (levelLoaderField != null)
+                    {
+                        levelLoaderField.SetValue(levelLoader, levelConfig);
+                        Debug.Log($"[JSONLevelImporter] Assigned LevelConfig to LevelLoader");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("[JSONLevelImporter] LevelLoader not found in scene - level config not loaded");
+                }
+
+                // 7. Assign level config to ClassroomManager
+                var classroomManager = UnityEngine.Object.FindObjectOfType<FunClass.Core.ClassroomManager>();
+                if (classroomManager != null)
+                {
+                    var classroomField = typeof(FunClass.Core.ClassroomManager).GetField("levelConfig", 
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    if (classroomField != null)
+                    {
+                        classroomField.SetValue(classroomManager, levelConfig);
+                        Debug.Log($"[JSONLevelImporter] Assigned LevelConfig to ClassroomManager");
+                    }
+                }
+
+                // 8. Create prefabs if specified
                 if (data.prefabs != null && data.prefabs.Count > 0)
                 {
                     PrefabGenerator.CreatePrefabsFromData(data.prefabs);
+                }
+
+                // 9. Bake NavMesh for student navigation
+                BakeNavMesh();
+
+                // 10. Save scene to persist waypoints and other scene objects
+                var currentScene = UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene();
+                if (!string.IsNullOrEmpty(currentScene.path))
+                {
+                    UnityEditor.SceneManagement.EditorSceneManager.SaveScene(currentScene);
+                    Debug.Log($"[JSONLevelImporter] Scene saved: {currentScene.path}");
+                }
+                else
+                {
+                    Debug.LogWarning("[JSONLevelImporter] Scene has no path - save scene manually to persist waypoints");
+                }
+
+                // 11. Verify waypoints persist in scene after save
+                GameObject waypointsRoot = GameObject.Find("Waypoints");
+                if (waypointsRoot != null)
+                {
+                    int totalWaypoints = 0;
+                    foreach (Transform routeGroup in waypointsRoot.transform)
+                    {
+                        var waypoints = routeGroup.GetComponentsInChildren<FunClass.Core.StudentWaypoint>(true); // Include inactive
+                        totalWaypoints += waypoints.Length;
+                        Debug.Log($"[JSONLevelImporter] Verified route '{routeGroup.name}' has {waypoints.Length} waypoint components after save");
+                        
+                        // List each waypoint
+                        foreach (var wp in waypoints)
+                        {
+                            Debug.Log($"[JSONLevelImporter]   - Waypoint: {wp.waypointName} at {wp.transform.position}");
+                        }
+                    }
+                    Debug.Log($"[JSONLevelImporter] ✓ Total waypoints persisted: {totalWaypoints}");
+                }
+                else
+                {
+                    Debug.LogWarning("[JSONLevelImporter] Waypoints root not found in scene after save!");
                 }
 
                 EditorUtility.ClearProgressBar();
@@ -174,6 +310,8 @@ namespace FunClass.Editor.Modules
             for (int i = 0; i < data.students.Count; i++)
             {
                 var studentData = data.students[i];
+                Debug.Log($"[JSONLevelImporter] Creating config for student [{i}]: {studentData.studentName}");
+                
                 var config = EditorUtils.CreateScriptableObject<FunClass.Core.StudentConfig>(
                     $"Assets/Configs/{data.levelName}/Students/Student_{studentData.studentName}.asset"
                 );
@@ -181,6 +319,12 @@ namespace FunClass.Editor.Modules
                 config.studentId = $"student_{studentData.studentName.ToLower()}";
                 config.studentName = studentData.studentName;
                 config.initialState = FunClass.Core.StudentState.Calm;
+                
+                // Save immediately to persist studentName
+                EditorUtility.SetDirty(config);
+                AssetDatabase.SaveAssets();
+                
+                Debug.Log($"[JSONLevelImporter] Config created: {config.name}, studentName: '{config.studentName}'");
 
                 // Apply personality
                 if (studentData.personality != null)
@@ -216,10 +360,14 @@ namespace FunClass.Editor.Modules
             return configs;
         }
 
-        private static void CreateRoutesFromData(LevelDataSchema data)
+        private static System.Collections.Generic.List<FunClass.Core.StudentRoute> CreateRoutesFromData(LevelDataSchema data)
         {
+            var routes = new System.Collections.Generic.List<FunClass.Core.StudentRoute>();
+            
             foreach (var routeData in data.routes)
             {
+                Debug.Log($"[JSONLevelImporter] Creating route: '{routeData.routeName}'");
+                
                 var route = EditorUtils.CreateScriptableObject<FunClass.Core.StudentRoute>(
                     $"Assets/Configs/{data.levelName}/Routes/{routeData.routeName}.asset"
                 );
@@ -231,19 +379,46 @@ namespace FunClass.Editor.Modules
                 route.isLooping = routeData.isLooping;
                 route.isPingPong = routeData.isPingPong;
 
-                EditorUtility.SetDirty(route);
+                routes.Add(route);
+                
+                Debug.Log($"[JSONLevelImporter] Route created: '{route.routeName}', contains 'escape': {route.routeName.ToLower().Contains("escape")}");
 
-                // Create waypoints in scene
-                CreateWaypointsFromData(routeData, data.levelName);
+                // Create waypoints in scene and assign to route
+                var waypoints = CreateWaypointsFromData(routeData, data.levelName);
+                if (waypoints != null && waypoints.Count > 0)
+                {
+                    route.waypoints = waypoints;
+                    Debug.Log($"[JSONLevelImporter] Assigned {waypoints.Count} waypoints to route '{route.routeName}'");
+                }
+                
+                EditorUtility.SetDirty(route);
             }
 
             AssetDatabase.SaveAssets();
+            Debug.Log($"[JSONLevelImporter] Returning {routes.Count} routes");
+            return routes;
         }
 
-        private static void CreateWaypointsFromData(RouteData routeData, string levelName)
+        private static System.Collections.Generic.List<FunClass.Core.StudentWaypoint> CreateWaypointsFromData(RouteData routeData, string levelName)
         {
+            var waypoints = new System.Collections.Generic.List<FunClass.Core.StudentWaypoint>();
+            
             GameObject waypointsGroup = GameObject.Find("Waypoints");
-            if (waypointsGroup == null) return;
+            if (waypointsGroup == null)
+            {
+                Debug.LogWarning($"[JSONLevelImporter] Waypoints group not found in scene - cannot create waypoints for route '{routeData.routeName}'");
+                return waypoints;
+            }
+
+            Debug.Log($"[JSONLevelImporter] Creating waypoints for route '{routeData.routeName}' - {routeData.waypoints.Count} waypoints");
+
+            // Delete existing route group if it exists to prevent duplicates
+            Transform existingRoute = waypointsGroup.transform.Find(routeData.routeName);
+            if (existingRoute != null)
+            {
+                Debug.Log($"[JSONLevelImporter] Deleting existing route group '{routeData.routeName}'");
+                UnityEngine.Object.DestroyImmediate(existingRoute.gameObject);
+            }
 
             GameObject routeGroup = EditorUtils.CreateChild(waypointsGroup, routeData.routeName);
 
@@ -256,6 +431,53 @@ namespace FunClass.Editor.Modules
                 var waypoint = wpObj.AddComponent<FunClass.Core.StudentWaypoint>();
                 waypoint.waypointName = wpData.waypointName;
                 waypoint.waitDuration = wpData.waitDuration;
+                
+                waypoints.Add(waypoint);
+                
+                Debug.Log($"[JSONLevelImporter] Created waypoint '{wpData.waypointName}' at {wpData.position.ToVector3()}");
+            }
+            
+            return waypoints;
+        }
+
+        /// <summary>
+        /// Bakes NavMesh for student navigation
+        /// </summary>
+        private static void BakeNavMesh()
+        {
+            // Find Ground object with NavMeshSurface
+            GameObject ground = GameObject.Find("Ground");
+            if (ground == null)
+            {
+                Debug.LogWarning("[JSONLevelImporter] Ground object not found - cannot bake NavMesh");
+                return;
+            }
+
+            // Get NavMeshSurface component using reflection
+            var navMeshSurfaceType = System.Type.GetType("Unity.AI.Navigation.NavMeshSurface, Unity.AI.Navigation");
+            if (navMeshSurfaceType == null)
+            {
+                Debug.LogWarning("[JSONLevelImporter] NavMeshSurface type not found - install AI Navigation package");
+                return;
+            }
+
+            var navMeshSurface = ground.GetComponent(navMeshSurfaceType);
+            if (navMeshSurface == null)
+            {
+                Debug.LogWarning("[JSONLevelImporter] NavMeshSurface component not found on Ground");
+                return;
+            }
+
+            // Bake NavMesh using reflection
+            var buildNavMeshMethod = navMeshSurfaceType.GetMethod("BuildNavMesh");
+            if (buildNavMeshMethod != null)
+            {
+                buildNavMeshMethod.Invoke(navMeshSurface, null);
+                Debug.Log("[JSONLevelImporter] ✓ NavMesh baked successfully!");
+            }
+            else
+            {
+                Debug.LogWarning("[JSONLevelImporter] BuildNavMesh method not found");
             }
         }
     }

@@ -37,14 +37,40 @@ namespace FunClass.Core
                 messVisual = Instantiate(vomitPuddlePrefab, transform.position, Quaternion.identity, transform);
                 messVisual.transform.localScale = puddleScale;
             }
+            else
+            {
+                // Create default visual (yellow sphere) if no prefab
+                GameObject defaultVisual = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                defaultVisual.name = "VomitVisual";
+                defaultVisual.transform.SetParent(transform);
+                defaultVisual.transform.localPosition = Vector3.zero;
+                defaultVisual.transform.localScale = new Vector3(0.5f, 0.1f, 0.5f); // Flat puddle shape
+                
+                // Make it yellow/green for vomit
+                Renderer renderer = defaultVisual.GetComponent<Renderer>();
+                if (renderer != null)
+                {
+                    renderer.material.color = new Color(0.8f, 0.9f, 0.3f); // Yellow-green
+                }
+                
+                // Remove collider from visual (parent already has collider)
+                Collider visualCollider = defaultVisual.GetComponent<Collider>();
+                if (visualCollider != null)
+                {
+                    Object.Destroy(visualCollider);
+                }
+                
+                messVisual = defaultVisual;
+                Debug.Log("[VomitMess] Created default visual (no prefab assigned)");
+            }
         }
 
         protected override void OnCleanupComplete()
         {
             base.OnCleanupComplete();
             
-            // Optional: Play cleanup effect/sound
             Debug.Log($"[VomitMess] Vomit puddle cleaned up at {transform.position}");
+            Debug.Log($"[VomitMess] Influence source removed - students will no longer be affected by this mess");
         }
 
         /// <summary>
@@ -64,11 +90,16 @@ namespace FunClass.Core
             collider.isTrigger = false;
             
             // Set layer for teacher interaction
-            messObject.layer = LayerMask.NameToLayer("Interactable");
-            if (messObject.layer == -1)
+            int interactableLayer = LayerMask.NameToLayer("Interactable");
+            if (interactableLayer != -1)
+            {
+                messObject.layer = interactableLayer;
+            }
+            else
             {
                 // Fallback if Interactable layer doesn't exist
                 messObject.layer = 0; // Default layer
+                Debug.LogWarning("[VomitMess] 'Interactable' layer not found, using Default layer");
             }
             
             vomitMess.Initialize(creator);

@@ -48,36 +48,4 @@ namespace FunClass.Core
         }
     }
 
-    public class StudentEventManager : MonoBehaviour
-    {
-        public static StudentEventManager Instance { get; private set; }
-
-        public event Action<StudentEvent> OnStudentEvent;
-        public event Action<StudentEvent> OnEventLogged;
-
-        void Awake()
-        {
-            if (Instance != null && Instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
-
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-
-        public void LogEvent(StudentEvent studentEvent)
-        {
-            Debug.Log(studentEvent.ToString());
-            OnStudentEvent?.Invoke(studentEvent);
-            OnEventLogged?.Invoke(studentEvent);
-        }
-
-        public void LogEvent(StudentAgent student, StudentEventType eventType, string description, GameObject targetObject = null)
-        {
-            StudentEvent evt = new StudentEvent(student, eventType, description, targetObject);
-            LogEvent(evt);
-        }
-    }
 }

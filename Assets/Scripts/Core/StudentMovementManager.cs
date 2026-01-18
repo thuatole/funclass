@@ -58,9 +58,14 @@ namespace FunClass.Core
 
         void Start()
         {
+            Log("[StudentMovementManager] Start() called");
+            
+            // Fallback subscription if OnEnable was called before GameStateManager existed
             if (GameStateManager.Instance != null)
             {
-                HandleGameStateChanged(GameStateManager.Instance.CurrentState, GameStateManager.Instance.CurrentState);
+                GameStateManager.Instance.OnStateChanged -= HandleGameStateChanged;
+                GameStateManager.Instance.OnStateChanged += HandleGameStateChanged;
+                Log("[StudentMovementManager] Subscribed to GameStateManager in Start()");
             }
         }
 
@@ -73,6 +78,8 @@ namespace FunClass.Core
 
         private void HandleGameStateChanged(GameState oldState, GameState newState)
         {
+            Log($"[StudentMovementManager] HandleGameStateChanged: {oldState} -> {newState}");
+            
             if (newState == GameState.InLevel)
             {
                 ActivateMovementSystem();
@@ -116,6 +123,27 @@ namespace FunClass.Core
 
             // Stop any existing movement
             StopMovement(student);
+
+            // Enable NavMeshAgent for movement
+            var navAgent = student.GetComponent<UnityEngine.AI.NavMeshAgent>();
+            if (navAgent != null)
+            {
+                navAgent.enabled = true;
+                
+                // Wait a frame for NavMeshAgent to initialize
+                UnityEngine.AI.NavMeshHit hit;
+                bool onNavMesh = UnityEngine.AI.NavMesh.SamplePosition(student.transform.position, out hit, 2.0f, UnityEngine.AI.NavMesh.AllAreas);
+                
+                if (onNavMesh)
+                {
+                    student.transform.position = hit.position; // Snap to NavMesh
+                    Log($"[Movement] {student.Config?.studentName} NavMeshAgent enabled - on NavMesh at {hit.position}");
+                }
+                else
+                {
+                    Log($"[Movement] ⚠ {student.Config?.studentName} NavMeshAgent enabled but NOT on NavMesh! Position: {student.transform.position}");
+                }
+            }
 
             // Create new movement state
             StudentMovementState state = new StudentMovementState
@@ -162,6 +190,15 @@ namespace FunClass.Core
             {
                 StudentMovementState state = activeMovements[student];
                 Log($"[Movement] {student.Config?.studentName} stopped route: {state.route.routeName}");
+                
+                // Stop NavMeshAgent
+                var navAgent = student.GetComponent<UnityEngine.AI.NavMeshAgent>();
+                if (navAgent != null && navAgent.enabled)
+                {
+                    navAgent.ResetPath();
+                    Log($"[Movement] {student.Config?.studentName} NavMeshAgent stopped");
+                }
+                
                 activeMovements.Remove(student);
             }
         }
@@ -195,11 +232,20 @@ namespace FunClass.Core
 
             StopMovement(student);
 
-            // Move student back to original position
-            Vector3 seatPosition = student.transform.position; // This should be stored in StudentAgent
-            student.transform.position = seatPosition;
-
-            Log($"[Movement] {student.Config?.studentName} returned to seat");
+            // Get student's original seat position
+            Vector3 seatPosition = student.OriginalSeatPosition;
+            
+            var navAgent = student.GetComponent<UnityEngine.AI.NavMeshAgent>();
+            if (navAgent != null && navAgent.enabled && navAgent.isOnNavMesh)
+            {
+                navAgent.SetDestination(seatPosition);
+                Log($"[Movement] {student.Config?.studentName} NavMeshAgent returning to seat at {seatPosition}");
+            }
+            else
+            {
+                student.transform.position = seatPosition;
+                Log($"[Movement] {student.Config?.studentName} teleported to seat at {seatPosition}");
+            }
 
             if (StudentEventManager.Instance != null)
             {
@@ -213,6 +259,8 @@ namespace FunClass.Core
 
         private void UpdateActiveMovements()
         {
+            if (activeMovements.Count == 0) return;
+            
             List<StudentAgent> toRemove = new List<StudentAgent>();
 
             foreach (var kvp in activeMovements)
@@ -222,6 +270,7 @@ namespace FunClass.Core
 
                 if (student == null || state.route == null)
                 {
+                    Log($"[Movement] ⚠ Removing movement - student or route is null");
                     toRemove.Add(student);
                     continue;
                 }
@@ -250,6 +299,7 @@ namespace FunClass.Core
                     
                     if (targetWaypoint == null)
                     {
+                        Log($"[Movement] ⚠ {student.Config?.studentName} - waypoint {state.currentWaypointIndex} is null! Route has {state.route.waypoints?.Count ?? 0} waypoints");
                         toRemove.Add(student);
                         continue;
                     }
@@ -284,23 +334,53 @@ namespace FunClass.Core
 
         private void MoveTowardWaypoint(StudentAgent student, StudentMovementState state, Vector3 targetPosition)
         {
-            Vector3 currentPosition = student.transform.position;
-            Vector3 direction = (targetPosition - currentPosition).normalized;
-
-            // Rotate toward target
-            if (direction != Vector3.zero)
+            // Use NavMeshAgent if available
+            var navAgent = student.GetComponent<UnityEngine.AI.NavMeshAgent>();
+            
+            if (navAgent == null)
             {
-                Quaternion targetRotation = Quaternion.LookRotation(direction);
-                student.transform.rotation = Quaternion.RotateTowards(
-                    student.transform.rotation,
-                    targetRotation,
-                    state.route.rotationSpeed * Time.deltaTime
-                );
+                Log($"[Movement] ⚠ {student.Config?.studentName} has no NavMeshAgent component!");
             }
+            else if (!navAgent.enabled)
+            {
+                Log($"[Movement] ⚠ {student.Config?.studentName} NavMeshAgent is disabled!");
+            }
+            else if (!navAgent.isOnNavMesh)
+            {
+                Log($"[Movement] ⚠ {student.Config?.studentName} NavMeshAgent is NOT on NavMesh! Position: {student.transform.position}");
+            }
+            
+            if (navAgent != null && navAgent.enabled && navAgent.isOnNavMesh)
+            {
+                // Set destination using NavMeshAgent
+                if (!navAgent.hasPath || navAgent.destination != targetPosition)
+                {
+                    navAgent.SetDestination(targetPosition);
+                    navAgent.speed = state.movementSpeed;
+                    Log($"[Movement] {student.Config?.studentName} NavMeshAgent moving to {targetPosition}");
+                }
+            }
+            else
+            {
+                // Fallback to manual movement if NavMeshAgent not available
+                Vector3 currentPosition = student.transform.position;
+                Vector3 direction = (targetPosition - currentPosition).normalized;
 
-            // Move toward target
-            Vector3 movement = direction * state.movementSpeed * Time.deltaTime;
-            student.transform.position += movement;
+                // Rotate toward target
+                if (direction != Vector3.zero)
+                {
+                    Quaternion targetRotation = Quaternion.LookRotation(direction);
+                    student.transform.rotation = Quaternion.RotateTowards(
+                        student.transform.rotation,
+                        targetRotation,
+                        state.route.rotationSpeed * Time.deltaTime
+                    );
+                }
+
+                // Move toward target
+                Vector3 movement = direction * state.movementSpeed * Time.deltaTime;
+                student.transform.position += movement;
+            }
         }
 
         private void OnWaypointReached(StudentAgent student, StudentMovementState state, StudentWaypoint waypoint)

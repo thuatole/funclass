@@ -46,7 +46,7 @@ namespace FunClass.Editor.Modules
             // Create new students
             for (int i = 0; i < configs.Count; i++)
             {
-                CreateStudent(studentsGroup, configs[i], i);
+                CreateStudent(studentsGroup, configs[i], i, null);
             }
             
             Debug.Log($"[SceneHierarchyBuilder] Created {configs.Count} students");
@@ -60,6 +60,7 @@ namespace FunClass.Editor.Modules
             GameObject managers = EditorUtils.CreateOrFind("=== MANAGERS ===");
 
             CreateManagerObject(managers, "GameStateManager", typeof(FunClass.Core.GameStateManager));
+            CreateManagerObject(managers, "LevelLoader", typeof(FunClass.Core.LevelLoader));
             CreateManagerObject(managers, "LevelManager", typeof(FunClass.Core.LevelManager));
             CreateManagerObject(managers, "ClassroomManager", typeof(FunClass.Core.ClassroomManager));
             CreateManagerObject(managers, "StudentEventManager", typeof(FunClass.Core.StudentEventManager));
@@ -94,6 +95,25 @@ namespace FunClass.Editor.Modules
                 floorCollider.enabled = true;
             }
             
+            // Ground plane for navigation
+            GameObject ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            ground.name = "Ground";
+            ground.transform.SetParent(classroom.transform);
+            ground.transform.position = new Vector3(0, 0, 0);
+            ground.transform.localScale = new Vector3(5, 1, 5); // 50x50 units
+            
+            // Add NavMeshSurface component if available
+            var navMeshSurfaceType = System.Type.GetType("Unity.AI.Navigation.NavMeshSurface, Unity.AI.Navigation");
+            if (navMeshSurfaceType != null)
+            {
+                var navMeshSurface = ground.AddComponent(navMeshSurfaceType);
+                Debug.Log("[SceneHierarchyBuilder] Added NavMeshSurface to ground");
+            }
+            else
+            {
+                Debug.LogWarning("[SceneHierarchyBuilder] NavMeshSurface not found - install AI Navigation package");
+            }
+
             EditorUtils.CreateChild(environment, "Walls");
             EditorUtils.CreateChild(environment, "Ceiling");
             EditorUtils.CreateChild(environment, "Door");
@@ -130,8 +150,37 @@ namespace FunClass.Editor.Modules
             // Create new students
             for (int i = 0; i < studentCount && i < configs.Length; i++)
             {
-                CreateStudent(studentsGroup, configs[i], i);
+                CreateStudent(studentsGroup, configs[i], i, null);
             }
+
+            return studentsGroup;
+        }
+
+        /// <summary>
+        /// Tạo students trong scene với configs và positions từ JSON
+        /// </summary>
+        public static GameObject CreateStudentsGroup(int studentCount, FunClass.Core.StudentConfig[] configs, string levelName, Data.StudentData[] studentData)
+        {
+            GameObject studentsGroup = EditorUtils.CreateOrFind("=== STUDENTS ===");
+            
+            // Delete default students
+            for (int i = studentsGroup.transform.childCount - 1; i >= 0; i--)
+            {
+                Object.DestroyImmediate(studentsGroup.transform.GetChild(i).gameObject);
+            }
+            
+            // Create new students with positions from JSON
+            for (int i = 0; i < studentCount && i < configs.Length; i++)
+            {
+                Vector3? position = (studentData != null && i < studentData.Length && studentData[i].position != null) 
+                    ? studentData[i].position.ToVector3() 
+                    : (Vector3?)null;
+                CreateStudent(studentsGroup, configs[i], i, position);
+            }
+            
+            // Save scene to persist config assignments
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
+            Debug.Log("[SceneHierarchyBuilder] Scene marked dirty to persist student configs");
 
             return studentsGroup;
         }
@@ -213,32 +262,97 @@ namespace FunClass.Editor.Modules
             return ui;
         }
 
-        private static void CreateStudent(GameObject parent, FunClass.Core.StudentConfig config, int index)
+        private static void CreateStudent(GameObject parent, FunClass.Core.StudentConfig config, int index, Vector3? customPosition)
         {
-            GameObject student = new GameObject($"Student_{config.studentName}");
+            if (config == null)
+            {
+                Debug.LogError($"[SceneHierarchyBuilder] CreateStudent called with NULL config at index {index}!");
+                return;
+            }
+            
+            if (string.IsNullOrEmpty(config.studentName))
+            {
+                Debug.LogError($"[SceneHierarchyBuilder] Config at index {index} has null/empty studentName! Config asset: {config.name}");
+            }
+            
+            Debug.Log($"[SceneHierarchyBuilder] CreateStudent - Index: {index}, Config asset: {config.name}, StudentName: '{config.studentName}'");
+            
+            string studentName = string.IsNullOrEmpty(config.studentName) ? $"Student_{index}" : config.studentName;
+            GameObject student = new GameObject($"Student_{studentName}");
             student.transform.SetParent(parent.transform);
             
-            // Position in grid
-            int row = index / 3;
-            int col = index % 3;
-            student.transform.position = new Vector3(col * 2f - 2f, 0, -row * 2f);
+            // Determine target position
+            Vector3 targetPosition;
+            if (customPosition.HasValue)
+            {
+                targetPosition = customPosition.Value;
+                Debug.Log($"[SceneHierarchyBuilder] ✓ Will position {config.studentName} at custom position {customPosition.Value}");
+            }
+            else
+            {
+                // Position in grid
+                int row = index / 3;
+                int col = index % 3;
+                targetPosition = new Vector3(col * 2f - 2f, 0, -row * 2f);
+                Debug.Log($"[SceneHierarchyBuilder] ⚠ Will position {config.studentName} at default grid position {targetPosition} (customPosition was null)");
+            }
+            
+            // Add required components for movement and physics
+            var navAgent = student.AddComponent<UnityEngine.AI.NavMeshAgent>();
+            navAgent.radius = 0.3f;
+            navAgent.height = 1.8f;
+            navAgent.speed = 2f;
+            navAgent.angularSpeed = 180f;
+            navAgent.acceleration = 8f;
+            navAgent.enabled = false; // Disable initially to prevent auto-warp
+            
+            // Set position AFTER adding NavMeshAgent
+            student.transform.position = targetPosition;
+            Debug.Log($"[SceneHierarchyBuilder] ✓ Set {config.studentName} position to {targetPosition}");
+            
+            var rigidbody = student.AddComponent<Rigidbody>();
+            rigidbody.isKinematic = true; // NavMeshAgent controls movement
+            rigidbody.useGravity = false;
+            
+            var collider = student.AddComponent<CapsuleCollider>();
+            collider.radius = 0.3f;
+            collider.height = 1.8f;
+            collider.center = new Vector3(0, 0.9f, 0);
             
             // Add StudentAgent
             var agent = student.AddComponent<FunClass.Core.StudentAgent>();
             
-            // Assign config using reflection
-            var field = typeof(FunClass.Core.StudentAgent).GetField("config", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            if (field != null)
+            // Assign config using SerializedObject (persists to Play mode)
+            var serializedAgent = new SerializedObject(agent);
+            var configProperty = serializedAgent.FindProperty("config");
+            if (configProperty != null)
             {
-                field.SetValue(agent, config);
+                configProperty.objectReferenceValue = config;
+                serializedAgent.ApplyModifiedProperties();
+                EditorUtility.SetDirty(agent);
+                Debug.Log($"[SceneHierarchyBuilder] Creating student: {config.studentName} (index: {index})");
+                Debug.Log($"[SceneHierarchyBuilder] ✓ Assigned config to {config.studentName} - Config asset: {config.name}");
             }
+            else
+            {
+                Debug.LogError($"[SceneHierarchyBuilder] ✗ Failed to find config property for {config.studentName}");
+            }
+            
+            // Add StudentMessCreator for vomit behavior
+            var messCreator = student.AddComponent<FunClass.Core.StudentMessCreator>();
             
             // Add visual with random color
             GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             visual.name = "Visual";
             visual.transform.SetParent(student.transform);
             visual.transform.localPosition = Vector3.zero;
+            
+            // Remove duplicate collider from primitive
+            var primitiveCollider = visual.GetComponent<Collider>();
+            if (primitiveCollider != null)
+            {
+                Object.DestroyImmediate(primitiveCollider);
+            }
             
             var renderer = visual.GetComponent<Renderer>();
             if (renderer != null)
@@ -247,6 +361,8 @@ namespace FunClass.Editor.Modules
                 mat.color = Random.ColorHSV(0f, 1f, 0.5f, 1f, 0.5f, 1f);
                 renderer.material = mat;
             }
+            
+            Debug.Log($"[SceneHierarchyBuilder] Created student {config.studentName} with all required components");
         }
 
         private static void CreateManagerObject(GameObject parent, string name, System.Type componentType)

@@ -30,17 +30,58 @@ namespace FunClass.Core
 
         void Start()
         {
+            Debug.Log($"[StudentAgent] {gameObject.name} Start() called - config: {(config != null ? config.studentName : "NULL")}");
+            
             if (config != null)
             {
                 Initialize(config);
             }
             else
             {
-                Debug.LogWarning($"[StudentAgent] {gameObject.name} has no config assigned");
+                Debug.LogWarning($"[StudentAgent] {gameObject.name} has no config assigned in Start() - attempting to find from LevelLoader");
+                
+                // Try to find config from LevelLoader as fallback
+                if (LevelLoader.Instance != null && LevelLoader.Instance.CurrentLevel != null)
+                {
+                    var levelConfig = LevelLoader.Instance.CurrentLevel;
+                    if (levelConfig.students != null && levelConfig.students.Count > 0)
+                    {
+                        // Try to match by GameObject name
+                        string studentName = gameObject.name.Replace("Student_", "");
+                        var matchingConfig = levelConfig.students.Find(s => s.studentName == studentName);
+                        
+                        if (matchingConfig != null)
+                        {
+                            Debug.Log($"[StudentAgent] Found matching config for {studentName} from LevelLoader");
+                            Initialize(matchingConfig);
+                        }
+                        else
+                        {
+                            Debug.LogError($"[StudentAgent] Could not find config for {studentName} in LevelLoader");
+                        }
+                    }
+                }
             }
 
             originalPosition = transform.position;
             originalRotation = transform.rotation;
+            
+            Debug.Log($"[StudentAgent] {gameObject.name} initialized at position {originalPosition}");
+            
+            // Fallback subscription if OnEnable was called before GameStateManager existed
+            if (GameStateManager.Instance != null)
+            {
+                GameStateManager.Instance.OnStateChanged -= HandleGameStateChanged;
+                GameStateManager.Instance.OnStateChanged += HandleGameStateChanged;
+                Debug.Log($"[StudentAgent] {gameObject.name} subscribed to GameStateManager in Start()");
+                
+                // If already in InLevel state, activate immediately
+                if (GameStateManager.Instance.CurrentState == GameState.InLevel)
+                {
+                    Debug.Log($"[StudentAgent] {gameObject.name} already in InLevel state, activating immediately");
+                    ActivateStudent();
+                }
+            }
         }
 
         void OnEnable()
@@ -89,6 +130,8 @@ namespace FunClass.Core
 
         private void HandleGameStateChanged(GameState oldState, GameState newState)
         {
+            Debug.Log($"[StudentAgent] {gameObject.name} HandleGameStateChanged: {oldState} -> {newState}");
+            
             if (newState == GameState.InLevel)
             {
                 ActivateStudent();
@@ -257,6 +300,19 @@ namespace FunClass.Core
             ChangeState(nextState);
         }
 
+        private float influenceImmunityUntil = 0f;
+        
+        public bool IsImmuneToInfluence()
+        {
+            return Time.time < influenceImmunityUntil;
+        }
+        
+        public void SetInfluenceImmunity(float duration)
+        {
+            influenceImmunityUntil = Time.time + duration;
+            Debug.Log($"[StudentAgent] {Config?.studentName} immune to influence for {duration}s");
+        }
+        
         public void DeescalateState()
         {
             StudentState nextState = CurrentState switch

@@ -65,10 +65,87 @@ namespace FunClass.Core
         /// </summary>
         public StudentWaypoint GetWaypoint(int index)
         {
+            Debug.Log($"[StudentRoute] GetWaypoint({index}) called for route '{routeName}' - waypoints count: {waypoints?.Count ?? -1}");
+            
+            // Check if we need to refresh waypoints from scene
+            bool needsRefresh = false;
+            
+            if (waypoints == null || waypoints.Count == 0)
+            {
+                needsRefresh = true;
+                Debug.Log($"[StudentRoute] '{routeName}' waypoints list is null or empty, refreshing...");
+            }
+            else if (index >= 0 && index < waypoints.Count && waypoints[index] == null)
+            {
+                needsRefresh = true;
+                Debug.Log($"[StudentRoute] '{routeName}' waypoint {index} is null, refreshing...");
+            }
+            else if (index >= 0 && index < waypoints.Count)
+            {
+                Debug.Log($"[StudentRoute] '{routeName}' waypoint {index} exists: {waypoints[index]?.waypointName ?? "NULL"}");
+            }
+            
+            if (needsRefresh)
+            {
+                RefreshWaypointsFromScene();
+            }
+            
             if (waypoints == null || index < 0 || index >= waypoints.Count)
+            {
+                Debug.LogWarning($"[StudentRoute] '{routeName}' GetWaypoint({index}) failed - waypoints: {waypoints?.Count ?? 0}");
                 return null;
+            }
             
             return waypoints[index];
+        }
+        
+        /// <summary>
+        /// Refreshes waypoint references from scene (needed when Editor references are lost in Play mode)
+        /// </summary>
+        public void RefreshWaypointsFromScene()
+        {
+            Debug.Log($"[StudentRoute] RefreshWaypointsFromScene called for route '{routeName}'");
+            
+            if (string.IsNullOrEmpty(routeName))
+            {
+                Debug.LogWarning($"[StudentRoute] Cannot refresh - routeName is null or empty");
+                return;
+            }
+            
+            // Find waypoints group in scene
+            GameObject waypointsRoot = GameObject.Find("Waypoints");
+            if (waypointsRoot == null)
+            {
+                Debug.LogWarning($"[StudentRoute] Cannot find 'Waypoints' GameObject in scene");
+                return;
+            }
+            
+            Debug.Log($"[StudentRoute] Found Waypoints root, looking for route group '{routeName}'");
+            
+            // Find route group
+            Transform routeGroup = waypointsRoot.transform.Find(routeName);
+            if (routeGroup == null)
+            {
+                Debug.LogWarning($"[StudentRoute] Cannot find route group '{routeName}' under Waypoints");
+                return;
+            }
+            
+            Debug.Log($"[StudentRoute] Found route group '{routeName}', getting waypoint components...");
+            
+            // Get all waypoint components from route group
+            StudentWaypoint[] sceneWaypoints = routeGroup.GetComponentsInChildren<StudentWaypoint>();
+            
+            Debug.Log($"[StudentRoute] Found {sceneWaypoints.Length} waypoint components in scene");
+            
+            if (sceneWaypoints.Length > 0)
+            {
+                waypoints = new System.Collections.Generic.List<StudentWaypoint>(sceneWaypoints);
+                Debug.Log($"[StudentRoute] ✓ Refreshed {waypoints.Count} waypoints for route '{routeName}'");
+            }
+            else
+            {
+                Debug.LogWarning($"[StudentRoute] No waypoint components found in route group '{routeName}'");
+            }
         }
     }
 
