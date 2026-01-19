@@ -13,14 +13,14 @@ namespace FunClass.Core
         [Header("Visual Settings")]
         [SerializeField] private Color[] studentColors = new Color[]
         {
-            new Color(1f, 0.3f, 0.3f),      // Red - Student A
-            new Color(0.3f, 0.6f, 1f),      // Blue - Student B
-            new Color(0.3f, 1f, 0.3f),      // Green - Student C
-            new Color(1f, 0.8f, 0.2f),      // Yellow - Student D
+            new Color(1f, 0.2f, 0.2f),      // Bright Red - Student A
+            new Color(0.2f, 0.5f, 1f),      // Bright Blue - Student B
+            new Color(0.2f, 1f, 0.2f),      // Bright Green - Student C
+            new Color(1f, 1f, 0.2f),        // Bright Yellow - Student D
             new Color(1f, 0.5f, 0f),        // Orange - Student E
-            new Color(0.8f, 0.3f, 1f),      // Purple - Student F
-            new Color(0.3f, 1f, 1f),        // Cyan - Student G
-            new Color(1f, 0.3f, 0.8f)       // Pink - Student H
+            new Color(0.8f, 0.2f, 1f),      // Purple - Student F
+            new Color(0.2f, 1f, 1f),        // Cyan - Student G
+            new Color(1f, 0.2f, 0.8f)       // Magenta - Student H
         };
 
         [Header("Label Settings")]
@@ -55,6 +55,22 @@ namespace FunClass.Core
 
             string studentName = studentAgent.Config.studentName;
             
+            // Find and destroy any existing labels (from Editor import or previous runs)
+            Transform existingLabel = transform.Find($"{studentName}_Label");
+            if (existingLabel != null)
+            {
+                Destroy(existingLabel.gameObject);
+                Debug.Log($"[StudentVisualMarker] Destroyed existing label for {studentName}");
+            }
+            
+            // Also destroy if labelObject reference exists
+            if (labelObject != null)
+            {
+                Destroy(labelObject);
+                labelObject = null;
+                labelText = null;
+            }
+            
             // Apply color to capsule
             ApplyStudentColor(studentName);
             
@@ -78,15 +94,19 @@ namespace FunClass.Core
             int colorIndex = GetColorIndexFromName(studentName);
             Color studentColor = studentColors[colorIndex % studentColors.Length];
 
-            // Apply color
-            Material mat = studentRenderer.material;
+            // Create new material instance to avoid shared material issues
+            Material mat = new Material(studentRenderer.material);
             mat.color = studentColor;
+            studentRenderer.material = mat;
 
-            Debug.Log($"[StudentVisualMarker] {studentName} color: {studentColor}");
+            Debug.Log($"[StudentVisualMarker] ✓ {studentName} assigned color index {colorIndex}: RGB({studentColor.r:F2}, {studentColor.g:F2}, {studentColor.b:F2})");
         }
 
         private void CreateFloatingLabel(string studentName)
         {
+            // Extract letter from "Student_A" -> "A"
+            string displayName = ExtractLetterFromName(studentName);
+            
             // Create label GameObject
             labelObject = new GameObject($"{studentName}_Label");
             labelObject.transform.SetParent(transform);
@@ -95,7 +115,7 @@ namespace FunClass.Core
 
             // Add TextMeshPro
             labelText = labelObject.AddComponent<TextMeshPro>();
-            labelText.text = studentName;
+            labelText.text = displayName;
             labelText.fontSize = 4;
             labelText.alignment = TextAlignmentOptions.Center;
             labelText.color = Color.white;
@@ -107,7 +127,23 @@ namespace FunClass.Core
             // Make label always face camera
             Billboard billboard = labelObject.AddComponent<Billboard>();
 
-            Debug.Log($"[StudentVisualMarker] Created label for {studentName}");
+            Debug.Log($"[StudentVisualMarker] Created label '{displayName}' for {studentName}");
+        }
+        
+        private string ExtractLetterFromName(string studentName)
+        {
+            // Extract letter from "Student_A", "Student_B", etc.
+            if (studentName.Contains("_"))
+            {
+                string[] parts = studentName.Split('_');
+                if (parts.Length > 1 && !string.IsNullOrEmpty(parts[1]))
+                {
+                    return parts[1]; // Return "A", "B", "C", etc.
+                }
+            }
+            
+            // Fallback: return first character
+            return studentName.Length > 0 ? studentName.Substring(0, 1) : "?";
         }
 
         private int GetColorIndexFromName(string studentName)

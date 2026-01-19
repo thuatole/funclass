@@ -186,8 +186,8 @@ namespace FunClass.Core
                 StudentEventType.ThrowingObject => true,
                 StudentEventType.MakingNoise => true,
                 StudentEventType.KnockedOverObject => true,
-                StudentEventType.LeftSeat => true,
-                StudentEventType.WanderingAround => true,
+                StudentEventType.LeftSeat => false,  // No influence - just state change
+                StudentEventType.WanderingAround => false,  // No influence - can't be resolved by calming
                 StudentEventType.MessCreated => true,
                 StudentEventType.StudentReacted when IsHighIntensityReaction(eventType) => true,
                 _ => false

@@ -1,0 +1,16 @@
+{
+  "actions": {
+    "resolveWholeClass": "✅ Giải quyết cho cả lớp",
+    "resolveIndividual": "✅ Giải quyết cho {name}",
+    "escortBack": "🏠 Escort Back",
+    "close": "❌ Close",
+    "calm": "💙 Calm",
+    "punish": "⚡ Punish"
+  },
+  "tooltips": {
+    "escortDisabled": "Cần giải quyết các nguồn gốc trước",
+    "escortEnabled": "Đưa học sinh về chỗ ngồi",
+    "resolveWholeClass": "Giải quyết ảnh hưởng cho tất cả học sinh",
+    "resolveIndividual": "Giải quyết ảnh hưởng cho {name}"
+  }
+}

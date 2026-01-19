@@ -1,0 +1,49 @@
+{
+  "statements": {
+    "Vomit": [
+      "Em ói rồi cô ơi...",
+      "Em không kìm được cô...",
+      "Em bị ốm cô ơi..."
+    ],
+    "Poop": [
+      "Em không kìm được cô ơi...",
+      "Em đau bụng quá cô...",
+      "Em xin lỗi cô..."
+    ],
+    "Hit": [
+      "Em tức quá cô ơi, nên em đánh bạn {targets}...",
+      "Bạn ấy chọc em trước cô, nên em đánh bạn {targets}!",
+      "Em không chịu được, em đánh bạn {targets}..."
+    ],
+    "ThrowObject": [
+      "Em không cố ý cô ơi, em ném đồ vào bạn {targets}...",
+      "Em tức quá nên em ném đồ vào bạn {targets}...",
+      "Em chỉ muốn ném thôi cô, em ném vào bạn {targets}..."
+    ],
+    "MakeNoise": [
+      "Em đang nói chuyện với bạn {targets} cô ơi...",
+      "Em hỏi bài bạn {targets} thôi mà cô...",
+      "Em không ồn lắm đâu cô, em chỉ nói với bạn {targets}..."
+    ],
+    "Push": [
+      "Em không cố ý cô ơi, em đẩy bạn {targets}...",
+      "Bạn {targets} chặn đường em cô ơi...",
+      "Em tức quá nên em đẩy bạn {targets}..."
+    ],
+    "TakeItem": [
+      "Em mượn đồ của bạn {targets} thôi cô...",
+      "Em thích đồ của bạn {targets} quá cô ơi...",
+      "Bạn {targets} không cho em mượn nên em lấy..."
+    ],
+    "Tease": [
+      "Em chỉ đùa với bạn {targets} thôi cô...",
+      "Em không cố ý làm bạn {targets} khóc cô ơi...",
+      "Em chọc bạn {targets} chơi thôi mà cô..."
+    ],
+    "Distract": [
+      "Em chỉ kêu bạn {targets} chơi thôi cô...",
+      "Em không cố ý làm bạn {targets} mất tập trung cô ơi...",
+      "Em chỉ nói chuyện với bạn {targets} một chút..."
+    ]
+  }
+}

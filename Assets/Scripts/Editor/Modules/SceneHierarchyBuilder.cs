@@ -341,11 +341,7 @@ namespace FunClass.Editor.Modules
             // Add StudentMessCreator for vomit behavior
             var messCreator = student.AddComponent<FunClass.Core.StudentMessCreator>();
             
-            // TEMPORARILY DISABLED: Add StudentVisualMarker for color-coding and name labels
-            // var visualMarker = student.AddComponent<FunClass.Core.StudentVisualMarker>();
-            // Debug.Log($"[SceneHierarchyBuilder] ✓ Added StudentVisualMarker to {config.studentName}");
-            
-            // Add visual with random color
+            // Add visual capsule FIRST (before StudentVisualMarker)
             GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             visual.name = "Visual";
             visual.transform.SetParent(student.transform);
@@ -358,12 +354,35 @@ namespace FunClass.Editor.Modules
                 Object.DestroyImmediate(primitiveCollider);
             }
             
+            // Add StudentVisualMarker (will apply colors in Play mode)
+            var visualMarker = student.AddComponent<FunClass.Core.StudentVisualMarker>();
+            
+            // Manually apply color in editor (StudentVisualMarker.Start() only runs in Play mode)
             var renderer = visual.GetComponent<Renderer>();
             if (renderer != null)
             {
-                Material mat = new Material(Shader.Find("Standard"));
-                mat.color = Random.ColorHSV(0f, 1f, 0.5f, 1f, 0.5f, 1f);
-                renderer.material = mat;
+                // Determine color based on student name
+                Color[] studentColors = new Color[]
+                {
+                    new Color(1f, 0.2f, 0.2f),      // Bright Red - Student A
+                    new Color(0.2f, 0.5f, 1f),      // Bright Blue - Student B
+                    new Color(0.2f, 1f, 0.2f),      // Bright Green - Student C
+                    new Color(1f, 1f, 0.2f),        // Bright Yellow - Student D
+                    new Color(1f, 0.5f, 0f),        // Orange - Student E
+                    new Color(0.8f, 0.2f, 1f),      // Purple - Student F
+                    new Color(0.2f, 1f, 1f),        // Cyan - Student G
+                    new Color(1f, 0.2f, 0.8f)       // Magenta - Student H
+                };
+                
+                int colorIndex = GetColorIndexFromName(config.studentName);
+                Color studentColor = studentColors[colorIndex % studentColors.Length];
+                
+                // Create new material instance
+                Material mat = new Material(renderer.sharedMaterial);
+                mat.color = studentColor;
+                renderer.sharedMaterial = mat;
+                
+                Debug.Log($"[SceneHierarchyBuilder] ✓ Applied color to {config.studentName}: RGB({studentColor.r:F2}, {studentColor.g:F2}, {studentColor.b:F2})");
             }
             
             Debug.Log($"[SceneHierarchyBuilder] Created student {config.studentName} with all required components");
@@ -373,6 +392,28 @@ namespace FunClass.Editor.Modules
         {
             GameObject obj = EditorUtils.CreateChild(parent, name);
             obj.AddComponent(componentType);
+        }
+        
+        private static int GetColorIndexFromName(string studentName)
+        {
+            // Extract letter from "Student_A", "Student_B", etc.
+            if (studentName.Contains("_"))
+            {
+                string[] parts = studentName.Split('_');
+                if (parts.Length > 1)
+                {
+                    string letter = parts[1];
+                    if (letter.Length > 0)
+                    {
+                        char c = letter[0];
+                        // A=0, B=1, C=2, etc.
+                        return c - 'A';
+                    }
+                }
+            }
+
+            // Fallback: use hash
+            return Mathf.Abs(studentName.GetHashCode()) % 8;
         }
     }
 }

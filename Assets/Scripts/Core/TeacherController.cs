@@ -1,4 +1,5 @@
 using UnityEngine;
+using FunClass.Core.UI;
 
 namespace FunClass.Core
 {
@@ -37,6 +38,7 @@ namespace FunClass.Core
         private InteractableObject currentLookTarget;
         private StudentAgent currentStudentTarget;
         private MessObject currentMessTarget;
+        private UI.StudentHighlight currentHighlight;
 
         public Camera PlayerCamera => playerCamera;
 
@@ -133,7 +135,12 @@ namespace FunClass.Core
             if (!isActive) return;
 
             HandleMovement();
-            HandleCamera();
+            
+            if (!PopupManager.Instance.IsPopupOpen)
+            {
+                HandleCamera();
+            }
+            
             HandleInteractionDetection();
             HandleInteractionInput();
             
@@ -268,12 +275,27 @@ namespace FunClass.Core
                 {
                     if (student != currentStudentTarget)
                     {
+                        if (currentHighlight != null)
+                        {
+                            currentHighlight.SetHighlight(false);
+                        }
+                        
                         currentStudentTarget = student;
                         currentLookTarget = null;
+                        
+                        currentHighlight = student.GetComponent<UI.StudentHighlight>();
+                        if (currentHighlight == null)
+                        {
+                            currentHighlight = student.gameObject.AddComponent<UI.StudentHighlight>();
+                        }
+                        currentHighlight.SetHighlight(true);
                         
                         string prompt = GetContextualPrompt(student);
                         Debug.Log($"[TeacherController] Looking at: {prompt}");
                     }
+                    
+                    Cursor.visible = true;
+                    Cursor.lockState = CursorLockMode.None;
                 }
                 else
                 {
@@ -316,17 +338,38 @@ namespace FunClass.Core
                 }
                 if (currentStudentTarget != null)
                 {
+                    if (currentHighlight != null)
+                    {
+                        currentHighlight.SetHighlight(false);
+                        currentHighlight = null;
+                    }
                     currentStudentTarget = null;
                 }
                 if (currentMessTarget != null)
                 {
                     currentMessTarget = null;
                 }
+                
+                if (!PopupManager.Instance.IsPopupOpen)
+                {
+                    Cursor.lockState = CursorLockMode.Locked;
+                    Cursor.visible = false;
+                }
             }
         }
 
         private void HandleInteractionInput()
         {
+            // Left Click - Show popup for student
+            if (Input.GetMouseButtonDown(0))
+            {
+                if (currentStudentTarget != null && !PopupManager.Instance.IsPopupOpen)
+                {
+                    PopupManager.Instance.ShowPopup(currentStudentTarget);
+                }
+            }
+
+            // E key - Calm student (resolve influence)
             if (Input.GetKeyDown(KeyCode.E))
             {
                 if (currentMessTarget != null)
@@ -335,13 +378,44 @@ namespace FunClass.Core
                 }
                 else if (currentStudentTarget != null)
                 {
-                    HandleContextualInteraction(currentStudentTarget);
+                    // E = Calm action (de-escalate, resolve influence)
+                    CalmStudent(currentStudentTarget);
                 }
                 else if (currentLookTarget != null)
                 {
                     currentLookTarget.Interact(this);
                 }
             }
+            
+            // R key - Recall/Escort student back (move to seat)
+            // DISABLED: Escort now handled via popup UI
+            /*
+            if (Input.GetKeyDown(KeyCode.R))
+            {
+                if (currentStudentTarget != null)
+                {
+                    // R = Recall/Escort action (bring back to seat)
+                    bool isOutside = IsStudentOutsideClassroom(currentStudentTarget);
+                    bool isOnRoute = currentStudentTarget.IsFollowingRoute;
+
+                    if (isOutside || isOnRoute)
+                    {
+                        if (currentStudentTarget.CurrentState == StudentState.Critical)
+                        {
+                            EscortStudentBack(currentStudentTarget);
+                        }
+                        else
+                        {
+                            CallStudentBack(currentStudentTarget);
+                        }
+                    }
+                    else
+                    {
+                        Debug.Log($"[Teacher] {currentStudentTarget.Config?.studentName} is not outside - cannot recall");
+                    }
+                }
+            }
+            */
 
             if (Input.GetKeyDown(KeyCode.Alpha1))
             {
@@ -556,6 +630,56 @@ namespace FunClass.Core
                 Debug.Log($"[Teacher] Student not outside - normal interaction");
                 InteractWithStudent(student);
             }
+        }
+
+        /// <summary>
+        /// Calms a student and resolves their influence on others
+        /// Does NOT move the student - use Escort for that
+        /// </summary>
+        private void CalmStudent(StudentAgent student)
+        {
+            if (student == null) return;
+
+            Debug.Log($"[Teacher] === CALMING {student.Config?.studentName} ===");
+
+            // De-escalate student state
+            StudentState originalState = student.CurrentState;
+            if (originalState != StudentState.Calm)
+            {
+                Debug.Log($"[Teacher] De-escalating {student.Config?.studentName} from {originalState}...");
+                
+                int deescalateCount = 0;
+                while (student.CurrentState != StudentState.Calm && deescalateCount < 10)
+                {
+                    student.DeescalateState();
+                    deescalateCount++;
+                }
+                
+                Debug.Log($"[Teacher] ✓ {student.Config?.studentName} de-escalated to {student.CurrentState} (took {deescalateCount} steps)");
+            }
+
+            // Trigger StudentCalmed event to resolve influence on others
+            student.HandleTeacherAction(TeacherActionType.Calm);
+            
+            // Log StudentCalmed event for influence system
+            if (StudentEventManager.Instance != null)
+            {
+                StudentEventManager.Instance.LogEvent(
+                    student,
+                    StudentEventType.StudentCalmed,
+                    $"Teacher calmed {student.Config?.studentName}",
+                    null
+                );
+                Debug.Log($"[Teacher] ✓ Logged StudentCalmed event for {student.Config?.studentName}");
+            }
+
+            // Reduce disruption
+            if (ClassroomManager.Instance != null)
+            {
+                ClassroomManager.Instance.AddDisruption(-5f, $"Calmed {student.Config?.studentName}");
+            }
+            
+            Debug.Log($"[Teacher] === CALM COMPLETE: {student.Config?.studentName} ===");
         }
 
         /// <summary>

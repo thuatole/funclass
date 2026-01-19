@@ -1,0 +1,28 @@
+{
+  "complaints": {
+    "MessCreated": {
+      "template": "Bạn {source} ói, thúi quá!",
+      "icon": "😷"
+    },
+    "PhysicalInteraction": {
+      "template": "Bạn {source} đánh con, đau lắm!",
+      "icon": "😢"
+    },
+    "ThrowingObject": {
+      "template": "Bạn {source} ném đồ vào con!",
+      "icon": "🎯"
+    },
+    "MakingNoise": {
+      "template": "Bạn {source} làm ồn, con không học được!",
+      "icon": "🔊"
+    },
+    "Distraction": {
+      "template": "Bạn {source} làm con mất tập trung!",
+      "icon": "😵"
+    },
+    "Poop": {
+      "template": "Bạn {source} ỉa, thúi lắm cô!",
+      "icon": "💩"
+    }
+  }
+}
