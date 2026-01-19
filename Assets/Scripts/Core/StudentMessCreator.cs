@@ -22,6 +22,7 @@ namespace FunClass.Core
 
         private StudentAgent studentAgent;
         private float lastVomitTime = -999f;
+        private bool hasVomitedThisLevel = false;
 
         void Awake()
         {
@@ -35,31 +36,43 @@ namespace FunClass.Core
 
         void Update()
         {
-            // Example: Random chance to vomit when in Critical state
-            if (studentAgent.CurrentState == StudentState.Critical)
-            {
-                if (Time.time - lastVomitTime > vomitCooldown)
-                {
-                    if (Random.value < vomitChanceWhenCritical * Time.deltaTime)
-                    {
-                        PerformVomit();
-                    }
-                }
-            }
+            // Automatic vomit disabled - use ScenarioController for one-time events
+            // This prevents repeated vomit actions
+            
+            // Original automatic vomit code (now disabled):
+            // if (studentAgent.CurrentState == StudentState.Critical)
+            // {
+            //     if (Time.time - lastVomitTime > vomitCooldown)
+            //     {
+            //         if (Random.value < vomitChanceWhenCritical * Time.deltaTime)
+            //         {
+            //             PerformVomit();
+            //         }
+            //     }
+            // }
         }
 
         /// <summary>
         /// Public method to trigger vomit action
         /// Can be called from StudentAgent or other systems
+        /// ONE-TIME ONLY per level
         /// </summary>
         public void PerformVomit()
         {
+            // One-time check - only allow vomit once per level
+            if (hasVomitedThisLevel)
+            {
+                Debug.Log($"[StudentMessCreator] {studentAgent.Config?.studentName} already vomited this level - skipping");
+                return;
+            }
+            
             if (Time.time - lastVomitTime < vomitCooldown)
             {
                 Debug.Log($"[StudentMessCreator] {studentAgent.Config?.studentName} vomit on cooldown");
                 return;
             }
 
+            hasVomitedThisLevel = true;
             lastVomitTime = Time.time;
 
             Debug.Log($"[StudentMessCreator] {studentAgent.Config?.studentName} is vomiting!");

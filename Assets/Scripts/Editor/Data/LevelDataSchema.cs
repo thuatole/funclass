@@ -13,6 +13,7 @@ namespace FunClass.Editor.Data
         public string levelName;
         public string difficulty; // "Easy", "Normal", "Hard"
         public LevelGoalData goalSettings;
+        public InfluenceScopeSettingsData influenceScopeSettings;
         public List<StudentData> students;
         public List<RouteData> routes;
         public List<PrefabData> prefabs;
@@ -190,6 +191,29 @@ namespace FunClass.Editor.Data
         public string sequenceId;
         public string sequenceTemplate; // "SimpleWarning", "ObjectConfiscation", etc.
         public string entryState;
+        public string description;
+    }
+
+    /// <summary>
+    /// Influence scope settings for the level
+    /// Defines how different event types affect students
+    /// </summary>
+    [Serializable]
+    public class InfluenceScopeSettingsData
+    {
+        public Dictionary<string, EventInfluenceScopeData> eventScopes;
+        public float disruptionPenaltyPerUnresolvedSource = 10f;
+        public string description;
+    }
+
+    /// <summary>
+    /// Defines influence scope for a specific event type
+    /// </summary>
+    [Serializable]
+    public class EventInfluenceScopeData
+    {
+        public string scope; // "None", "WholeClass", "SingleStudent"
+        public float baseSeverity = 0.5f;
         public string description;
     }
 }

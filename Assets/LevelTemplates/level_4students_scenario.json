@@ -1,0 +1,177 @@
+{
+  "levelName": "Four_Students_Scenario",
+  "difficulty": "Normal",
+  
+  "classroomDoor": { "x": 0, "y": 0, "z": 5 },
+  
+  "influenceSettings": {
+    "maxInfluenceRadius": 6.0,
+    "vomitPanicRadius": 6.0,
+    "strongInfluenceDistance": 2.0,
+    "mediumInfluenceDistance": 4.0,
+    
+    "eventInfluenceConfig": {
+      "MessCreated": {
+        "scope": "WholeClass",
+        "severity": 0.85,
+        "description": "Vomit - affects all nearby students"
+      },
+      "ThrowingObject": {
+        "scope": "SingleStudent",
+        "severity": 0.7,
+        "description": "Hitting a classmate - affects only target student"
+      },
+      "MakingNoise": {
+        "scope": "WholeClass",
+        "severity": 0.4,
+        "description": "Loud noises - affects all nearby students"
+      }
+    }
+  },
+  
+  "studentInteractions": [
+    {
+      "sourceStudent": "Student_C",
+      "targetStudent": "Student_D",
+      "interactionType": "ThrowingObject",
+      "triggerCondition": "OnActingOut",
+      "probability": 0.8,
+      "description": "Student_C hits Student_D when acting out"
+    }
+  ],
+  
+  "goalSettings": {
+    "maxDisruptionThreshold": 80,
+    "catastrophicDisruptionLevel": 95,
+    "timeLimitSeconds": 180,
+    "requiredCalmDowns": 3,
+    "requiredResolvedProblems": 2,
+    
+    "enableDisruptionTimeout": true,
+    "disruptionTimeoutThreshold": 70,
+    "disruptionTimeoutSeconds": 30,
+    "disruptionTimeoutWarningSeconds": 10,
+    
+    "oneStarScore": 100,
+    "twoStarScore": 250,
+    "threeStarScore": 500
+  },
+  
+  "students": [
+    {
+      "studentName": "Student_A",
+      "position": { "x": -1.5, "y": 0.1, "z": 0 },
+      "personality": {
+        "patience": 0.3,
+        "attentionSpan": 0.4,
+        "impulsiveness": 0.7,
+        "panicThreshold": 0.2,
+        "influenceSusceptibility": 0.5,
+        "influenceResistance": 0.1
+      },
+      "behaviors": {
+        "canFidget": true,
+        "canLookAround": true,
+        "canStandUp": false,
+        "canMoveAround": false,
+        "canDropItems": true,
+        "canKnockOverObjects": true,
+        "canMakeNoiseWithObjects": true,
+        "canThrowObjects": false,
+        "minIdleTime": 1,
+        "maxIdleTime": 3
+      }
+    },
+    {
+      "studentName": "Student_B",
+      "position": { "x": -0.5, "y": 0.1, "z": 0 },
+      "personality": {
+        "patience": 0.6,
+        "attentionSpan": 0.5,
+        "impulsiveness": 0.4,
+        "panicThreshold": 0.15,
+        "influenceSusceptibility": 1.0,
+        "influenceResistance": 0.0
+      },
+      "behaviors": {
+        "canFidget": true,
+        "canLookAround": true,
+        "canStandUp": false,
+        "canMoveAround": false,
+        "canDropItems": false,
+        "canKnockOverObjects": false,
+        "canMakeNoiseWithObjects": true,
+        "canThrowObjects": false,
+        "minIdleTime": 2,
+        "maxIdleTime": 5
+      }
+    },
+    {
+      "studentName": "Student_C",
+      "position": { "x": 0.5, "y": 0.1, "z": 0 },
+      "personality": {
+        "patience": 0.2,
+        "attentionSpan": 0.3,
+        "impulsiveness": 0.9,
+        "panicThreshold": 0.3,
+        "influenceSusceptibility": 0.4,
+        "influenceResistance": 0.2
+      },
+      "behaviors": {
+        "canFidget": true,
+        "canLookAround": true,
+        "canStandUp": false,
+        "canMoveAround": false,
+        "canDropItems": true,
+        "canKnockOverObjects": true,
+        "canMakeNoiseWithObjects": true,
+        "canThrowObjects": true,
+        "minIdleTime": 0.5,
+        "maxIdleTime": 2
+      }
+    },
+    {
+      "studentName": "Student_D",
+      "position": { "x": 1.5, "y": 0.1, "z": 0 },
+      "personality": {
+        "patience": 0.7,
+        "attentionSpan": 0.6,
+        "impulsiveness": 0.3,
+        "panicThreshold": 0.2,
+        "influenceSusceptibility": 0.8,
+        "influenceResistance": 0.1
+      },
+      "behaviors": {
+        "canFidget": true,
+        "canLookAround": true,
+        "canStandUp": false,
+        "canMoveAround": false,
+        "canDropItems": false,
+        "canKnockOverObjects": false,
+        "canMakeNoiseWithObjects": true,
+        "canThrowObjects": false,
+        "minIdleTime": 2,
+        "maxIdleTime": 4
+      }
+    }
+  ],
+  
+  "routes": [
+    {
+      "routeName": "EscapeRoute",
+      "routeType": "Escape",
+      "waypoints": [
+        { "waypointName": "Door", "position": { "x": 0, "y": 0, "z": 5 } },
+        { "waypointName": "Outside", "position": { "x": 0, "y": 0, "z": 10 } }
+      ]
+    },
+    {
+      "routeName": "ReturnRoute",
+      "routeType": "Return",
+      "waypoints": [
+        { "waypointName": "Door", "position": { "x": 0, "y": 0, "z": 5 } },
+        { "waypointName": "Seat", "position": { "x": -2, "y": 0, "z": 0 } }
+      ]
+    }
+  ]
+}

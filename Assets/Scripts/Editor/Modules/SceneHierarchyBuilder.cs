@@ -341,6 +341,10 @@ namespace FunClass.Editor.Modules
             // Add StudentMessCreator for vomit behavior
             var messCreator = student.AddComponent<FunClass.Core.StudentMessCreator>();
             
+            // TEMPORARILY DISABLED: Add StudentVisualMarker for color-coding and name labels
+            // var visualMarker = student.AddComponent<FunClass.Core.StudentVisualMarker>();
+            // Debug.Log($"[SceneHierarchyBuilder] ✓ Added StudentVisualMarker to {config.studentName}");
+            
             // Add visual with random color
             GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             visual.name = "Visual";

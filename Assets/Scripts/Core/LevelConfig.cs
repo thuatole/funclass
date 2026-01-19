@@ -6,6 +6,7 @@ namespace FunClass.Core
     [CreateAssetMenu(fileName = "Level", menuName = "FunClass/Level Config")]
     public class LevelConfig : ScriptableObject
     {
+        [Header("Level Identity")]
         public string levelId;
         public int grade;
         [TextArea(3, 5)]

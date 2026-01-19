@@ -13,10 +13,8 @@ MonoBehaviour:
   m_Name: EscapeRoute
   m_EditorClassIdentifier: Assembly-CSharp::FunClass.Core.StudentRoute
   routeId: 
-  routeName: EscapeRoute
-  waypoints:
-  - {fileID: 0}
-  - {fileID: 0}
+  routeName: 
+  waypoints: []
   isLooping: 0
   isPingPong: 0
   movementSpeed: 2

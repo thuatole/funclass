@@ -10,26 +10,26 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8f2731a77cb567649808d888269f25be, type: 3}
-  m_Name: Student_Student_A
+  m_Name: Student_Student_B
   m_EditorClassIdentifier: Assembly-CSharp::FunClass.Core.StudentConfig
-  studentId: student_student_a
-  studentName: Student_A
+  studentId: student_student_b
+  studentName: Student_B
   initialState: 0
-  patience: 0.8
-  attentionSpan: 0.7
-  impulsiveness: 0.2
+  patience: 0.4
+  attentionSpan: 0.4
+  impulsiveness: 0.7
   canFidget: 1
   canLookAround: 1
   canStandUp: 0
   canMoveAround: 0
-  canDropItems: 0
-  canKnockOverObjects: 0
+  canDropItems: 1
+  canKnockOverObjects: 1
   canMakeNoiseWithObjects: 1
-  canThrowObjects: 0
+  canThrowObjects: 1
   canTouchObjects: 1
   interactionRange: 2
-  minIdleTime: 2
-  maxIdleTime: 4
+  minIdleTime: 1
+  maxIdleTime: 3
   calmInteractionChance: 0.1
   distractedInteractionChance: 0.3
   actingOutInteractionChance: 0.6

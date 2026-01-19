@@ -24,9 +24,11 @@ namespace FunClass.Core
         private StudentInteractionSequence currentSequence = null;
         private List<StudentInteractionSequence> availableSequences = new List<StudentInteractionSequence>();
         private bool isFollowingRoute = false;
+        private StudentInfluenceSources influenceSources;
 
         public Vector3 OriginalSeatPosition => originalPosition;
         public bool IsFollowingRoute => isFollowingRoute;
+        public StudentInfluenceSources InfluenceSources => influenceSources;
 
         void Start()
         {
@@ -159,6 +161,7 @@ namespace FunClass.Core
         {
             config = studentConfig;
             CurrentState = config.initialState;
+            influenceSources = new StudentInfluenceSources(this);
             InitializeSequences();
             Debug.Log($"[StudentAgent] Initialized {config.studentName} with state: {CurrentState}");
         }

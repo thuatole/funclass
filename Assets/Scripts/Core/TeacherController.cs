@@ -708,7 +708,47 @@ namespace FunClass.Core
         {
             if (student == null) return;
 
-            Debug.Log($"[Teacher] Escorting {student.Config?.studentName} back to seat");
+            Debug.Log($"[Teacher] Attempting to escort {student.Config?.studentName} back to seat");
+
+            // Check if all influence sources are resolved
+            if (student.InfluenceSources != null && !student.InfluenceSources.AreAllSourcesResolved())
+            {
+                int unresolvedCount = student.InfluenceSources.GetUnresolvedSourceCount();
+                var unresolvedSources = student.InfluenceSources.GetUnresolvedSourceStudents();
+                
+                Debug.LogWarning($"[Teacher] ✗ Cannot escort {student.Config?.studentName} - {unresolvedCount} unresolved influence sources!");
+                
+                foreach (var source in unresolvedSources)
+                {
+                    Debug.LogWarning($"[Teacher]   - Unresolved source: {source.Config?.studentName}");
+                }
+
+                // Student returns to outdoor (escape route)
+                Debug.Log($"[Teacher] {student.Config?.studentName} returning to outdoor due to unresolved sources");
+                
+                if (LevelManager.Instance != null)
+                {
+                    LevelConfig currentLevel = LevelManager.Instance.GetCurrentLevelConfig();
+                    if (currentLevel != null && currentLevel.escapeRoute != null)
+                    {
+                        student.StartRoute(currentLevel.escapeRoute);
+                    }
+                }
+
+                // Add disruption for failed escort
+                if (ClassroomManager.Instance != null)
+                {
+                    float disruptionPenalty = 10f * unresolvedCount; // 10 points per unresolved source
+                    ClassroomManager.Instance.AddDisruption(disruptionPenalty, 
+                        $"{student.Config?.studentName} returned to outdoor - {unresolvedCount} unresolved sources");
+                    
+                    Debug.LogWarning($"[Teacher] Added {disruptionPenalty} disruption for failed escort");
+                }
+
+                return;
+            }
+
+            Debug.Log($"[Teacher] ✓ All influence sources resolved - proceeding with escort");
 
             // Calm down student completely when teacher escorts
             StudentState originalState = student.CurrentState;
@@ -724,6 +764,12 @@ namespace FunClass.Core
                 }
                 
                 Debug.Log($"[Teacher] ✓ Calmed down {student.Config?.studentName} ({originalState} → {student.CurrentState})");
+            }
+            
+            // Clear all influence sources after successful escort
+            if (student.InfluenceSources != null)
+            {
+                student.InfluenceSources.ClearAllSources();
             }
             
             // Set influence immunity to prevent re-escalation

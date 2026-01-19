@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace FunClass.Core
 {
@@ -120,13 +121,21 @@ namespace FunClass.Core
                 return;
             }
             
-            Debug.Log($"[StudentRoute] Found Waypoints root, looking for route group '{routeName}'");
+            // List all route groups for debugging
+            Debug.Log($"[StudentRoute] Found Waypoints root with {waypointsRoot.transform.childCount} children");
+            for (int i = 0; i < waypointsRoot.transform.childCount; i++)
+            {
+                Debug.Log($"[StudentRoute]   Child {i}: {waypointsRoot.transform.GetChild(i).name}");
+            }
+            
+            Debug.Log($"[StudentRoute] Looking for route group '{routeName}'");
             
             // Find route group
             Transform routeGroup = waypointsRoot.transform.Find(routeName);
             if (routeGroup == null)
             {
-                Debug.LogWarning($"[StudentRoute] Cannot find route group '{routeName}' under Waypoints");
+                Debug.LogError($"[StudentRoute] ✗ Cannot find route group '{routeName}' under Waypoints!");
+                Debug.LogError($"[StudentRoute] Available route groups: {string.Join(", ", System.Linq.Enumerable.Range(0, waypointsRoot.transform.childCount).Select(i => waypointsRoot.transform.GetChild(i).name))}");
                 return;
             }
             

@@ -10,19 +10,20 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3f9082d06048fbc4da3673444f90583b, type: 3}
-  m_Name: Vomit_Panic_Scenario_Config
+  m_Name: Complex_Scenario_ABC_Config
   m_EditorClassIdentifier: Assembly-CSharp::FunClass.Core.LevelConfig
   levelId: 
   grade: 0
   description: 
   students:
-  - {fileID: 11400000, guid: 1192ffb1e681451479314a184ffc31f4, type: 2}
-  - {fileID: 11400000, guid: 74234805b5ca8f5498e38b5a1ea1168c, type: 2}
+  - {fileID: 11400000, guid: 059f23f21e9b66047a65b2a07839f95a, type: 2}
+  - {fileID: 11400000, guid: 17f32d510f928ba43b99b84fcfe8fb7d, type: 2}
+  - {fileID: 11400000, guid: ec6d829f4f099074298489e6ef3cf631, type: 2}
   availableSequences: []
-  levelGoal: {fileID: 11400000, guid: 8e8eab539edaf8b4c8eaa5ebab553497, type: 2}
+  levelGoal: {fileID: 11400000, guid: 522ca52592d44d34885f68516dacb019, type: 2}
   availableRoutes: []
-  escapeRoute: {fileID: 11400000, guid: 5640850222893674abc177bbba30d5bd, type: 2}
-  returnRoute: {fileID: 0}
+  escapeRoute: {fileID: 0}
+  returnRoute: {fileID: 11400000, guid: 80399f74c779c6d4fa52f8246b09f98a, type: 2}
   classroomDoor: {fileID: 0}
   outsideArea: {fileID: 0}
   seatPositions: []

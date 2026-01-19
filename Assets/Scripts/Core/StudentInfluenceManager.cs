@@ -149,6 +149,22 @@ namespace FunClass.Core
                 return;
             }
 
+            // Handle StudentCalmed event - resolve influence sources from this student
+            if (evt.eventType == StudentEventType.StudentCalmed)
+            {
+                ResolveInfluenceSourcesFromStudent(evt.student);
+            }
+
+            // Handle MessCleaned event - resolve influence sources from student who created the mess
+            if (evt.eventType == StudentEventType.MessCleaned)
+            {
+                if (evt.student != null)
+                {
+                    Log($"[StudentInfluenceManager] Mess cleaned - resolving sources from {evt.student.Config?.studentName}");
+                    ResolveInfluenceSourcesFromStudent(evt.student);
+                }
+            }
+
             if (IsInfluenceTrigger(evt.eventType))
             {
                 Log($"[StudentInfluenceManager] Processing influence for {evt.eventType}");
@@ -203,47 +219,134 @@ namespace FunClass.Core
 
         /// <summary>
         /// Main influence processing method
+        /// Handles WholeClass and SingleStudent scopes WITHOUT distance checks
         /// </summary>
         private void ProcessInfluence(StudentEvent evt)
         {
             StudentAgent sourceStudent = evt.student;
-            Vector3 sourcePosition = sourceStudent.transform.position;
             float baseSeverity = GetInfluenceSeverity(evt.eventType);
+            InfluenceScope scope = evt.influenceScope;
 
-            // Use special radius for mess events
-            float influenceRadius = (evt.eventType == StudentEventType.MessCreated) 
-                ? vomitPanicRadius 
-                : maxInfluenceRadius;
+            Log($"[Influence] {sourceStudent.Config?.studentName} triggered {scope} influence: {evt.eventType}");
 
-            if (evt.eventType == StudentEventType.MessCreated)
+            if (scope == InfluenceScope.None)
             {
-                Log($"[Influence] Mess created by {sourceStudent.Config?.studentName} triggered panic influence");
-            }
-            else
-            {
-                Log($"[Influence] {sourceStudent.Config?.studentName} triggered influence event: {evt.eventType}");
-            }
-
-            List<StudentAgent> affectedStudents = FindNearbyStudents(sourceStudent, influenceRadius);
-
-            if (affectedStudents.Count == 0)
-            {
-                Log($"[Influence] No nearby students within {influenceRadius}m");
+                Log($"[Influence] Event has no influence scope, skipping");
                 return;
             }
 
-            Log($"[Influence] {affectedStudents.Count} nearby students detected within {influenceRadius}m");
-
-            foreach (StudentAgent targetStudent in affectedStudents)
+            if (scope == InfluenceScope.SingleStudent)
             {
-                float distance = Vector3.Distance(sourcePosition, targetStudent.transform.position);
-                float influenceStrength = CalculateInfluenceStrength(distance, baseSeverity, targetStudent);
-
-                if (influenceStrength > 0.01f)
+                // Single student influence - NO distance check
+                if (evt.targetStudent != null)
                 {
-                    ApplyInfluence(targetStudent, sourceStudent, influenceStrength, evt.eventType);
+                    Log($"[Influence] SingleStudent: {sourceStudent.Config?.studentName} → {evt.targetStudent.Config?.studentName} (no distance check)");
+                    
+                    // Check if target has config
+                    if (evt.targetStudent.Config == null)
+                    {
+                        Debug.LogError($"[Influence] Target student {evt.targetStudent.name} has NULL Config!");
+                        return;
+                    }
+                    
+                    // Calculate influence strength based on susceptibility and resistance only
+                    float susceptibility = evt.targetStudent.Config.influenceSusceptibility;
+                    float resistance = evt.targetStudent.Config.influenceResistance;
+                    float influenceStrength = baseSeverity * susceptibility * (1f - resistance);
+                    
+                    Log($"[Influence] Calculating strength: base={baseSeverity:F2}, susceptibility={susceptibility:F2}, resistance={resistance:F2}");
+                    Log($"[Influence] Result strength: {influenceStrength:F2}");
+                    
+                    if (influenceStrength > 0.01f)
+                    {
+                        Log($"[Influence] Adding influence source...");
+                        // Add influence source tracking
+                        evt.targetStudent.InfluenceSources.AddSource(sourceStudent, evt.eventType, influenceStrength);
+                        ApplyInfluence(evt.targetStudent, sourceStudent, influenceStrength, evt.eventType);
+                        Log($"[Influence] ✓ Added source and applied influence");
+                    }
+                    else
+                    {
+                        Log($"[Influence] Strength too low ({influenceStrength:F2}), not adding source");
+                    }
+                }
+                else
+                {
+                    Log($"[Influence] Warning: SingleStudent scope but no target student specified");
                 }
             }
+            else if (scope == InfluenceScope.WholeClass)
+            {
+                // Whole class influence - affects students in SAME LOCATION only
+                StudentAgent[] allStudents = FindObjectsOfType<StudentAgent>();
+                int affectedCount = 0;
+                int skippedDifferentLocation = 0;
+
+                string sourceLocation = StudentLocationHelper.GetLocationString(sourceStudent);
+                Log($"[Influence] WholeClass: {sourceStudent.Config?.studentName} ({sourceLocation}) affects students in same location");
+
+                foreach (StudentAgent targetStudent in allStudents)
+                {
+                    // Skip self
+                    if (targetStudent == sourceStudent) continue;
+
+                    // Check if in same location (inside/outside)
+                    if (!StudentLocationHelper.AreInSameLocation(sourceStudent, targetStudent))
+                    {
+                        string targetLocation = StudentLocationHelper.GetLocationString(targetStudent);
+                        Log($"[Influence]   ✗ {targetStudent.Config?.studentName} ({targetLocation}) - different location, no influence");
+                        skippedDifferentLocation++;
+                        continue;
+                    }
+
+                    // Calculate influence strength
+                    float susceptibility = targetStudent.Config.influenceSusceptibility;
+                    float resistance = targetStudent.Config.influenceResistance;
+                    float influenceStrength = baseSeverity * susceptibility * (1f - resistance);
+
+                    if (influenceStrength > 0.01f)
+                    {
+                        // Add influence source tracking
+                        targetStudent.InfluenceSources.AddSource(sourceStudent, evt.eventType, influenceStrength);
+                        ApplyInfluence(targetStudent, sourceStudent, influenceStrength, evt.eventType);
+                        affectedCount++;
+                    }
+                }
+
+                Log($"[Influence] WholeClass affected {affectedCount} students (skipped {skippedDifferentLocation} in different location)");
+            }
+        }
+
+        /// <summary>
+        /// Resolve influence sources from a student who has been calmed down
+        /// This marks the student's influence on others as resolved
+        /// </summary>
+        private void ResolveInfluenceSourcesFromStudent(StudentAgent calmedStudent)
+        {
+            Log($"[Influence] === TEACHER ACTION: Calming {calmedStudent.Config?.studentName} ===");
+            Log($"[Influence] Resolving influence sources from {calmedStudent.Config?.studentName}");
+
+            int resolvedCount = 0;
+            foreach (StudentAgent student in allStudents)
+            {
+                if (student == null || student == calmedStudent) continue;
+
+                if (student.InfluenceSources != null)
+                {
+                    int beforeCount = student.InfluenceSources.GetUnresolvedSourceCount();
+                    student.InfluenceSources.ResolveSource(calmedStudent);
+                    int afterCount = student.InfluenceSources.GetUnresolvedSourceCount();
+
+                    if (beforeCount > afterCount)
+                    {
+                        resolvedCount++;
+                        Log($"[Influence] ✓ Resolved {calmedStudent.Config?.studentName}'s influence on {student.Config?.studentName}");
+                        Log($"[Influence]   {student.Config?.studentName} now has {afterCount} unresolved source(s)");
+                    }
+                }
+            }
+
+            Log($"[Influence] === Teacher calmed {calmedStudent.Config?.studentName} - resolved influence on {resolvedCount} student(s) ===");
         }
 
         /// <summary>

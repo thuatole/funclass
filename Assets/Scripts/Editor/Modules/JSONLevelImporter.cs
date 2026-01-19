@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 using System.IO;
+using System.Collections.Generic;
 using FunClass.Editor.Data;
 
 namespace FunClass.Editor.Modules
@@ -109,29 +110,63 @@ namespace FunClass.Editor.Modules
                     var routes = CreateRoutesFromData(data);
                     Debug.Log($"[JSONLevelImporter] Created {routes.Count} routes");
                     
-                    // Assign escape route to level config
+                    // Assign routes to level config
                     var escapeRoute = routes.Find(r => r.routeName.ToLower().Contains("escape"));
+                    var returnRoute = routes.Find(r => r.routeName.ToLower().Contains("return"));
+                    
                     if (escapeRoute != null)
                     {
+                        // Force refresh waypoints from scene before assigning
+                        escapeRoute.RefreshWaypointsFromScene();
+                        EditorUtility.SetDirty(escapeRoute);
+                        AssetDatabase.SaveAssets();
+                        
+                        // Direct assignment
                         levelConfig.escapeRoute = escapeRoute;
                         EditorUtility.SetDirty(levelConfig);
                         AssetDatabase.SaveAssets();
-                        AssetDatabase.Refresh();
                         
-                        // Verify assignment
-                        if (levelConfig.escapeRoute != null)
-                        {
-                            Debug.Log($"[JSONLevelImporter] ✓ Assigned escape route '{escapeRoute.routeName}' to LevelConfig - Verified: {levelConfig.escapeRoute.routeName}");
-                        }
-                        else
-                        {
-                            Debug.LogError($"[JSONLevelImporter] ✗ Escape route assignment failed - escapeRoute is null after assignment!");
-                        }
+                        Debug.Log($"[JSONLevelImporter] Assigned escape route '{escapeRoute.routeName}' with {escapeRoute.waypoints.Count} waypoints");
                     }
                     else
                     {
-                        Debug.LogWarning($"[JSONLevelImporter] No escape route found in {routes.Count} routes. Route names: {string.Join(", ", routes.ConvertAll(r => r.routeName))}");
+                        Debug.LogWarning($"[JSONLevelImporter] No escape route found in {routes.Count} routes");
                     }
+                    
+                    if (returnRoute != null)
+                    {
+                        // Force refresh waypoints from scene before assigning
+                        returnRoute.RefreshWaypointsFromScene();
+                        EditorUtility.SetDirty(returnRoute);
+                        AssetDatabase.SaveAssets();
+                        
+                        // Direct assignment
+                        levelConfig.returnRoute = returnRoute;
+                        EditorUtility.SetDirty(levelConfig);
+                        AssetDatabase.SaveAssets();
+                        
+                        Debug.Log($"[JSONLevelImporter] Assigned return route '{returnRoute.routeName}' with {returnRoute.waypoints.Count} waypoints");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[JSONLevelImporter] No return route found in {routes.Count} routes");
+                    }
+                    
+                    // Final save and reload to ensure persistence
+                    EditorUtility.SetDirty(levelConfig);
+                    AssetDatabase.SaveAssets();
+                    AssetDatabase.Refresh();
+                    
+                    // Reload LevelConfig from disk to verify
+                    string configPath = AssetDatabase.GetAssetPath(levelConfig);
+                    levelConfig = AssetDatabase.LoadAssetAtPath<FunClass.Core.LevelConfig>(configPath);
+                    
+                    Debug.Log($"[JSONLevelImporter] Reloaded LevelConfig from disk for verification");
+                    
+                    // Verify assignments
+                    Debug.Log($"[JSONLevelImporter] === Route Assignment Verification ===");
+                    Debug.Log($"[JSONLevelImporter] Escape Route: {(levelConfig.escapeRoute != null ? $"{levelConfig.escapeRoute.routeName} ({levelConfig.escapeRoute.waypoints.Count} waypoints)" : "NULL")}");
+                    Debug.Log($"[JSONLevelImporter] Return Route: {(levelConfig.returnRoute != null ? $"{levelConfig.returnRoute.routeName} ({levelConfig.returnRoute.waypoints.Count} waypoints)" : "NULL")}");
                     
                     EditorUtility.DisplayProgressBar("Import Level", "Creating routes...", 0.8f);
                 }
@@ -176,6 +211,41 @@ namespace FunClass.Editor.Modules
                         Debug.Log($"[JSONLevelImporter] Assigned LevelConfig to LevelLoader");
                     }
                 }
+                
+                // Add diagnostic and scenario controller
+                GameObject managersGroup = GameObject.Find("=== MANAGERS ===");
+                if (managersGroup != null)
+                {
+                    // Add diagnostic script
+                    var existingDiagnostic = managersGroup.GetComponentInChildren<FunClass.Core.LevelConfigDiagnostic>();
+                    if (existingDiagnostic == null)
+                    {
+                        GameObject diagnosticObj = new GameObject("LevelConfigDiagnostic");
+                        diagnosticObj.transform.SetParent(managersGroup.transform);
+                        diagnosticObj.AddComponent<FunClass.Core.LevelConfigDiagnostic>();
+                        Debug.Log($"[JSONLevelImporter] Added LevelConfigDiagnostic for debugging");
+                    }
+                    
+                    // Add scenario controller for one-time events
+                    var existingScenario = managersGroup.GetComponentInChildren<FunClass.Core.ScenarioController>();
+                    if (existingScenario == null)
+                    {
+                        GameObject scenarioObj = new GameObject("ScenarioController");
+                        scenarioObj.transform.SetParent(managersGroup.transform);
+                        scenarioObj.AddComponent<FunClass.Core.ScenarioController>();
+                        Debug.Log($"[JSONLevelImporter] Added ScenarioController for one-time events");
+                    }
+                    
+                    // Add runtime waypoint creator to solve editor waypoint persistence issue
+                    var existingWaypointCreator = managersGroup.GetComponentInChildren<FunClass.Core.RuntimeWaypointCreator>();
+                    if (existingWaypointCreator == null)
+                    {
+                        GameObject waypointCreatorObj = new GameObject("RuntimeWaypointCreator");
+                        waypointCreatorObj.transform.SetParent(managersGroup.transform);
+                        waypointCreatorObj.AddComponent<FunClass.Core.RuntimeWaypointCreator>();
+                        Debug.Log($"[JSONLevelImporter] Added RuntimeWaypointCreator for runtime waypoint generation");
+                    }
+                }
                 else
                 {
                     Debug.LogWarning("[JSONLevelImporter] LevelLoader not found in scene - level config not loaded");
@@ -200,7 +270,7 @@ namespace FunClass.Editor.Modules
                     PrefabGenerator.CreatePrefabsFromData(data.prefabs);
                 }
 
-                // 9. Bake NavMesh for student navigation
+                // 10. Bake NavMesh for student navigation
                 BakeNavMesh();
 
                 // 10. Save scene to persist waypoints and other scene objects

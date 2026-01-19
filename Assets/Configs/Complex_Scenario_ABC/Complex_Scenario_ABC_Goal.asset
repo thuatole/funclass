@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5a5c0edfc5c9265498f19e420247e7ed, type: 3}
-  m_Name: Vomit_Panic_Scenario_Goal
+  m_Name: Complex_Scenario_ABC_Goal
   m_EditorClassIdentifier: Assembly-CSharp::FunClass.Core.LevelGoalConfig
   maxDisruptionThreshold: 80
   catastrophicDisruptionLevel: 95
@@ -21,14 +21,14 @@ MonoBehaviour:
   maxOutsideTimePerStudent: 60
   maxAllowedOutsideGracePeriod: 10
   hasTimeLimit: 1
-  timeLimitSeconds: 120
-  requiredResolvedProblems: 2
-  requiredCalmDowns: 2
+  timeLimitSeconds: 300
+  requiredResolvedProblems: 5
+  requiredCalmDowns: 3
   oneStarScore: 100
-  twoStarScore: 200
-  threeStarScore: 400
-  enableDisruptionTimeout: 1
-  disruptionTimeoutThreshold: 70
-  disruptionTimeoutSeconds: 30
-  disruptionTimeoutWarningSeconds: 10
+  twoStarScore: 250
+  threeStarScore: 500
+  enableDisruptionTimeout: 0
+  disruptionTimeoutThreshold: 80
+  disruptionTimeoutSeconds: 60
+  disruptionTimeoutWarningSeconds: 15
   winDisruptionThreshold: 50
