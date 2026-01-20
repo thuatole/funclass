@@ -357,7 +357,7 @@ namespace FunClass.Core
                 {
                     navAgent.SetDestination(targetPosition);
                     navAgent.speed = state.movementSpeed;
-                    Log($"[Movement] {student.Config?.studentName} NavMeshAgent moving to {targetPosition}");
+                    // Log($"[Movement] {student.Config?.studentName} NavMeshAgent moving to {targetPosition}");
                 }
             }
             else

@@ -382,7 +382,10 @@ namespace FunClass.Core
                     isDisruptionTimeoutActive = true;
                     disruptionTimeoutStartTime = Time.time;
                     hasShownTimeoutWarning = false;
-                    Debug.LogWarning($"[ClassroomManager] ⚠️ Disruption Timeout Started! Disruption at {DisruptionLevel:F1}% (threshold: {threshold}%)");
+                    Debug.LogWarning($"[ClassroomManager] ⚠️ ⚠️ ⚠️ DISRUPTION TIMEOUT STARTED! ⚠️ ⚠️ ⚠️");
+                    Debug.LogWarning($"[ClassroomManager] Disruption: {DisruptionLevel:F1}% ≥ Threshold: {threshold}%");
+                    Debug.LogWarning($"[ClassroomManager] You have {timeoutDuration:F0} seconds to reduce disruption below {threshold}% or YOU WILL LOSE!");
+                    Debug.LogWarning($"[ClassroomManager] Students outside: {OutsideStudentCount}");
                 }
 
                 // Calculate elapsed time
@@ -394,7 +397,9 @@ namespace FunClass.Core
                 {
                     hasShownTimeoutWarning = true;
                     OnDisruptionTimeoutWarning?.Invoke(remainingTime);
-                    Debug.LogWarning($"[ClassroomManager] ⚠️ WARNING: {remainingTime:F0}s to reduce disruption below {threshold}%!");
+                    Debug.LogWarning($"[ClassroomManager] ⏰ ⏰ ⏰ FINAL WARNING! ⏰ ⏰ ⏰");
+                    Debug.LogWarning($"[ClassroomManager] Only {remainingTime:F0} seconds left before LOSE!");
+                    Debug.LogWarning($"[ClassroomManager] Current disruption: {DisruptionLevel:F1}% (must reduce below {threshold}%)");
                 }
 
                 // Check if timeout exceeded
@@ -429,16 +434,23 @@ namespace FunClass.Core
         /// </summary>
         private void TriggerDisruptionTimeoutLose()
         {
-            Debug.LogError($"[ClassroomManager] 💥 GAME OVER - Disruption stayed above {levelConfig.levelGoal.disruptionTimeoutThreshold}% for {levelConfig.levelGoal.disruptionTimeoutSeconds}s!");
-            
+            Debug.LogError($"[ClassroomManager] ═══════════════════════════════════════════════════");
+            Debug.LogError($"[ClassroomManager] ❌ ❌ ❌ GAME OVER - YOU LOSE! ❌ ❌ ❌");
+            Debug.LogError($"[ClassroomManager] ═══════════════════════════════════════════════════");
+            Debug.LogError($"[ClassroomManager] Reason: Disruption Timeout");
+            Debug.LogError($"[ClassroomManager] Disruption stayed above {levelConfig.levelGoal.disruptionTimeoutThreshold}% for {levelConfig.levelGoal.disruptionTimeoutSeconds} seconds!");
+            Debug.LogError($"[ClassroomManager] Final disruption: {DisruptionLevel:F1}%");
+            Debug.LogError($"[ClassroomManager] Students outside: {OutsideStudentCount}");
+            Debug.LogError($"[ClassroomManager] ═══════════════════════════════════════════════════");
+
             OnDisruptionTimeoutLose?.Invoke();
-            
+
             // Transition to lose state
             if (GameStateManager.Instance != null)
             {
                 GameStateManager.Instance.TransitionTo(GameState.LevelFailed);
             }
-            
+
             isDisruptionTimeoutActive = false;
         }
 

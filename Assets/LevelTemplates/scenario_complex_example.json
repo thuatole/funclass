@@ -39,11 +39,11 @@
     "timeLimitSeconds": 300,
     "requiredCalmDowns": 3,
     "requiredResolvedProblems": 2,
-    
+
     "enableDisruptionTimeout": true,
-    "disruptionTimeoutThreshold": 70,
-    "disruptionTimeoutSeconds": 45,
-    "disruptionTimeoutWarningSeconds": 15,
+    "disruptionTimeoutThreshold": 60,
+    "disruptionTimeoutSeconds": 30,
+    "disruptionTimeoutWarningSeconds": 10,
     
     "oneStarScore": 100,
     "twoStarScore": 300,

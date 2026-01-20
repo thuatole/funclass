@@ -8,10 +8,11 @@ namespace FunClass.Core.UI
 {
     public enum PopupType
     {
-        TargetStudent,
-        SourceInfoOnly,
-        SourceWholeClassAction,
-        SourceIndividualActions
+        TargetStudent,              // Student is only affected by others
+        SourceInfoOnly,             // Student affects others but no actions available
+        SourceWholeClassAction,     // Student affects whole class
+        SourceIndividualActions,    // Student affects specific students
+        SourceAndTarget            // Student both affects others AND is affected by others
     }
 
     public class StudentInteractionPopup : MonoBehaviour
@@ -118,23 +119,34 @@ namespace FunClass.Core.UI
                 case PopupType.SourceIndividualActions:
                     GenerateSourceIndividualActionsPopup();
                     break;
+                case PopupType.SourceAndTarget:
+                    GenerateSourceAndTargetPopup();
+                    break;
             }
         }
 
         private PopupType DeterminePopupType(StudentAgent student)
         {
             var affectedStudents = GetAffectedStudents(student);
+            var influenceSources = GetInfluenceSources(student);
 
-            Debug.Log($"[Popup] DeterminePopupType for {student.Config?.studentName}: affectedStudents.Count = {affectedStudents.Count}");
+            Debug.Log($"[Popup] DeterminePopupType for {student.Config?.studentName}:");
+            Debug.Log($"[Popup]   - Affects {affectedStudents.Count} student(s)");
+            Debug.Log($"[Popup]   - Affected by {influenceSources.Count} source(s)");
 
+            // Case 1: Pure target (only affected, doesn't affect anyone)
             if (affectedStudents.Count == 0)
             {
                 Debug.Log($"[Popup] → PopupType.TargetStudent (no one affected by this student)");
                 return PopupType.TargetStudent;
             }
 
+            // Case 2-5: Student affects others
             var eventType = GetSourceEventType(student);
             Debug.Log($"[Popup] Source event type: {eventType}");
+
+            // Check if this student is ALSO affected by others
+            bool isAlsoTarget = influenceSources.Count > 0;
 
             if (!HasStudentResolveAction(eventType))
             {
@@ -148,8 +160,17 @@ namespace FunClass.Core.UI
             }
             else
             {
-                Debug.Log($"[Popup] → PopupType.SourceIndividualActions (individual actions for {affectedStudents.Count} students)");
-                return PopupType.SourceIndividualActions;
+                // Check if student is BOTH source AND target
+                if (isAlsoTarget)
+                {
+                    Debug.Log($"[Popup] → PopupType.SourceAndTarget (affects {affectedStudents.Count} students AND affected by {influenceSources.Count} sources)");
+                    return PopupType.SourceAndTarget;
+                }
+                else
+                {
+                    Debug.Log($"[Popup] → PopupType.SourceIndividualActions (individual actions for {affectedStudents.Count} students)");
+                    return PopupType.SourceIndividualActions;
+                }
             }
         }
 
@@ -298,6 +319,81 @@ namespace FunClass.Core.UI
                     string targetName = ExtractLetter(target.Config?.studentName);
                     Debug.Log($"[Popup] Creating action button for target: {targetName}");
                     CreateTargetActionItemWithButton(target, targetName, () => ResolveForTarget(student, target));
+                }
+            }
+
+            CreateButton(PopupTextLoader.Instance.GetSourceCloseButton(), () => ClosePopup());
+        }
+
+        private void GenerateSourceAndTargetPopup()
+        {
+            Debug.Log($"[Popup] GenerateSourceAndTargetPopup for {student.Config?.studentName}");
+
+            // PART 1: Show who affects THIS student (Target role)
+            var influenceSources = GetInfluenceSources(student);
+
+            Debug.Log($"[Popup] PART 1 - This student is affected by {influenceSources.Count} sources");
+            foreach (var src in influenceSources)
+            {
+                string resolvedStatus = src.isResolved ? "✓ resolved" : "✗ unresolved";
+                Debug.Log($"[Popup]   - Affected by: {src.sourceStudent?.Config?.studentName} ({src.eventType}) [{resolvedStatus}]");
+            }
+
+            if (influenceSources.Count > 0)
+            {
+                if (openingPhraseText != null)
+                {
+                    openingPhraseText.text = $"💬 \"Cô ơi! Em bị ảnh hưởng...\"";
+                }
+
+                // Show complaints about sources
+                CreateComplaintText("📋 Em đang bị ảnh hưởng bởi:", "😟");
+                foreach (var source in influenceSources)
+                {
+                    string sourceName = ExtractLetter(source.sourceStudent?.Config?.studentName);
+                    string eventTypeStr = source.eventType.ToString();
+                    string complaint = PopupTextLoader.Instance.GetComplaint(eventTypeStr, sourceName);
+                    string icon = PopupTextLoader.Instance.GetComplaintTemplate(eventTypeStr).icon;
+
+                    // Add checkmark if resolved
+                    if (source.isResolved)
+                    {
+                        complaint = $"✓ {complaint}";
+                    }
+
+                    CreateComplaintText(complaint, icon);
+                }
+            }
+
+            // PART 2: Show who THIS student affects (Source role)
+            var affectedStudents = GetAffectedStudents(student);
+
+            Debug.Log($"[Popup] PART 2 - This student is affecting {affectedStudents.Count} students");
+            foreach (var t in affectedStudents)
+            {
+                Debug.Log($"[Popup]   - Affecting: {t.Config?.studentName}");
+            }
+
+            if (affectedStudents.Count > 0)
+            {
+                var groupedByAction = GroupTargetsByActionType(student, affectedStudents);
+
+                foreach (var actionGroup in groupedByAction)
+                {
+                    string actionType = actionGroup.Key;
+                    List<StudentAgent> targets = actionGroup.Value;
+
+                    Debug.Log($"[Popup] Action group: {actionType} → {targets.Count} targets");
+
+                    CreateComplaintText(PopupTextLoader.Instance.GetSourceImpactIndividual(), "⚠️");
+
+                    // Create target list with individual resolve buttons
+                    foreach (var target in targets)
+                    {
+                        string targetName = ExtractLetter(target.Config?.studentName);
+                        Debug.Log($"[Popup] Creating action button for target: {targetName}");
+                        CreateTargetActionItemWithButton(target, targetName, () => ResolveForTarget(student, target));
+                    }
                 }
             }
 
