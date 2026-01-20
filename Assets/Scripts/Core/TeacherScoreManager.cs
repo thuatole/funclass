@@ -17,8 +17,13 @@ namespace FunClass.Core
 
         private bool isActive = false;
 
+        private bool hasSubscribedToGameState = false;
+        private bool hasSubscribedToEvents = false;
+
         void Awake()
         {
+            Debug.Log("[TeacherScoreManager] ★ Awake called!");
+
             if (Instance != null && Instance != this)
             {
                 Destroy(gameObject);
@@ -31,14 +36,52 @@ namespace FunClass.Core
 
         void OnEnable()
         {
+            Debug.Log("[TeacherScoreManager] ★ OnEnable called!");
+
             if (GameStateManager.Instance != null)
             {
                 GameStateManager.Instance.OnStateChanged += HandleGameStateChanged;
+                hasSubscribedToGameState = true;
+            }
+            else
+            {
+                Debug.LogWarning("[TeacherScoreManager] GameStateManager.Instance is NULL in OnEnable");
             }
 
             if (StudentEventManager.Instance != null)
             {
                 StudentEventManager.Instance.OnEventLogged += HandleStudentEvent;
+                hasSubscribedToEvents = true;
+                Debug.Log("[TeacherScoreManager] Subscribed to StudentEventManager");
+            }
+            else
+            {
+                Debug.LogWarning("[TeacherScoreManager] StudentEventManager.Instance is NULL in OnEnable");
+            }
+        }
+
+        void Start()
+        {
+            Debug.Log("[TeacherScoreManager] Start called");
+
+            // Retry subscriptions if failed in OnEnable
+            if (!hasSubscribedToGameState && GameStateManager.Instance != null)
+            {
+                GameStateManager.Instance.OnStateChanged += HandleGameStateChanged;
+                hasSubscribedToGameState = true;
+                Debug.Log("[TeacherScoreManager] ★ Late subscription to GameStateManager");
+
+                if (GameStateManager.Instance.CurrentState == GameState.InLevel)
+                {
+                    ActivateScoring();
+                }
+            }
+
+            if (!hasSubscribedToEvents && StudentEventManager.Instance != null)
+            {
+                StudentEventManager.Instance.OnEventLogged += HandleStudentEvent;
+                hasSubscribedToEvents = true;
+                Debug.Log("[TeacherScoreManager] ★ Late subscription to StudentEventManager");
             }
         }
 
@@ -152,13 +195,19 @@ namespace FunClass.Core
                     CalmDownCount++;
                     ResolvedProblems++;
                     OnProblemResolved?.Invoke(ResolvedProblems);
-                    Debug.Log($"[TeacherScoreManager] Problems resolved: {ResolvedProblems}, Calm downs: {CalmDownCount}");
+                    Debug.Log($"[TeacherScoreManager] ★ StudentCalmed! Problems: {ResolvedProblems}, CalmDowns: {CalmDownCount}");
+                    break;
+
+                case StudentEventType.MessCleaned:
+                    ResolvedProblems++;
+                    OnProblemResolved?.Invoke(ResolvedProblems);
+                    Debug.Log($"[TeacherScoreManager] ★ MessCleaned! Problems: {ResolvedProblems}");
                     break;
 
                 case StudentEventType.StudentReturnedToSeat:
                     ResolvedProblems++;
                     OnProblemResolved?.Invoke(ResolvedProblems);
-                    Debug.Log($"[TeacherScoreManager] Problems resolved: {ResolvedProblems}");
+                    Debug.Log($"[TeacherScoreManager] ★ StudentReturnedToSeat! Problems: {ResolvedProblems}");
                     break;
             }
         }

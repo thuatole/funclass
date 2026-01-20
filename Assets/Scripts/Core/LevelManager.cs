@@ -21,23 +21,37 @@ namespace FunClass.Core
         private float outsideStudentsExceededTime = 0f;
         private bool isTrackingOutsideExcess = false;
 
+        private bool hasSubscribedToGameState = false;
+
         void Awake()
         {
+            Debug.Log($"[LevelManager] ★ Awake called!");
+
             if (Instance != null && Instance != this)
             {
+                Debug.LogWarning("[LevelManager] Duplicate instance, destroying...");
                 Destroy(gameObject);
                 return;
             }
 
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            Debug.Log("[LevelManager] ★ Instance set successfully");
         }
 
         void OnEnable()
         {
+            Debug.Log($"[LevelManager] ★ OnEnable called!");
+
             if (GameStateManager.Instance != null)
             {
                 GameStateManager.Instance.OnStateChanged += HandleGameStateChanged;
+                hasSubscribedToGameState = true;
+                Debug.Log($"[LevelManager] Subscribed to GameStateManager. Current state: {GameStateManager.Instance.CurrentState}");
+            }
+            else
+            {
+                Debug.LogWarning("[LevelManager] GameStateManager.Instance is NULL in OnEnable - will retry in Start()");
             }
 
             if (StudentEventManager.Instance != null)
@@ -48,6 +62,26 @@ namespace FunClass.Core
             if (ClassroomManager.Instance != null)
             {
                 ClassroomManager.Instance.OnOutsideStudentCountChanged += HandleOutsideStudentCountChanged;
+            }
+        }
+
+        void Start()
+        {
+            Debug.Log("[LevelManager] Start called");
+
+            // Retry subscription if failed in OnEnable
+            if (!hasSubscribedToGameState && GameStateManager.Instance != null)
+            {
+                GameStateManager.Instance.OnStateChanged += HandleGameStateChanged;
+                hasSubscribedToGameState = true;
+                Debug.Log($"[LevelManager] ★ Late subscription to GameStateManager. Current state: {GameStateManager.Instance.CurrentState}");
+
+                // Check if already in InLevel
+                if (GameStateManager.Instance.CurrentState == GameState.InLevel)
+                {
+                    Debug.Log("[LevelManager] Already in InLevel, starting level");
+                    StartLevel();
+                }
             }
         }
 
@@ -69,6 +103,8 @@ namespace FunClass.Core
             }
         }
 
+        private float lastLevelManagerDebugTime = 0f;
+
         void Update()
         {
             if (!IsLevelActive || levelEnded) return;
@@ -79,10 +115,29 @@ namespace FunClass.Core
             {
                 LevelTimeRemaining = currentGoal.timeLimitSeconds - LevelTimeElapsed;
 
+                // Debug log every 5 seconds
+                if (Time.time - lastLevelManagerDebugTime >= 5f)
+                {
+                    lastLevelManagerDebugTime = Time.time;
+                    ScoreSummary summary = TeacherScoreManager.Instance?.GetScoreSummary() ?? new ScoreSummary();
+                    float disruption = ClassroomManager.Instance?.DisruptionLevel ?? 0f;
+
+                    Debug.Log($"[LevelManager] ═══ PROGRESS ═══");
+                    Debug.Log($"[LevelManager] Time remaining: {LevelTimeRemaining:F0}s / {currentGoal.timeLimitSeconds}s");
+                    Debug.Log($"[LevelManager] Disruption: {disruption:F1}% (need ≤ {currentGoal.winDisruptionThreshold}%)");
+                    Debug.Log($"[LevelManager] Problems: {summary.resolvedProblems} / {currentGoal.requiredResolvedProblems}");
+                    Debug.Log($"[LevelManager] CalmDowns: {summary.calmDowns} / {currentGoal.requiredCalmDowns}");
+                }
+
                 if (LevelTimeRemaining <= 0)
                 {
                     CheckWinConditions();
                 }
+            }
+            else if (Time.time - lastLevelManagerDebugTime >= 5f)
+            {
+                lastLevelManagerDebugTime = Time.time;
+                Debug.LogWarning($"[LevelManager] currentGoal is NULL or hasTimeLimit=false!");
             }
 
             CheckLoseConditions();

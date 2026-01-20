@@ -21,14 +21,14 @@ MonoBehaviour:
   maxOutsideTimePerStudent: 60
   maxAllowedOutsideGracePeriod: 10
   hasTimeLimit: 1
-  timeLimitSeconds: 300
-  requiredResolvedProblems: 5
-  requiredCalmDowns: 3
+  timeLimitSeconds: 60
+  requiredResolvedProblems: 1
+  requiredCalmDowns: 1
   oneStarScore: 100
   twoStarScore: 250
   threeStarScore: 500
-  enableDisruptionTimeout: 0
+  enableDisruptionTimeout: 1
   disruptionTimeoutThreshold: 80
   disruptionTimeoutSeconds: 60
   disruptionTimeoutWarningSeconds: 15
-  winDisruptionThreshold: 50
+  winDisruptionThreshold: 70

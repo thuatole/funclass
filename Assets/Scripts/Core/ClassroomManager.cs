@@ -47,21 +47,33 @@ namespace FunClass.Core
 
         void Awake()
         {
+            Debug.Log($"[ClassroomManager] ★ Awake called! Instance exists: {Instance != null}");
+
             if (Instance != null && Instance != this)
             {
+                Debug.LogWarning("[ClassroomManager] Duplicate instance detected, destroying this one!");
                 Destroy(gameObject);
                 return;
             }
 
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            Debug.Log("[ClassroomManager] ★ Instance set successfully");
         }
 
         void OnEnable()
         {
+            Debug.Log($"[ClassroomManager] ★ OnEnable! GameObject: {gameObject.name}, active: {gameObject.activeInHierarchy}");
+
             if (GameStateManager.Instance != null)
             {
                 GameStateManager.Instance.OnStateChanged += HandleGameStateChanged;
+                hasSubscribedToGameState = true;
+                Debug.Log($"[ClassroomManager] Subscribed. Current GameState: {GameStateManager.Instance.CurrentState}");
+            }
+            else
+            {
+                Debug.LogWarning("[ClassroomManager] GameStateManager.Instance is NULL in OnEnable - will retry in Start()");
             }
 
             if (StudentEventManager.Instance != null)
@@ -83,30 +95,66 @@ namespace FunClass.Core
             }
         }
 
+        private bool hasSubscribedToGameState = false;
+
         void Start()
         {
             Debug.Log("[ClassroomManager] Start called");
-            
-            // Don't manually call HandleGameStateChanged here
-            // Let the event system handle it when state actually transitions to InLevel
-            // This prevents premature deactivation when state is still Boot
-            
-            if (GameStateManager.Instance != null)
+
+            // Auto-load levelConfig from LevelLoader if not assigned
+            if (levelConfig == null && LevelLoader.Instance != null)
             {
-                Debug.Log($"[ClassroomManager] Current game state: {GameStateManager.Instance.CurrentState}");
-                
-                // Only activate if already in InLevel (shouldn't happen normally)
+                levelConfig = LevelLoader.Instance.CurrentLevel;
+                if (levelConfig != null)
+                {
+                    Debug.Log($"[ClassroomManager] ★ Auto-loaded levelConfig from LevelLoader: {levelConfig.name}");
+                    if (levelConfig.levelGoal != null)
+                    {
+                        Debug.Log($"[ClassroomManager] ★ levelGoal loaded: enableTimeout={levelConfig.levelGoal.enableDisruptionTimeout}, threshold={levelConfig.levelGoal.disruptionTimeoutThreshold}");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("[ClassroomManager] LevelLoader.CurrentLevel is NULL!");
+                }
+            }
+
+            // Try to subscribe if we couldn't in OnEnable (timing issue)
+            if (!hasSubscribedToGameState && GameStateManager.Instance != null)
+            {
+                GameStateManager.Instance.OnStateChanged += HandleGameStateChanged;
+                hasSubscribedToGameState = true;
+                Debug.Log($"[ClassroomManager] ★ Late subscription to GameStateManager. Current state: {GameStateManager.Instance.CurrentState}");
+
+                // Check if already in InLevel
                 if (GameStateManager.Instance.CurrentState == GameState.InLevel)
                 {
                     Debug.Log("[ClassroomManager] Already in InLevel, activating classroom");
                     ActivateClassroom();
                 }
             }
+            else if (GameStateManager.Instance == null)
+            {
+                Debug.LogError("[ClassroomManager] GameStateManager STILL NULL in Start! Cannot track game state.");
+            }
         }
+
+        private float lastDebugLogTime = 0f;
+        private bool hasLoggedInactive = false;
 
         void Update()
         {
-            if (!isActive) return;
+            // Debug: Log even when inactive (every ~5 seconds)
+            if (!isActive)
+            {
+                if (!hasLoggedInactive || Time.frameCount % 300 == 0)
+                {
+                    hasLoggedInactive = true;
+                    Debug.LogWarning($"[ClassroomManager] ⚠️ isActive=FALSE! GameState: {GameStateManager.Instance?.CurrentState}");
+                }
+                return;
+            }
+            hasLoggedInactive = false;
 
             // Check for outside student disruption penalty
             if (Time.time >= nextOutsideCheckTime)
@@ -114,7 +162,31 @@ namespace FunClass.Core
                 ProcessOutsideStudentDisruption();
                 nextOutsideCheckTime = Time.time + outsideCheckInterval;
             }
-            
+
+            // DEBUG: Log disruption status every 5 seconds
+            if (Time.time - lastDebugLogTime >= 5f)
+            {
+                lastDebugLogTime = Time.time;
+                bool hasConfig = levelConfig != null;
+                bool hasGoal = hasConfig && levelConfig.levelGoal != null;
+                bool timeoutEnabled = hasGoal && levelConfig.levelGoal.enableDisruptionTimeout;
+                float threshold = hasGoal ? levelConfig.levelGoal.disruptionTimeoutThreshold : -1;
+
+                Debug.Log($"[ClassroomManager] ═══ STATUS CHECK ═══");
+                Debug.Log($"[ClassroomManager] Disruption: {DisruptionLevel:F1}%");
+                Debug.Log($"[ClassroomManager] Outside students: {OutsideStudentCount}");
+                Debug.Log($"[ClassroomManager] levelConfig: {(hasConfig ? "OK" : "NULL")}");
+                Debug.Log($"[ClassroomManager] levelGoal: {(hasGoal ? "OK" : "NULL")}");
+                Debug.Log($"[ClassroomManager] enableDisruptionTimeout: {timeoutEnabled}");
+                Debug.Log($"[ClassroomManager] Threshold: {threshold}% (current: {DisruptionLevel:F1}%)");
+                Debug.Log($"[ClassroomManager] Timeout active: {isDisruptionTimeoutActive}");
+
+                if (DisruptionLevel >= threshold && threshold > 0)
+                {
+                    Debug.LogWarning($"[ClassroomManager] ⚠️ DISRUPTION ABOVE THRESHOLD! Should trigger timeout!");
+                }
+            }
+
             // Check disruption timeout
             CheckDisruptionTimeout();
         }
@@ -366,8 +438,22 @@ namespace FunClass.Core
         /// </summary>
         private void CheckDisruptionTimeout()
         {
-            if (levelConfig == null || levelConfig.levelGoal == null) return;
-            if (!levelConfig.levelGoal.enableDisruptionTimeout) return;
+            // Debug: Check if config is loaded
+            if (levelConfig == null)
+            {
+                Debug.LogWarning("[ClassroomManager] CheckDisruptionTimeout: levelConfig is NULL!");
+                return;
+            }
+            if (levelConfig.levelGoal == null)
+            {
+                Debug.LogWarning("[ClassroomManager] CheckDisruptionTimeout: levelGoal is NULL!");
+                return;
+            }
+            if (!levelConfig.levelGoal.enableDisruptionTimeout)
+            {
+                // Only log once per session
+                return;
+            }
 
             float threshold = levelConfig.levelGoal.disruptionTimeoutThreshold;
             float timeoutDuration = levelConfig.levelGoal.disruptionTimeoutSeconds;

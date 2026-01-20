@@ -41,9 +41,9 @@
     "requiredResolvedProblems": 2,
 
     "enableDisruptionTimeout": true,
-    "disruptionTimeoutThreshold": 60,
-    "disruptionTimeoutSeconds": 30,
-    "disruptionTimeoutWarningSeconds": 10,
+    "disruptionTimeoutThreshold": 30,
+    "disruptionTimeoutSeconds": 10,
+    "disruptionTimeoutWarningSeconds": 5,
     
     "oneStarScore": 100,
     "twoStarScore": 300,
