@@ -46,5 +46,14 @@ namespace FunClass.Core
             StudentEvent evt = new StudentEvent(student, eventType, description, targetObject);
             LogEvent(evt);
         }
+
+        /// <summary>
+        /// Log event with specific target student and influence scope (for SingleStudent influence)
+        /// </summary>
+        public void LogEvent(StudentAgent student, StudentEventType eventType, string description, GameObject targetObject, StudentAgent targetStudent, InfluenceScope scope)
+        {
+            StudentEvent evt = new StudentEvent(student, eventType, description, targetObject, targetStudent, scope);
+            LogEvent(evt);
+        }
     }
 }

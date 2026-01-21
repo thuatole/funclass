@@ -390,7 +390,7 @@ namespace FunClass.Core
         }
 
         /// <summary>
-        /// Checks if a student is currently registered as outside
+        /// Checks if a student is currently registered as outside.
         /// </summary>
         public bool IsStudentOutside(StudentAgent student)
         {
@@ -398,7 +398,7 @@ namespace FunClass.Core
         }
 
         /// <summary>
-        /// Processes continuous disruption increase from students outside
+        /// Processes continuous disruption increase from students outside.
         /// </summary>
         private void ProcessOutsideStudentDisruption()
         {

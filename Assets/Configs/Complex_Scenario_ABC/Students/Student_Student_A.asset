@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8f2731a77cb567649808d888269f25be, type: 3}
   m_Name: Student_Student_A
-  m_EditorClassIdentifier: Assembly-CSharp::FunClass.Core.StudentConfig
+  m_EditorClassIdentifier: FunClass.Runtime::FunClass.Core.StudentConfig
   studentId: student_student_a
   studentName: Student_A
   initialState: 0

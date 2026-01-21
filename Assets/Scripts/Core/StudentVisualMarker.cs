@@ -1,5 +1,7 @@
 using UnityEngine;
+#if TEXTMESHPRO_PRESENT
 using TMPro;
+#endif
 
 namespace FunClass.Core
 {
@@ -30,7 +32,11 @@ namespace FunClass.Core
 
         private StudentAgent studentAgent;
         private GameObject labelObject;
+#if TEXTMESHPRO_PRESENT
         private TextMeshPro labelText;
+#else
+        private TextMesh labelText;
+#endif
         private Renderer studentRenderer;
 
         void Start()
@@ -106,23 +112,34 @@ namespace FunClass.Core
         {
             // Extract letter from "Student_A" -> "A"
             string displayName = ExtractLetterFromName(studentName);
-            
+
             // Create label GameObject
             labelObject = new GameObject($"{studentName}_Label");
             labelObject.transform.SetParent(transform);
             labelObject.transform.localPosition = labelOffset;
             labelObject.transform.localRotation = Quaternion.identity;
 
+#if TEXTMESHPRO_PRESENT
             // Add TextMeshPro
             labelText = labelObject.AddComponent<TextMeshPro>();
             labelText.text = displayName;
             labelText.fontSize = 4;
             labelText.alignment = TextAlignmentOptions.Center;
             labelText.color = Color.white;
-            
+
             // Add outline for better visibility
             labelText.outlineWidth = 0.2f;
             labelText.outlineColor = Color.black;
+#else
+            // Fallback: use legacy TextMesh
+            labelText = labelObject.AddComponent<TextMesh>();
+            labelText.text = displayName;
+            labelText.fontSize = 48;
+            labelText.characterSize = 0.1f;
+            labelText.anchor = TextAnchor.MiddleCenter;
+            labelText.alignment = TextAlignment.Center;
+            labelText.color = Color.white;
+#endif
 
             // Make label always face camera
             Billboard billboard = labelObject.AddComponent<Billboard>();

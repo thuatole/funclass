@@ -101,7 +101,7 @@ namespace FunClass.Core
         public void Throw(StudentAgent student)
         {
             Debug.Log($"[StudentInteractableObject] Throw called on {objectName}, canBeThrown: {canBeThrown}");
-            
+
             if (!canBeThrown)
             {
                 Debug.Log($"[StudentInteractableObject] {objectName} cannot be thrown - returning");
@@ -126,6 +126,87 @@ namespace FunClass.Core
             else
             {
                 Debug.LogWarning($"[StudentInteractableObject] StudentEventManager.Instance is null!");
+            }
+        }
+
+        /// <summary>
+        /// Required distance for throwing at a specific student (SingleStudent influence)
+        /// </summary>
+        public const float THROW_AT_STUDENT_REQUIRED_DISTANCE = 2f;
+
+        /// <summary>
+        /// Throw at a specific student. If distance > 2m, source will move closer first.
+        /// </summary>
+        public void ThrowAt(StudentAgent sourceStudent, StudentAgent targetStudent)
+        {
+            Debug.Log($"[StudentInteractableObject] ThrowAt called - source: {sourceStudent?.Config?.studentName}, target: {targetStudent?.Config?.studentName}");
+
+            if (!canBeThrown)
+            {
+                Debug.Log($"[StudentInteractableObject] {objectName} cannot be thrown - returning");
+                return;
+            }
+
+            if (sourceStudent == null || targetStudent == null)
+            {
+                Debug.LogWarning($"[StudentInteractableObject] ThrowAt - source or target is null");
+                return;
+            }
+
+            float distance = Vector3.Distance(sourceStudent.transform.position, targetStudent.transform.position);
+            Debug.Log($"[StudentInteractableObject] Distance between {sourceStudent.Config?.studentName} and {targetStudent.Config?.studentName}: {distance:F2}m (required: <= {THROW_AT_STUDENT_REQUIRED_DISTANCE}m)");
+
+            if (distance <= THROW_AT_STUDENT_REQUIRED_DISTANCE)
+            {
+                // Close enough, throw immediately
+                ExecuteThrowAt(sourceStudent, targetStudent);
+            }
+            else
+            {
+                // Need to move closer first
+                Debug.Log($"[StudentInteractableObject] {sourceStudent.Config?.studentName} needs to move closer to {targetStudent.Config?.studentName}");
+
+                if (StudentMovementManager.Instance != null)
+                {
+                    StudentMovementManager.Instance.MoveToStudent(
+                        sourceStudent,
+                        targetStudent,
+                        THROW_AT_STUDENT_REQUIRED_DISTANCE,
+                        () => ExecuteThrowAt(sourceStudent, targetStudent)
+                    );
+                }
+                else
+                {
+                    Debug.LogWarning("[StudentInteractableObject] StudentMovementManager.Instance is null - executing throw anyway");
+                    ExecuteThrowAt(sourceStudent, targetStudent);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Execute the throw action at a specific student (called after distance requirement met)
+        /// </summary>
+        private void ExecuteThrowAt(StudentAgent sourceStudent, StudentAgent targetStudent)
+        {
+            Debug.Log($"[StudentInteractableObject] ExecuteThrowAt - {sourceStudent.Config?.studentName} throwing {objectName} at {targetStudent.Config?.studentName}");
+
+            // Move object toward target
+            Vector3 throwDirection = (targetStudent.transform.position - sourceStudent.transform.position).normalized;
+            throwDirection.y = 0.3f; // Slight upward arc
+            transform.position = targetStudent.transform.position + Vector3.up * 0.5f;
+
+            // Log event with target student for SingleStudent influence
+            if (StudentEventManager.Instance != null)
+            {
+                StudentEventManager.Instance.LogEvent(
+                    sourceStudent,
+                    StudentEventType.ThrowingObject,
+                    $"threw {objectName} at {targetStudent.Config?.studentName}",
+                    gameObject,
+                    targetStudent,  // Specify target for SingleStudent influence
+                    InfluenceScope.SingleStudent
+                );
+                Debug.Log($"[StudentInteractableObject] ThrowAt event logged - SingleStudent influence on {targetStudent.Config?.studentName}");
             }
         }
 

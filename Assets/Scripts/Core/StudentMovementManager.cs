@@ -224,6 +224,112 @@ namespace FunClass.Core
         }
 
         /// <summary>
+        /// Moves a student toward a target position with a callback when reached
+        /// Used for SingleStudent influence - source moves to target before action
+        /// </summary>
+        public void MoveToTarget(StudentAgent student, Vector3 targetPosition, float stopDistance, System.Action onReached)
+        {
+            if (student == null)
+            {
+                Debug.LogWarning("[StudentMovementManager] Cannot move - student is null");
+                return;
+            }
+
+            // Stop any existing movement
+            StopMovement(student);
+
+            // Start coroutine for movement
+            StartCoroutine(MoveToTargetCoroutine(student, targetPosition, stopDistance, onReached));
+        }
+
+        /// <summary>
+        /// Moves a student toward another student with a callback when close enough
+        /// </summary>
+        public void MoveToStudent(StudentAgent source, StudentAgent target, float stopDistance, System.Action onReached)
+        {
+            if (source == null || target == null)
+            {
+                Debug.LogWarning("[StudentMovementManager] Cannot move - source or target is null");
+                return;
+            }
+
+            MoveToTarget(source, target.transform.position, stopDistance, onReached);
+        }
+
+        private System.Collections.IEnumerator MoveToTargetCoroutine(StudentAgent student, Vector3 targetPosition, float stopDistance, System.Action onReached)
+        {
+            var navAgent = student.GetComponent<UnityEngine.AI.NavMeshAgent>();
+
+            if (navAgent != null)
+            {
+                navAgent.enabled = true;
+
+                // Wait a frame for NavMeshAgent to initialize
+                yield return null;
+
+                if (navAgent.isOnNavMesh)
+                {
+                    navAgent.SetDestination(targetPosition);
+                    navAgent.speed = defaultMovementSpeed;
+
+                    Log($"[Movement] {student.Config?.studentName} moving to target position (stopDistance: {stopDistance}m)");
+
+                    // Wait until close enough
+                    while (navAgent.enabled && navAgent.isOnNavMesh)
+                    {
+                        float distance = Vector3.Distance(student.transform.position, targetPosition);
+
+                        if (distance <= stopDistance)
+                        {
+                            Log($"[Movement] {student.Config?.studentName} reached target (distance: {distance:F2}m)");
+                            navAgent.ResetPath();
+                            onReached?.Invoke();
+                            yield break;
+                        }
+
+                        // Check if path is blocked or invalid
+                        if (navAgent.pathStatus == UnityEngine.AI.NavMeshPathStatus.PathInvalid ||
+                            (!navAgent.hasPath && !navAgent.pathPending))
+                        {
+                            Log($"[Movement] {student.Config?.studentName} path invalid, aborting movement");
+                            break;
+                        }
+
+                        yield return null;
+                    }
+                }
+                else
+                {
+                    Log($"[Movement] {student.Config?.studentName} not on NavMesh, using direct movement");
+                }
+            }
+
+            // Fallback: direct movement
+            float moveSpeed = defaultMovementSpeed;
+            while (true)
+            {
+                float distance = Vector3.Distance(student.transform.position, targetPosition);
+
+                if (distance <= stopDistance)
+                {
+                    Log($"[Movement] {student.Config?.studentName} reached target (distance: {distance:F2}m)");
+                    onReached?.Invoke();
+                    yield break;
+                }
+
+                Vector3 direction = (targetPosition - student.transform.position).normalized;
+                student.transform.position += direction * moveSpeed * Time.deltaTime;
+
+                if (direction != Vector3.zero)
+                {
+                    student.transform.rotation = Quaternion.LookRotation(direction);
+                }
+
+                yield return null;
+            }
+        }
+
+        /// <summary>
         /// Forces a student to return to their seat
         /// </summary>
         public void ReturnToSeat(StudentAgent student)

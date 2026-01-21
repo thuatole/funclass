@@ -29,9 +29,13 @@ namespace FunClass.Core
         [Tooltip("Base severity for vomit/mess influence events")]
         [Range(0f, 1f)]
         [SerializeField] private float vomitInfluenceBaseSeverity = 0.85f;
-        
+
         [Tooltip("Maximum radius for vomit panic influence")]
         [SerializeField] private float vomitPanicRadius = 6f;
+
+        [Header("SingleStudent Influence Settings")]
+        [Tooltip("Maximum distance for SingleStudent influence to apply")]
+        [SerializeField] private float singleStudentMaxDistance = 2f;
 
         [Header("Debug")]
         [SerializeField] private bool enableDebugLogs = true;
@@ -237,26 +241,36 @@ namespace FunClass.Core
 
             if (scope == InfluenceScope.SingleStudent)
             {
-                // Single student influence - NO distance check
+                // Single student influence - WITH distance check (<= 2m)
                 if (evt.targetStudent != null)
                 {
-                    Log($"[Influence] SingleStudent: {sourceStudent.Config?.studentName} → {evt.targetStudent.Config?.studentName} (no distance check)");
-                    
+                    // Check distance between source and target
+                    float distance = Vector3.Distance(sourceStudent.transform.position, evt.targetStudent.transform.position);
+
+                    if (distance > singleStudentMaxDistance)
+                    {
+                        Log($"[Influence] SingleStudent: {sourceStudent.Config?.studentName} → {evt.targetStudent.Config?.studentName} BLOCKED - distance {distance:F2}m > {singleStudentMaxDistance}m");
+                        Log($"[Influence] ✗ Influence not applied - source too far from target");
+                        return;
+                    }
+
+                    Log($"[Influence] SingleStudent: {sourceStudent.Config?.studentName} → {evt.targetStudent.Config?.studentName} (distance: {distance:F2}m <= {singleStudentMaxDistance}m ✓)");
+
                     // Check if target has config
                     if (evt.targetStudent.Config == null)
                     {
                         Debug.LogError($"[Influence] Target student {evt.targetStudent.name} has NULL Config!");
                         return;
                     }
-                    
+
                     // Calculate influence strength based on susceptibility and resistance only
                     float susceptibility = evt.targetStudent.Config.influenceSusceptibility;
                     float resistance = evt.targetStudent.Config.influenceResistance;
                     float influenceStrength = baseSeverity * susceptibility * (1f - resistance);
-                    
+
                     Log($"[Influence] Calculating strength: base={baseSeverity:F2}, susceptibility={susceptibility:F2}, resistance={resistance:F2}");
                     Log($"[Influence] Result strength: {influenceStrength:F2}");
-                    
+
                     if (influenceStrength > 0.01f)
                     {
                         Log($"[Influence] Adding influence source...");

@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3f9082d06048fbc4da3673444f90583b, type: 3}
   m_Name: Complex_Scenario_ABC_Config
-  m_EditorClassIdentifier: Assembly-CSharp::FunClass.Core.LevelConfig
+  m_EditorClassIdentifier: FunClass.Runtime::FunClass.Core.LevelConfig
   levelId: 
   grade: 0
   description: 
