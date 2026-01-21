@@ -356,6 +356,9 @@ namespace FunClass.Editor.Modules
             
             // Add StudentVisualMarker (will apply colors in Play mode)
             var visualMarker = student.AddComponent<FunClass.Core.StudentVisualMarker>();
+
+            // Add InfluenceStatusIcon (will show influence icons in Play mode)
+            student.AddComponent<FunClass.Core.UI.InfluenceStatusIcon>();
             
             // Manually apply color in editor (StudentVisualMarker.Start() only runs in Play mode)
             var renderer = visual.GetComponent<Renderer>();

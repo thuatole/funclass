@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace FunClass.Core.UI
 {
@@ -31,7 +32,7 @@ namespace FunClass.Core.UI
 
         private bool isInfluencer = false;
         private bool isInfluenced = false;
-        private int influencingCount = 0;   // How many students this student is influencing
+        private HashSet<StudentAgent> studentsBeingInfluenced = new HashSet<StudentAgent>();  // Track actual students
         private int influencedByCount = 0;  // How many students are influencing this student
 
         void Start()
@@ -143,31 +144,42 @@ namespace FunClass.Core.UI
         /// <summary>
         /// Called when this student starts influencing another student
         /// </summary>
-        public void ShowInfluencerIcon()
+        public void ShowInfluencerIcon(StudentAgent targetStudent)
         {
-            influencingCount++;
-            if (!isInfluencer)
+            if (targetStudent == null) return;
+
+            // Only count if this is a new target
+            if (studentsBeingInfluenced.Add(targetStudent))
             {
-                isInfluencer = true;
-                influencerIconObject.SetActive(true);
-                Debug.Log($"[InfluenceStatusIcon] {studentAgent.Config?.studentName} showing INFLUENCER icon");
+                if (!isInfluencer)
+                {
+                    isInfluencer = true;
+                    influencerIconObject.SetActive(true);
+                }
+                UpdateInfluencerText();
+                Debug.Log($"[InfluenceStatusIcon] {studentAgent.Config?.studentName} now influencing {studentsBeingInfluenced.Count} student(s)");
             }
-            UpdateInfluencerText();
         }
 
         /// <summary>
         /// Called when this student's influence on another is resolved
         /// </summary>
-        public void OnInfluenceResolved()
+        public void OnInfluenceResolved(StudentAgent targetStudent)
         {
-            influencingCount = Mathf.Max(0, influencingCount - 1);
-            UpdateInfluencerText();
+            if (targetStudent == null) return;
 
-            if (influencingCount <= 0)
+            // Only update if this target was being influenced
+            if (studentsBeingInfluenced.Remove(targetStudent))
             {
-                isInfluencer = false;
-                influencerIconObject.SetActive(false);
-                Debug.Log($"[InfluenceStatusIcon] {studentAgent.Config?.studentName} hiding INFLUENCER icon");
+                UpdateInfluencerText();
+                Debug.Log($"[InfluenceStatusIcon] {studentAgent.Config?.studentName} stopped influencing {targetStudent.Config?.studentName}, now influencing {studentsBeingInfluenced.Count}");
+
+                if (studentsBeingInfluenced.Count <= 0)
+                {
+                    isInfluencer = false;
+                    influencerIconObject.SetActive(false);
+                    Debug.Log($"[InfluenceStatusIcon] {studentAgent.Config?.studentName} hiding INFLUENCER icon");
+                }
             }
         }
 
@@ -178,7 +190,7 @@ namespace FunClass.Core.UI
         {
             isInfluencer = false;
             isInfluenced = false;
-            influencingCount = 0;
+            studentsBeingInfluenced.Clear();
             influencedByCount = 0;
             influencerIconObject.SetActive(false);
             influencedIconObject.SetActive(false);
@@ -186,9 +198,10 @@ namespace FunClass.Core.UI
 
         private void UpdateInfluencerText()
         {
-            if (influencingCount > 1)
+            int count = studentsBeingInfluenced.Count;
+            if (count > 1)
             {
-                influencerText.text = $"{influencerSymbol}{influencingCount}";
+                influencerText.text = $"{influencerSymbol}{count}";
             }
             else
             {
@@ -202,7 +215,7 @@ namespace FunClass.Core.UI
         public string GetStatusString()
         {
             string status = "";
-            if (isInfluencer) status += $"Influencing {influencingCount} ";
+            if (isInfluencer) status += $"Influencing {studentsBeingInfluenced.Count} ";
             if (isInfluenced) status += $"Influenced by {influencedByCount}";
             return string.IsNullOrEmpty(status) ? "No influence" : status;
         }

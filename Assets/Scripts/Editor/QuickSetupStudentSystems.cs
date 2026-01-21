@@ -92,12 +92,19 @@ namespace FunClass.Editor
 
                 // Add marker
                 student.gameObject.AddComponent<StudentVisualMarker>();
+
+                // Add InfluenceStatusIcon if not present
+                if (student.GetComponent<FunClass.Core.UI.InfluenceStatusIcon>() == null)
+                {
+                    student.gameObject.AddComponent<FunClass.Core.UI.InfluenceStatusIcon>();
+                }
+
                 added++;
-                Debug.Log($"[QuickSetup] ✓ Added StudentVisualMarker to {student.gameObject.name}");
+                Debug.Log($"[QuickSetup] ✓ Added StudentVisualMarker and InfluenceStatusIcon to {student.gameObject.name}");
             }
 
-            Debug.Log($"[QuickSetup] Added StudentVisualMarker to {added}/{students.Length} students");
-            EditorUtility.DisplayDialog("Success", $"Added StudentVisualMarker to {added} students!\n\nColors:\nA=Red, B=Blue, C=Green, D=Yellow\nE=Orange, F=Purple, G=Cyan, H=Pink", "OK");
+            Debug.Log($"[QuickSetup] Added components to {added}/{students.Length} students");
+            EditorUtility.DisplayDialog("Success", $"Added StudentVisualMarker and InfluenceStatusIcon to {added} students!\n\nColors:\nA=Red, B=Blue, C=Green, D=Yellow\nE=Orange, F=Purple, G=Cyan, H=Pink\n\nIcons:\n! = Influencing others\n? = Being influenced", "OK");
         }
     }
 }

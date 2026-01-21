@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using FunClass.Core.UI;
 
 namespace FunClass.Core
 {
@@ -277,6 +278,10 @@ namespace FunClass.Core
                         // Add influence source tracking
                         evt.targetStudent.InfluenceSources.AddSource(sourceStudent, evt.eventType, influenceStrength);
                         ApplyInfluence(evt.targetStudent, sourceStudent, influenceStrength, evt.eventType);
+
+                        // Update influence icons
+                        UpdateInfluenceIcons(sourceStudent, evt.targetStudent, true);
+
                         Log($"[Influence] ✓ Added source and applied influence");
                     }
                     else
@@ -323,6 +328,10 @@ namespace FunClass.Core
                         // Add influence source tracking
                         targetStudent.InfluenceSources.AddSource(sourceStudent, evt.eventType, influenceStrength);
                         ApplyInfluence(targetStudent, sourceStudent, influenceStrength, evt.eventType);
+
+                        // Update influence icons
+                        UpdateInfluenceIcons(sourceStudent, targetStudent, true);
+
                         affectedCount++;
                     }
                 }
@@ -354,13 +363,46 @@ namespace FunClass.Core
                     if (beforeCount > afterCount)
                     {
                         resolvedCount++;
+
+                        // Update influence icons - calmedStudent no longer influencing this student
+                        UpdateInfluenceIcons(calmedStudent, student, false);
+
                         Log($"[Influence] ✓ Resolved {calmedStudent.Config?.studentName}'s influence on {student.Config?.studentName}");
                         Log($"[Influence]   {student.Config?.studentName} now has {afterCount} unresolved source(s)");
                     }
                 }
             }
 
+            // Hide influencer icon on calmed student
+            var calmedIcon = calmedStudent.GetComponent<InfluenceStatusIcon>();
+            if (calmedIcon != null)
+            {
+                calmedIcon.HideAllIcons();
+            }
+
             Log($"[Influence] === Teacher calmed {calmedStudent.Config?.studentName} - resolved influence on {resolvedCount} student(s) ===");
+        }
+
+        /// <summary>
+        /// Updates influence status icons on source and target students
+        /// </summary>
+        private void UpdateInfluenceIcons(StudentAgent sourceStudent, StudentAgent targetStudent, bool isAddingInfluence)
+        {
+            // Update source student's influencer icon
+            var sourceIcon = sourceStudent.GetComponent<InfluenceStatusIcon>();
+            if (sourceIcon != null)
+            {
+                if (isAddingInfluence)
+                {
+                    sourceIcon.ShowInfluencerIcon(targetStudent);
+                }
+                else
+                {
+                    sourceIcon.OnInfluenceResolved(targetStudent);
+                }
+            }
+
+            // Target student's influenced icon is updated automatically via polling in InfluenceStatusIcon.Update()
         }
 
         /// <summary>
