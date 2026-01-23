@@ -1,5 +1,7 @@
 using UnityEngine;
+using UnityEngine.UI;
 using System;
+using FunClass.Core.UI;
 
 namespace FunClass.Core
 {
@@ -9,6 +11,9 @@ namespace FunClass.Core
 
         public GameState CurrentState { get; private set; }
         public event Action<GameState, GameState> OnStateChanged;
+
+        [Header("Student Intro Settings")]
+        [SerializeField] private bool showStudentIntro = true;
 
         void Awake()
         {
@@ -34,14 +39,67 @@ namespace FunClass.Core
         private System.Collections.IEnumerator DelayedLevelStart()
         {
             Debug.Log("[GameStateManager] Waiting for managers to initialize...");
-            
+
             // Wait one frame for all managers to initialize
             yield return null;
-            
-            Debug.Log("[GameStateManager] Starting level transition to InLevel");
-            TransitionTo(GameState.InLevel);
-            
+
+            if (showStudentIntro)
+            {
+                // Transition FIRST so listeners know the state
+                Debug.Log("[GameStateManager] Starting level transition to StudentIntro");
+                TransitionTo(GameState.StudentIntro);
+
+                // Then ensure StudentIntroScreen exists (it will show itself because state is StudentIntro)
+                EnsureStudentIntroScreenExists();
+            }
+            else
+            {
+                // Skip intro and go directly to InLevel
+                Debug.Log("[GameStateManager] Skipping StudentIntro, going to InLevel");
+                TransitionTo(GameState.InLevel);
+            }
+
             Debug.Log($"[GameStateManager] Current state after transition: {CurrentState}");
+        }
+
+        private void EnsureStudentIntroScreenExists()
+        {
+            // Check if StudentIntroScreen singleton already exists
+            if (StudentIntroScreen.Instance != null)
+            {
+                Debug.Log("[GameStateManager] StudentIntroScreen.Instance already exists");
+                return;
+            }
+
+            // Also check via FindObjectOfType as fallback
+            StudentIntroScreen introScreen = FindObjectOfType<StudentIntroScreen>();
+            if (introScreen != null)
+            {
+                Debug.Log("[GameStateManager] StudentIntroScreen already exists (via FindObjectOfType)");
+                return;
+            }
+
+            Debug.Log("[GameStateManager] Creating StudentIntroScreen...");
+
+            // Find or create canvas
+            Canvas canvas = FindObjectOfType<Canvas>();
+            if (canvas == null)
+            {
+                GameObject canvasObj = new GameObject("StudentIntroCanvas");
+                canvas = canvasObj.AddComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                canvas.sortingOrder = 100;
+                canvasObj.AddComponent<CanvasScaler>();
+                canvasObj.AddComponent<GraphicRaycaster>();
+            }
+
+            // Create intro screen
+            GameObject introObj = new GameObject("StudentIntroScreen");
+            introObj.transform.SetParent(canvas.transform, false);
+            introScreen = introObj.AddComponent<StudentIntroScreen>();
+            introScreen.CreateUI();
+
+            Debug.Log("[GameStateManager] StudentIntroScreen created");
         }
 
         public void TransitionTo(GameState newState)

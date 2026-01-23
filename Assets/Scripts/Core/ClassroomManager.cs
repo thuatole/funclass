@@ -144,13 +144,20 @@ namespace FunClass.Core
 
         void Update()
         {
-            // Debug: Log even when inactive (every ~5 seconds)
+            // Skip update when not in active game state
             if (!isActive)
             {
-                if (!hasLoggedInactive || Time.frameCount % 300 == 0)
+                // Only log warning if NOT in expected non-active states
+                GameState? currentState = GameStateManager.Instance?.CurrentState;
+                bool isExpectedInactive = currentState == GameState.Boot ||
+                                          currentState == GameState.StudentIntro ||
+                                          currentState == GameState.LevelComplete ||
+                                          currentState == GameState.LevelFailed;
+
+                if (!isExpectedInactive && (!hasLoggedInactive || Time.frameCount % 300 == 0))
                 {
                     hasLoggedInactive = true;
-                    Debug.LogWarning($"[ClassroomManager] ⚠️ isActive=FALSE! GameState: {GameStateManager.Instance?.CurrentState}");
+                    Debug.LogWarning($"[ClassroomManager] ⚠️ isActive=FALSE! GameState: {currentState}");
                 }
                 return;
             }

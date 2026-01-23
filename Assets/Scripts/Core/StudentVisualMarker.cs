@@ -60,7 +60,7 @@ namespace FunClass.Core
             }
 
             string studentName = studentAgent.Config.studentName;
-            
+
             // Find and destroy any existing labels (from Editor import or previous runs)
             Transform existingLabel = transform.Find($"{studentName}_Label");
             if (existingLabel != null)
@@ -68,7 +68,7 @@ namespace FunClass.Core
                 Destroy(existingLabel.gameObject);
                 Debug.Log($"[StudentVisualMarker] Destroyed existing label for {studentName}");
             }
-            
+
             // Also destroy if labelObject reference exists
             if (labelObject != null)
             {
@@ -76,14 +76,14 @@ namespace FunClass.Core
                 labelObject = null;
                 labelText = null;
             }
-            
+
             // Apply color to capsule
             ApplyStudentColor(studentName);
-            
-            // Create floating label
-            CreateFloatingLabel(studentName);
-            
-            Debug.Log($"[StudentVisualMarker] Applied visual markers to {studentName}");
+
+            // NOTE: Floating label disabled - students are now introduced via StudentIntroScreen
+            // CreateFloatingLabel(studentName);
+
+            Debug.Log($"[StudentVisualMarker] Applied visual markers to {studentName} (label disabled)");
         }
 
         private void ApplyStudentColor(string studentName)
@@ -185,15 +185,16 @@ namespace FunClass.Core
             return Mathf.Abs(studentName.GetHashCode()) % studentColors.Length;
         }
 
-        void Update()
-        {
-            // Update label to always face camera
-            if (labelObject != null && Camera.main != null)
-            {
-                labelObject.transform.LookAt(Camera.main.transform);
-                labelObject.transform.Rotate(0, 180, 0); // Flip to face camera
-            }
-        }
+        // NOTE: Update disabled - floating label is no longer used
+        // void Update()
+        // {
+        //     // Update label to always face camera
+        //     if (labelObject != null && Camera.main != null)
+        //     {
+        //         labelObject.transform.LookAt(Camera.main.transform);
+        //         labelObject.transform.Rotate(0, 180, 0); // Flip to face camera
+        //     }
+        // }
     }
 
     /// <summary>

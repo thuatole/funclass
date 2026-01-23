@@ -73,6 +73,7 @@ Game quản lý lớp học, người chơi đóng vai giáo viên phải kiểm
 - [ ] **Tutorial tooltips**
 
 ### 3.2 Menus
+- [x] **Student Intro Screen** - Hiển thị học sinh trước khi vào level (MUST HAVE)
 - [ ] **Main Menu** - Start, Options, Quit
 - [ ] **Pause Menu** - Resume, Restart, Settings, Main Menu
 - [ ] **Level Complete Screen** - Stars, score, next level

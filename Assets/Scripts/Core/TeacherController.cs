@@ -3,6 +3,7 @@ using FunClass.Core.UI;
 
 namespace FunClass.Core
 {
+    // Note: CursorManager is in FunClass.Core.UI namespace
     [RequireComponent(typeof(CharacterController))]
     public class TeacherController : MonoBehaviour
     {
@@ -95,9 +96,19 @@ namespace FunClass.Core
 
         void OnDisable()
         {
+            // DON'T unsubscribe here - we need to keep listening for state changes
+            // even when the component is disabled, so we can re-enable when InLevel
+            // Only unsubscribe in OnDestroy
+            Debug.Log("[TeacherController] OnDisable called - keeping event subscription");
+        }
+
+        void OnDestroy()
+        {
+            // Only unsubscribe when the object is being destroyed
             if (GameStateManager.Instance != null)
             {
                 GameStateManager.Instance.OnStateChanged -= HandleGameStateChanged;
+                Debug.Log("[TeacherController] OnDestroy - unsubscribed from OnStateChanged");
             }
         }
 
@@ -126,8 +137,16 @@ namespace FunClass.Core
                 Debug.LogError("[TeacherController] GameStateManager.Instance is STILL null in Start()!");
             }
 
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
+            // Hide cursor at start using CursorManager
+            if (CursorManager.Instance != null)
+            {
+                CursorManager.Instance.HideCursor();
+            }
+            else
+            {
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+            }
         }
 
         void Update()
@@ -171,7 +190,20 @@ namespace FunClass.Core
         {
             isActive = true;
             enabled = true;
-            Debug.Log($"[TeacherController] ✅ Teacher ACTIVATED - isActive: {isActive}, enabled: {enabled}");
+
+            // Hide cursor for gameplay using CursorManager
+            if (CursorManager.Instance != null)
+            {
+                CursorManager.Instance.HideCursor();
+            }
+            else
+            {
+                // Fallback: direct cursor control
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+            }
+
+            Debug.Log($"[TeacherController] ✅ Teacher ACTIVATED - isActive: {isActive}, enabled: {enabled}, Time.timeScale: {Time.timeScale}");
         }
 
         private void DeactivateTeacher()
@@ -289,13 +321,21 @@ namespace FunClass.Core
                             currentHighlight = student.gameObject.AddComponent<UI.StudentHighlight>();
                         }
                         currentHighlight.SetHighlight(true);
-                        
+
                         string prompt = GetContextualPrompt(student);
                         Debug.Log($"[TeacherController] Looking at: {prompt}");
                     }
-                    
-                    Cursor.visible = true;
-                    Cursor.lockState = CursorLockMode.None;
+
+                    // Show cursor when looking at student using CursorManager
+                    if (CursorManager.Instance != null)
+                    {
+                        CursorManager.Instance.ShowCursor();
+                    }
+                    else
+                    {
+                        Cursor.visible = true;
+                        Cursor.lockState = CursorLockMode.None;
+                    }
                 }
                 else
                 {
@@ -349,11 +389,19 @@ namespace FunClass.Core
                 {
                     currentMessTarget = null;
                 }
-                
+
                 if (!PopupManager.Instance.IsPopupOpen)
                 {
-                    Cursor.lockState = CursorLockMode.Locked;
-                    Cursor.visible = false;
+                    // Hide cursor when not looking at anything using CursorManager
+                    if (CursorManager.Instance != null)
+                    {
+                        CursorManager.Instance.HideCursor();
+                    }
+                    else
+                    {
+                        Cursor.lockState = CursorLockMode.Locked;
+                        Cursor.visible = false;
+                    }
                 }
             }
         }

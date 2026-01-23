@@ -1,0 +1,182 @@
+================================================================================
+                         CURSOR MANAGER - HUONG DAN SU DUNG
+================================================================================
+
+1. TONG QUAN
+--------------------------------------------------------------------------------
+CursorManager la mot singleton quan ly con tro chuot tuy chinh cho toan bo game.
+No cho phep thay doi con tro tu mui ten mac dinh thanh hinh anh bat ky
+(vi du: vien phan, but chi, tay...).
+
+File: Assets/Scripts/Core/UI/CursorManager.cs
+
+
+2. CACH THIET LAP
+--------------------------------------------------------------------------------
+
+Buoc 1: Them CursorManager vao Scene
+   - Tao mot GameObject moi (hoac dung GameManager co san)
+   - Add Component -> CursorManager
+   - CursorManager se tu dong DontDestroyOnLoad (ton tai qua cac scene)
+
+Buoc 2: Chuan bi hinh anh con tro
+   - Import file hinh (PNG, khong nen JPG) vao Unity
+   - Kich thuoc khuyen nghi: 32x32 hoac 64x64 pixels
+   - Hinh nen co nen trong suot (transparent)
+
+Buoc 3: Cau hinh Texture trong Unity
+   - Chon file hinh trong Project window
+   - Trong Inspector, thay doi cac thiet lap:
+     * Texture Type: Cursor
+     * Max Size: 32 hoac 64
+     * Format: RGBA 32 bit (de giu nen trong suot)
+   - Nhan Apply
+
+Buoc 4: Gan Texture vao CursorManager
+   - Chon GameObject co CursorManager
+   - Trong Inspector, keo tha texture vao cac field:
+     * Default Cursor: Con tro chinh (bat buoc)
+     * Click Cursor: Con tro khi click (tuy chon)
+     * Hover Cursor: Con tro khi hover UI (tuy chon)
+
+Buoc 5: Cau hinh Hotspot
+   - Hotspot la diem click cua con tro
+   - Mac dinh (0, 0) = goc trai tren cua hinh
+   - Voi hinh vien phan: dat hotspot o dau nhon cua vien phan
+   - Vi du: Neu dau phan o vi tri (5, 60) trong hinh 64x64
+     -> Default Hotspot = (5, 60)
+
+
+3. CAC PHUONG THUC CHINH
+--------------------------------------------------------------------------------
+
+CursorManager.Instance.ApplyDefaultCursor()
+   - Ap dung con tro mac dinh (defaultCursor)
+   - Tu dong goi khi game bat dau
+
+CursorManager.Instance.ApplyClickCursor()
+   - Ap dung con tro click (clickCursor)
+   - Goi khi nguoi choi nhan chuot
+
+CursorManager.Instance.ApplyHoverCursor()
+   - Ap dung con tro hover (hoverCursor)
+   - Goi khi di chuot qua UI elements
+
+CursorManager.Instance.ResetToDefault()
+   - Quay lai con tro mac dinh
+
+CursorManager.Instance.ShowCursor()
+   - Hien thi con tro (unlock + visible + apply custom cursor)
+   - Dung cho man hinh UI, menu, pause...
+
+CursorManager.Instance.HideCursor()
+   - An con tro (lock + hide)
+   - Dung cho gameplay first-person
+
+CursorManager.Instance.ConfineCursor()
+   - Gioi han con tro trong cua so game
+   - Con tro van hien thi nhung khong ra ngoai
+
+CursorManager.Instance.UseSystemCursor()
+   - Quay lai con tro he thong (mui ten mac dinh)
+
+
+4. TICH HOP VOI CAC COMPONENT KHAC
+--------------------------------------------------------------------------------
+
+StudentIntroScreen:
+   - ShowIntroScreen() goi CursorManager.Instance.ShowCursor()
+   - HideIntroScreen() goi CursorManager.Instance.HideCursor()
+
+TeacherController:
+   - ActivateTeacher() goi CursorManager.Instance.HideCursor()
+   - Khi nhin vao student: goi ShowCursor()
+   - Khi khong nhin vao gi: goi HideCursor()
+
+PopupManager (neu can):
+   - Khi mo popup: goi ShowCursor()
+   - Khi dong popup: goi HideCursor()
+
+
+5. VI DU CODE SU DUNG
+--------------------------------------------------------------------------------
+
+// Hien thi con tro khi mo menu
+public void OpenMenu()
+{
+    if (CursorManager.Instance != null)
+    {
+        CursorManager.Instance.ShowCursor();
+    }
+}
+
+// An con tro khi vao gameplay
+public void StartGameplay()
+{
+    if (CursorManager.Instance != null)
+    {
+        CursorManager.Instance.HideCursor();
+    }
+}
+
+// Doi con tro khi hover button (tuy chon)
+public void OnButtonHover()
+{
+    if (CursorManager.Instance != null)
+    {
+        CursorManager.Instance.ApplyHoverCursor();
+    }
+}
+
+public void OnButtonExit()
+{
+    if (CursorManager.Instance != null)
+    {
+        CursorManager.Instance.ResetToDefault();
+    }
+}
+
+
+6. LUU Y QUAN TRONG
+--------------------------------------------------------------------------------
+
+- CursorManager phai duoc tao TRUOC cac component khac su dung no
+  (Dat Script Execution Order som hon, hoac tao trong scene dau tien)
+
+- Luon kiem tra CursorManager.Instance != null truoc khi goi
+  (de tranh loi khi CursorManager chua duoc khoi tao)
+
+- Neu khong thay con tro tuy chinh:
+  * Kiem tra Texture Type = Cursor
+  * Kiem tra texture khong bi null trong Inspector
+  * Kiem tra CursorManager.Instance co ton tai khong (xem Console log)
+
+- Cursor Mode:
+  * Auto: Unity tu chon (khuyen nghi)
+  * ForceSoftware: Ep su dung software cursor (cham hon)
+  * ForceHardware: Ep su dung hardware cursor (khong phai luc nao cung ho tro)
+
+
+7. TROUBLESHOOTING
+--------------------------------------------------------------------------------
+
+Van de: Con tro khong hien thi
+   -> Kiem tra Cursor.visible = true
+   -> Kiem tra Cursor.lockState != CursorLockMode.Locked
+
+Van de: Con tro bi an trong man hinh intro
+   -> Dam bao CursorManager duoc tao truoc StudentIntroScreen
+   -> Kiem tra ShowCursor() duoc goi
+
+Van de: Click khong dung vi tri
+   -> Chinh lai Hotspot cho phu hop voi hinh anh
+   -> Hotspot (0,0) = goc trai tren
+
+Van de: Con tro bi mo/nhoe
+   -> Kiem tra Max Size trong Texture Import Settings
+   -> Tat "Generate Mip Maps" cho cursor texture
+
+
+================================================================================
+                              HET - END OF DOCUMENT
+================================================================================
