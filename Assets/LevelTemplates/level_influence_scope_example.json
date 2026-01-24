@@ -5,33 +5,38 @@
   "influenceScopeSettings": {
     "description": "Defines how different events influence students - WholeClass affects all students, SingleStudent affects specific target",
     "disruptionPenaltyPerUnresolvedSource": 10.0,
-    "eventScopes": {
-      "MessCreated": {
+    "eventScopes": [
+      {
+        "eventTypeName": "MessCreated",
         "scope": "WholeClass",
         "baseSeverity": 0.85,
         "description": "Vomit/defecate affects all students in class (no distance check)"
       },
-      "ThrowingObject": {
+      {
+        "eventTypeName": "ThrowingObject",
         "scope": "SingleStudent",
         "baseSeverity": 0.7,
         "description": "Hitting a classmate affects only that student (no distance check)"
       },
-      "MakingNoise": {
+      {
+        "eventTypeName": "MakingNoise",
         "scope": "WholeClass",
         "baseSeverity": 0.4,
         "description": "Loud noises affect all students (no distance check)"
       },
-      "KnockedOverObject": {
+      {
+        "eventTypeName": "KnockedOverObject",
         "scope": "WholeClass",
         "baseSeverity": 0.5,
         "description": "Knocking things over affects all students (no distance check)"
       },
-      "WanderingAround": {
+      {
+        "eventTypeName": "WanderingAround",
         "scope": "WholeClass",
         "baseSeverity": 0.3,
         "description": "Wandering affects all students (no distance check)"
       }
-    }
+    ]
   },
   
   "studentInteractions": [

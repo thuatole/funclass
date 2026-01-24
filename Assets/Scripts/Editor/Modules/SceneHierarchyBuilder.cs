@@ -58,6 +58,7 @@ namespace FunClass.Editor.Modules
         public static GameObject CreateManagersGroup()
         {
             GameObject managers = EditorUtils.CreateOrFind("=== MANAGERS ===");
+            managers.SetActive(true); // Ensure managers group is active
 
             CreateManagerObject(managers, "GameStateManager", typeof(FunClass.Core.GameStateManager));
             CreateManagerObject(managers, "LevelLoader", typeof(FunClass.Core.LevelLoader));
@@ -67,6 +68,8 @@ namespace FunClass.Editor.Modules
             CreateManagerObject(managers, "TeacherScoreManager", typeof(FunClass.Core.TeacherScoreManager));
             CreateManagerObject(managers, "StudentInfluenceManager", typeof(FunClass.Core.StudentInfluenceManager));
             CreateManagerObject(managers, "StudentMovementManager", typeof(FunClass.Core.StudentMovementManager));
+            CreateManagerObject(managers, "CursorManager", typeof(FunClass.Core.UI.CursorManager));
+            CreateManagerObject(managers, "PopupManager", typeof(FunClass.Core.UI.PopupManager));
 
             return managers;
         }

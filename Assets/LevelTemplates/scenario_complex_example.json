@@ -7,18 +7,20 @@
   "influenceScopeSettings": {
     "description": "Influence scope configuration",
     "disruptionPenaltyPerUnresolvedSource": 10.0,
-    "eventScopes": {
-      "MessCreated": {
+    "eventScopes": [
+      {
+        "eventTypeName": "MessCreated",
         "scope": "WholeClass",
         "baseSeverity": 0.85,
         "description": "Vomit affects all students"
       },
-      "ThrowingObject": {
+      {
+        "eventTypeName": "ThrowingObject",
         "scope": "SingleStudent",
         "baseSeverity": 0.7,
         "description": "Hitting affects only target"
       }
-    }
+    ]
   },
   
   "studentInteractions": [

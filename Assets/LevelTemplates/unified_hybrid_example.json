@@ -1,0 +1,98 @@
+{
+  "levelId": "UnifiedHybridDemo",
+  "difficulty": "medium",
+  
+  // Auto-generation fields for desks and classroom
+  "students": 4, // Auto-generate 4 desks
+  "deskLayout": {
+    "spacingX": 2.0,
+    "spacingZ": 2.5,
+    "aisleWidth": 1.5
+  },
+  "classroom": {
+    "width": 10,
+    "depth": 8,
+    "height": 3
+  },
+  
+  // Manual student positions (override auto-placement)
+  "studentsManual": [
+    {
+      "studentName": "Front_Student",
+      "position": { "x": -1.5, "y": 0.1, "z": -1.0 },
+      "personality": {
+        "patience": 0.8,
+        "attentionSpan": 0.7,
+        "impulsiveness": 0.2,
+        "panicThreshold": 0.3,
+        "influenceSusceptibility": 0.3,
+        "influenceResistance": 0.5
+      }
+    },
+    {
+      "studentName": "Back_Student",
+      "position": { "x": 1.5, "y": 0.1, "z": 1.0 },
+      "personality": {
+        "patience": 0.3,
+        "attentionSpan": 0.4,
+        "impulsiveness": 0.8,
+        "panicThreshold": 0.2,
+        "influenceSusceptibility": 0.9,
+        "influenceResistance": 0.1
+      }
+    }
+  ],
+  
+  // Manual routes (override auto-generation)
+  "routesManual": [
+    {
+      "routeName": "EscapeRoute_Hybrid",
+      "routeType": "Escape",
+      "waypoints": [
+        { "waypointName": "Door", "position": { "x": 0, "y": 0, "z": 4 } },
+        { "waypointName": "Hallway", "position": { "x": 0, "y": 0, "z": 8 } }
+      ]
+    }
+  ],
+  
+  // Environment auto-generation
+  "environment": {
+    "boardMaterial": "White",
+    "floorMaterial": "Floor",
+    "wallMaterial": "Wall"
+  },
+  
+  // Game system configuration
+  "goalSettings": {
+    "maxDisruptionThreshold": 70,
+    "catastrophicDisruptionLevel": 90,
+    "timeLimitSeconds": 200,
+    "requiredCalmDowns": 2,
+    "requiredResolvedProblems": 1
+  },
+  
+  "influenceScopeSettings": {
+    "description": "Hybrid mode influence settings",
+    "disruptionPenaltyPerUnresolvedSource": 12.0,
+    "eventScopes": [
+      {
+        "eventTypeName": "MessCreated",
+        "scope": "WholeClass",
+        "baseSeverity": 0.9,
+        "description": "Mess affects whole class"
+      }
+    ]
+  },
+  
+  "studentInteractions": [
+    {
+      "sourceStudent": "Front_Student",
+      "targetStudent": "Back_Student",
+      "eventType": "ThrowingObject",
+      "triggerCondition": "OnActingOut",
+      "probability": 0.6,
+      "customSeverity": -1,
+      "description": "Front student throws object at back student"
+    }
+  ]
+}

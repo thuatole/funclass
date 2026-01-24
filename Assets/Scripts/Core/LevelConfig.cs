@@ -31,6 +31,10 @@ namespace FunClass.Core
         [Tooltip("Return route for students coming back to class")]
         public StudentRoute returnRoute;
 
+        [Header("Influence Settings")]
+        [Tooltip("Influence scope configuration for this level")]
+        public InfluenceScopeConfig influenceScopeConfig;
+
         [Header("Key Locations")]
         [Tooltip("Classroom door position")]
         public Transform classroomDoor;

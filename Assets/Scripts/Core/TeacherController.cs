@@ -910,11 +910,20 @@ namespace FunClass.Core
                 // Add disruption for failed escort
                 if (ClassroomManager.Instance != null)
                 {
-                    float disruptionPenalty = 10f * unresolvedCount; // 10 points per unresolved source
+                    float penaltyPerSource = 10f;
+                    if (LevelManager.Instance != null)
+                    {
+                        var levelConfig = LevelManager.Instance.GetCurrentLevelConfig();
+                        if (levelConfig?.influenceScopeConfig != null)
+                        {
+                            penaltyPerSource = levelConfig.influenceScopeConfig.disruptionPenaltyPerUnresolvedSource;
+                        }
+                    }
+                    float disruptionPenalty = penaltyPerSource * unresolvedCount;
                     ClassroomManager.Instance.AddDisruption(disruptionPenalty, 
                         $"{student.Config?.studentName} returned to outdoor - {unresolvedCount} unresolved sources");
                     
-                    Debug.LogWarning($"[Teacher] Added {disruptionPenalty} disruption for failed escort");
+                    Debug.LogWarning($"[Teacher] Added {disruptionPenalty} disruption for failed escort (penalty per source: {penaltyPerSource})");
                 }
 
                 return;

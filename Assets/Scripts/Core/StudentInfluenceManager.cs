@@ -44,6 +44,13 @@ namespace FunClass.Core
         private bool isActive = false;
         private List<StudentAgent> allStudents = new List<StudentAgent>();
 
+        private InfluenceScopeConfig GetInfluenceScopeConfig()
+        {
+            if (LevelManager.Instance == null) return null;
+            var levelConfig = LevelManager.Instance.GetCurrentLevelConfig();
+            return levelConfig?.influenceScopeConfig;
+        }
+
         void Awake()
         {
             if (Instance != null && Instance != this)
@@ -210,6 +217,13 @@ namespace FunClass.Core
         /// </summary>
         private float GetInfluenceSeverity(StudentEventType eventType)
         {
+            var config = GetInfluenceScopeConfig();
+            if (config != null && config.ContainsEventType(eventType.ToString()))
+            {
+                return config.GetBaseSeverity(eventType.ToString());
+            }
+            
+            // Fallback to hardcoded defaults
             return eventType switch
             {
                 StudentEventType.ThrowingObject => 0.9f,

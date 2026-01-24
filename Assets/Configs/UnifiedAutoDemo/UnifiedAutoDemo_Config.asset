@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f9082d06048fbc4da3673444f90583b, type: 3}
+  m_Name: UnifiedAutoDemo_Config
+  m_EditorClassIdentifier: FunClass.Runtime::FunClass.Core.LevelConfig
+  levelId: UnifiedAutoDemo
+  grade: 0
+  description: 
+  students:
+  - {fileID: 11400000, guid: d8cfc8e4926c61d41b8858c3b1c9d65e, type: 2}
+  - {fileID: 11400000, guid: af4bc39c8127a1d4da17ffda5f00598c, type: 2}
+  - {fileID: 11400000, guid: 1a8a365290a30514d8b0ed6d7fa759bf, type: 2}
+  - {fileID: 11400000, guid: bfd9fe5d06df2eb4d8439a2298f5e623, type: 2}
+  - {fileID: 11400000, guid: 557fb1961c67da74b825f82d0fd4b730, type: 2}
+  - {fileID: 11400000, guid: 2643cb3c3eab03d42ba48863c70452d1, type: 2}
+  availableSequences: []
+  levelGoal: {fileID: 11400000, guid: 9d5ca0af57d87f04e8d185e4bb43c828, type: 2}
+  availableRoutes:
+  - {fileID: 11400000, guid: 9102ab6ec90fcc742bbc56c303b12dc6, type: 2}
+  - {fileID: 11400000, guid: 6722c332e4e818c45b94a88354e25467, type: 2}
+  - {fileID: 11400000, guid: f60bd7216ddfbf04f84edcfed8e897d8, type: 2}
+  - {fileID: 11400000, guid: f8efeb47e28b4d345b0cf3218112d7c4, type: 2}
+  - {fileID: 11400000, guid: 49ddda6c854b5fb41969c9baefac428c, type: 2}
+  - {fileID: 11400000, guid: 2bf76d408ef111043ace95288deb02a4, type: 2}
+  - {fileID: 11400000, guid: 512a855746fa15c4fbbb6457b6c40684, type: 2}
+  - {fileID: 11400000, guid: 88cf60d6a6bf0b04399ff78a7932c647, type: 2}
+  - {fileID: 11400000, guid: 932f82d72602f1242bd1ebcd8ef99339, type: 2}
+  - {fileID: 11400000, guid: 56a890fe8d61e0145bffb65020af3618, type: 2}
+  - {fileID: 11400000, guid: 9a26e5b6e5e2f1c49bdf1542ded2466f, type: 2}
+  - {fileID: 11400000, guid: 488fec4743a313d43bb5308a0e8354ad, type: 2}
+  - {fileID: 11400000, guid: 47857290eb1180d4493ac1b18c0b8013, type: 2}
+  - {fileID: 11400000, guid: b4ea6c0b99ea9514195fd9297513d039, type: 2}
+  escapeRoute: {fileID: 11400000, guid: 207a68451ebe81349ae3271f4f8af510, type: 2}
+  returnRoute: {fileID: 11400000, guid: a28bebfcd4b56e14faa323fe9a3c730e, type: 2}
+  influenceScopeConfig: {fileID: 11400000, guid: 727f5bc6f46229642a0f8d479d0097e9, type: 2}
+  classroomDoor: {fileID: 0}
+  outsideArea: {fileID: 0}
+  seatPositions: []

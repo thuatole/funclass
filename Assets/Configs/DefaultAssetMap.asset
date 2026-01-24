@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31194afcd5c53f9428d0915992ed9924, type: 3}
+  m_Name: DefaultAssetMap
+  m_EditorClassIdentifier: FunClass.Editor::FunClass.Editor.Data.AssetMapConfig
+  assetMappings:
+  - assetKey: DESK
+    prefabReference: {fileID: 7105866068210168408, guid: fcecd1f3544aafc45ad3917908362845, type: 3}
+    description: Student desk (use Chair prefab if no desk available)
+  - assetKey: CHAIR
+    prefabReference: {fileID: 7105866068210168408, guid: fcecd1f3544aafc45ad3917908362845, type: 3}
+    description: Chair for desk
+  - assetKey: STUDENT
+    prefabReference: {fileID: 4602995871849014586, guid: 0490e6f2be5e4874aa8c981da286dd0f, type: 3}
+    description: Student character prefab
+  - assetKey: BOARD
+    prefabReference: {fileID: 1403855206649478, guid: adb1204842363d949b4b739100f86523, type: 3}
+    description: Whiteboard/blackboard at front of classroom
+  - assetKey: TEACHER
+    prefabReference: {fileID: 2394256638580013743, guid: 242d78a529093d04faae20da4e27b374, type: 3}
+    description: Teacher player prefab
+  - assetKey: DOOR
+    prefabReference: {fileID: 1965528337302418, guid: c46afe706fb2cde4883f7afaeaa67a78, type: 3}
+    description: Classroom door
+  - assetKey: FLOOR
+    prefabReference: {fileID: 1817511018758452, guid: 405988af1bd38ee4fb92e86058b6c926, type: 3}
+    description: Classroom floor (plane or prefab)
+  - assetKey: WALL
+    prefabReference: {fileID: 100004, guid: 674bca1160f50d546aaac5b261a08000, type: 3}
+    description: Classroom wall (cube or prefab)
+  - assetKey: CEILING
+    prefabReference: {fileID: 100004, guid: 674bca1160f50d546aaac5b261a08000, type: 3}
+    description: Classroom ceiling (optional)
+  materialMappings:
+  - materialKey: Default
+    materialReference: {fileID: 2100000, guid: 30b92673b9b7ef44c9c11a474d9910c9, type: 2}
+    description: Default fallback material for pink material fix
+  - materialKey: White
+    materialReference: {fileID: 2100000, guid: 30b92673b9b7ef44c9c11a474d9910c9, type: 2}
+    description: White material for board
+  - materialKey: Floor
+    materialReference: {fileID: 2100000, guid: 1dbcdd8ff94528e48b2ec42b537b1d40, type: 2}
+    description: Floor material
+  - materialKey: Wall
+    materialReference: {fileID: 2100000, guid: 30b92673b9b7ef44c9c11a474d9910c9, type: 2}
+    description: Wall material

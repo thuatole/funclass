@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33cf1a0d02154d241a8b991cbcdda9c7, type: 3}
+  m_Name: UnifiedAutoDemo_InfluenceScope
+  m_EditorClassIdentifier: FunClass.Runtime::FunClass.Core.InfluenceScopeConfig
+  description: Auto mode influence settings
+  disruptionPenaltyPerUnresolvedSource: 8
+  eventScopes:
+  - eventTypeName: MessCreated
+    scope: WholeClass
+    baseSeverity: 0.8
+    description: Mess affects whole class
+  - eventTypeName: ThrowingObject
+    scope: SingleStudent
+    baseSeverity: 0.6
+    description: Throwing affects target student
+  - eventTypeName: MakingNoise
+    scope: WholeClass
+    baseSeverity: 0.4
+    description: Noise affects whole class

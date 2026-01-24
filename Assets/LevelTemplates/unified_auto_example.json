@@ -1,0 +1,112 @@
+{
+  "levelId": "UnifiedAutoDemo",
+  "difficulty": "medium",
+  
+  "students": 6,
+  
+  "deskLayout": {
+    "spacingX": 2.2,
+    "spacingZ": 2.5,
+    "aisleWidth": 1.8
+  },
+  
+  "classroom": {
+    "width": 12,
+    "depth": 10,
+    "height": 3.5
+  },
+  
+  "environment": {
+    "boardMaterial": "White",
+    "floorMaterial": "Floor",
+    "wallMaterial": "Wall",
+    "autoSetupLighting": true
+  },
+  
+  "routeGeneration": {
+    "autoGenerateRoutes": true,
+    "escapeRouteSpeed": 3.0,
+    "returnRouteSpeed": 2.0
+  },
+  
+  "goalSettings": {
+    "maxDisruptionThreshold": 75,
+    "catastrophicDisruptionLevel": 90,
+    "timeLimitSeconds": 240,
+    "requiredCalmDowns": 3,
+    "requiredResolvedProblems": 2,
+    
+    "enableDisruptionTimeout": true,
+    "disruptionTimeoutThreshold": 65,
+    "disruptionTimeoutSeconds": 45,
+    "disruptionTimeoutWarningSeconds": 15,
+    
+    "oneStarScore": 100,
+    "twoStarScore": 250,
+    "threeStarScore": 500
+  },
+  
+  "influenceScopeSettings": {
+    "description": "Auto mode influence settings",
+    "disruptionPenaltyPerUnresolvedSource": 8.0,
+    "eventScopes": [
+      {
+        "eventTypeName": "MessCreated",
+        "scope": "WholeClass",
+        "baseSeverity": 0.8,
+        "description": "Mess affects whole class"
+      },
+      {
+        "eventTypeName": "ThrowingObject",
+        "scope": "SingleStudent",
+        "baseSeverity": 0.6,
+        "description": "Throwing affects target student"
+      },
+      {
+        "eventTypeName": "MakingNoise",
+        "scope": "WholeClass",
+        "baseSeverity": 0.4,
+        "description": "Noise affects whole class"
+      }
+    ]
+  },
+  
+  "studentInteractions": [
+    {
+      "sourceStudent": "Student_01",
+      "targetStudent": "Student_02",
+      "eventType": "ThrowingObject",
+      "triggerCondition": "OnActingOut",
+      "probability": 0.7,
+      "customSeverity": -1,
+      "description": "Student 01 hits Student 02 when acting out"
+    }
+  ],
+  
+  "studentConfigs": [
+    {
+      "studentId": "student_01",
+      "studentName": "Troublemaker",
+      "personality": {
+        "patience": 0.2,
+        "attentionSpan": 0.3,
+        "impulsiveness": 0.9,
+        "influenceSusceptibility": 0.8,
+        "influenceResistance": 0.1,
+        "panicThreshold": 0.3
+      },
+      "behaviors": {
+        "canFidget": true,
+        "canLookAround": true,
+        "canStandUp": true,
+        "canMoveAround": true,
+        "canDropItems": true,
+        "canKnockOverObjects": true,
+        "canMakeNoiseWithObjects": true,
+        "canThrowObjects": true,
+        "minIdleTime": 1,
+        "maxIdleTime": 3
+      }
+    }
+  ]
+}

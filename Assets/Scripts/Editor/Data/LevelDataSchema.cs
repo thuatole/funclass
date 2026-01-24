@@ -201,7 +201,7 @@ namespace FunClass.Editor.Data
     [Serializable]
     public class InfluenceScopeSettingsData
     {
-        public Dictionary<string, EventInfluenceScopeData> eventScopes;
+        public List<EventInfluenceScopeData> eventScopes;
         public float disruptionPenaltyPerUnresolvedSource = 10f;
         public string description;
     }
@@ -212,6 +212,7 @@ namespace FunClass.Editor.Data
     [Serializable]
     public class EventInfluenceScopeData
     {
+        public string eventTypeName; // e.g., "MessCreated", "ThrowingObject"
         public string scope; // "None", "WholeClass", "SingleStudent"
         public float baseSeverity = 0.5f;
         public string description;

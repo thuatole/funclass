@@ -72,7 +72,20 @@ namespace FunClass.Core
                 return InfluenceScope.SingleStudent;
             }
 
-            // Otherwise determine by event type
+            // Try to get scope from config
+            if (LevelManager.Instance != null)
+            {
+                var levelConfig = LevelManager.Instance.GetCurrentLevelConfig();
+                if (levelConfig?.influenceScopeConfig != null)
+                {
+                    string scopeStr = levelConfig.influenceScopeConfig.GetScope(type.ToString());
+                    if (scopeStr == "WholeClass") return InfluenceScope.WholeClass;
+                    if (scopeStr == "SingleStudent") return InfluenceScope.SingleStudent;
+                    if (scopeStr == "None") return InfluenceScope.None;
+                }
+            }
+
+            // Fallback to hardcoded mapping
             return type switch
             {
                 StudentEventType.ThrowingObject => InfluenceScope.SingleStudent,  // Hitting someone

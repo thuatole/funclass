@@ -105,14 +105,27 @@ namespace FunClass.Core
             GameObject waypointsRoot = GameObject.Find("Waypoints");
             if (waypointsRoot == null)
             {
+                Debug.LogError($"[StudentRoute] Cannot find Waypoints root in scene!");
                 return;
             }
             
-            // Find route group
-            Transform routeGroup = waypointsRoot.transform.Find(routeName);
+            // Find route group - search recursively for exact match or containing routeName
+            Transform routeGroup = FindRouteGroupRecursive(waypointsRoot.transform, routeName);
+            if (routeGroup == null)
+            {
+                // Fallback: search for any group containing routeName
+                routeGroup = FindRouteGroupContaining(waypointsRoot.transform, routeName);
+                if (routeGroup != null)
+                {
+                    Debug.Log($"[StudentRoute] Found route group '{routeGroup.name}' containing '{routeName}'");
+                }
+            }
+            
             if (routeGroup == null)
             {
                 Debug.LogError($"[StudentRoute] Cannot find route group '{routeName}' under Waypoints!");
+                Debug.Log($"[StudentRoute] Searching in Waypoints hierarchy:");
+                LogHierarchy(waypointsRoot.transform, 0);
                 return;
             }
             
@@ -122,6 +135,55 @@ namespace FunClass.Core
             if (sceneWaypoints.Length > 0)
             {
                 waypoints = new System.Collections.Generic.List<StudentWaypoint>(sceneWaypoints);
+                Debug.Log($"[StudentRoute] Refreshed {sceneWaypoints.Length} waypoints from route group '{routeGroup.name}'");
+            }
+            else
+            {
+                Debug.LogWarning($"[StudentRoute] No waypoints found in route group '{routeGroup.name}'");
+            }
+        }
+        
+        private Transform FindRouteGroupRecursive(Transform parent, string targetName)
+        {
+            // Check direct children first
+            Transform found = parent.Find(targetName);
+            if (found != null) return found;
+            
+            // Search recursively in children
+            foreach (Transform child in parent)
+            {
+                found = FindRouteGroupRecursive(child, targetName);
+                if (found != null) return found;
+            }
+            
+            return null;
+        }
+        
+        private Transform FindRouteGroupContaining(Transform parent, string partialName)
+        {
+            foreach (Transform child in parent)
+            {
+                if (child.name.Contains(partialName))
+                {
+                    return child;
+                }
+                
+                // Search recursively
+                Transform found = FindRouteGroupContaining(child, partialName);
+                if (found != null) return found;
+            }
+            
+            return null;
+        }
+        
+        private void LogHierarchy(Transform parent, int depth)
+        {
+            string indent = new string(' ', depth * 2);
+            Debug.Log($"[StudentRoute] {indent}- {parent.name} ({parent.childCount} children)");
+            
+            foreach (Transform child in parent)
+            {
+                LogHierarchy(child, depth + 1);
             }
         }
     }

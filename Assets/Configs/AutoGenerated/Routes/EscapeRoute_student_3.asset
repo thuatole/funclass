@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a32082d70ffba3c47a6dcad9650cfb92, type: 3}
+  m_Name: EscapeRoute_student_3
+  m_EditorClassIdentifier: FunClass.Runtime::FunClass.Core.StudentRoute
+  routeId: 
+  routeName: EscapeRoute_student_3
+  waypoints:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  isLooping: 0
+  isPingPong: 0
+  movementSpeed: 3
+  isRunning: 0
+  rotationSpeed: 180
+  completionBehavior: 0
+  completionState: 0
+  triggerEventOnCompletion: 1

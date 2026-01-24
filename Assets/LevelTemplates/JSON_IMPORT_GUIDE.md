@@ -1,5 +1,13 @@
 # JSON Level Import - 1-Click Setup Guide
 
+> **NEW**: Enhanced JSON import system available! See [Enhanced_JSON_Import_Guide.md](Enhanced_JSON_Import_Guide.md) for simplified level creation with auto desk placement, route generation, and material fixing.
+
+---
+
+## Legacy JSON Import System (Original)
+
+This guide covers the original JSON import system. For new levels, consider using the enhanced system.
+
 ## Automatic Features
 
 Khi import level từ JSON, system sẽ **TỰ ĐỘNG** setup:

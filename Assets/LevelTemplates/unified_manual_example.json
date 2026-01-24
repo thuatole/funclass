@@ -1,0 +1,199 @@
+{
+  "levelId": "UnifiedManualDemo",
+  "levelName": "UnifiedManualDemo", // Legacy field, will map to levelId
+  "difficulty": "Normal",
+  
+  // Manual placement fields
+  "studentsManual": [
+    {
+      "studentName": "Student_A",
+      "position": { "x": -1.5, "y": 0.1, "z": 0 },
+      "personality": {
+        "patience": 0.3,
+        "attentionSpan": 0.4,
+        "impulsiveness": 0.7,
+        "panicThreshold": 0.2,
+        "influenceSusceptibility": 0.5,
+        "influenceResistance": 0.1
+      },
+      "behaviors": {
+        "canFidget": true,
+        "canLookAround": true,
+        "canStandUp": false,
+        "canMoveAround": false,
+        "canDropItems": true,
+        "canKnockOverObjects": true,
+        "canMakeNoiseWithObjects": true,
+        "canThrowObjects": false,
+        "minIdleTime": 1,
+        "maxIdleTime": 3
+      }
+    },
+    {
+      "studentName": "Student_B",
+      "position": { "x": -0.5, "y": 0.1, "z": 0 },
+      "personality": {
+        "patience": 0.6,
+        "attentionSpan": 0.5,
+        "impulsiveness": 0.4,
+        "panicThreshold": 0.15,
+        "influenceSusceptibility": 1.0,
+        "influenceResistance": 0.0
+      },
+      "behaviors": {
+        "canFidget": true,
+        "canLookAround": true,
+        "canStandUp": false,
+        "canMoveAround": false,
+        "canDropItems": false,
+        "canKnockOverObjects": false,
+        "canMakeNoiseWithObjects": true,
+        "canThrowObjects": false,
+        "minIdleTime": 2,
+        "maxIdleTime": 5
+      }
+    },
+    {
+      "studentName": "Student_C",
+      "position": { "x": 0.5, "y": 0.1, "z": 0 },
+      "personality": {
+        "patience": 0.2,
+        "attentionSpan": 0.3,
+        "impulsiveness": 0.9,
+        "panicThreshold": 0.2,
+        "influenceSusceptibility": 0.8,
+        "influenceResistance": 0.0
+      },
+      "behaviors": {
+        "canFidget": true,
+        "canLookAround": true,
+        "canStandUp": false,
+        "canMoveAround": false,
+        "canDropItems": true,
+        "canKnockOverObjects": true,
+        "canMakeNoiseWithObjects": true,
+        "canThrowObjects": true,
+        "minIdleTime": 0.5,
+        "maxIdleTime": 2
+      }
+    },
+    {
+      "studentName": "Student_D",
+      "position": { "x": 1.5, "y": 0.1, "z": 0 },
+      "personality": {
+        "patience": 0.7,
+        "attentionSpan": 0.6,
+        "impulsiveness": 0.3,
+        "panicThreshold": 0.2,
+        "influenceSusceptibility": 1.0,
+        "influenceResistance": 0.0
+      },
+      "behaviors": {
+        "canFidget": true,
+        "canLookAround": true,
+        "canStandUp": false,
+        "canMoveAround": false,
+        "canDropItems": false,
+        "canKnockOverObjects": false,
+        "canMakeNoiseWithObjects": true,
+        "canThrowObjects": false,
+        "minIdleTime": 2,
+        "maxIdleTime": 4
+      }
+    }
+  ],
+  
+  "routesManual": [
+    {
+      "routeName": "EscapeRoute",
+      "routeType": "Escape",
+      "waypoints": [
+        { "waypointName": "Door", "position": { "x": 0, "y": 0, "z": 5 } },
+        { "waypointName": "Outside", "position": { "x": 0, "y": 0, "z": 10 } }
+      ],
+      "movementSpeed": 3.0,
+      "isRunning": true
+    },
+    {
+      "routeName": "ReturnRoute",
+      "routeType": "Return",
+      "waypoints": [
+        { "waypointName": "Door", "position": { "x": 0, "y": 0, "z": 5 } },
+        { "waypointName": "Seat_A", "position": { "x": -1.5, "y": 0, "z": 0 } }
+      ],
+      "movementSpeed": 2.0,
+      "isRunning": false
+    }
+  ],
+  
+  "environmentManual": {
+    "classroomSize": { "x": 10, "y": 3, "z": 8 },
+    "doorPosition": { "x": 0, "y": 0, "z": 5 },
+    "floorMaterial": "Floor",
+    "wallMaterial": "Wall"
+  },
+  
+  // Game system configuration (same for all modes)
+  "goalSettings": {
+    "maxDisruptionThreshold": 80,
+    "catastrophicDisruptionLevel": 95,
+    "timeLimitSeconds": 180,
+    "requiredCalmDowns": 3,
+    "requiredResolvedProblems": 2,
+    
+    "enableDisruptionTimeout": true,
+    "disruptionTimeoutThreshold": 70,
+    "disruptionTimeoutSeconds": 30,
+    "disruptionTimeoutWarningSeconds": 10,
+    
+    "oneStarScore": 100,
+    "twoStarScore": 250,
+    "threeStarScore": 500
+  },
+  
+  "influenceScopeSettings": {
+    "description": "Manual mode influence settings",
+    "disruptionPenaltyPerUnresolvedSource": 10.0,
+    "eventScopes": [
+      {
+        "eventTypeName": "MessCreated",
+        "scope": "WholeClass",
+        "baseSeverity": 0.85,
+        "description": "Vomit/defecate affects all students in class"
+      },
+      {
+        "eventTypeName": "ThrowingObject",
+        "scope": "SingleStudent",
+        "baseSeverity": 0.7,
+        "description": "Hitting a classmate affects only that student"
+      },
+      {
+        "eventTypeName": "MakingNoise",
+        "scope": "WholeClass",
+        "baseSeverity": 0.4,
+        "description": "Loud noises affect all students"
+      }
+    ]
+  },
+  
+  "studentInteractions": [
+    {
+      "sourceStudent": "Student_C",
+      "targetStudent": "Student_D",
+      "eventType": "ThrowingObject",
+      "triggerCondition": "OnActingOut",
+      "probability": 0.8,
+      "customSeverity": -1,
+      "description": "Student_C hits Student_D when acting out"
+    },
+    {
+      "sourceStudent": "Student_C",
+      "targetStudent": "Student_B",
+      "eventType": "ThrowingObject",
+      "triggerCondition": "OnCritical",
+      "probability": 0.5,
+      "customSeverity": 0.9,
+      "description": "Student_C hits Student_B when critical"
+    }
+  ]
+}
