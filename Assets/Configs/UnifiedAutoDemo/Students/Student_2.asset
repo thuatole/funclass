@@ -15,12 +15,12 @@ MonoBehaviour:
   studentId: student_2
   studentName: 2
   initialState: 0
-  patience: 0.68625516
-  attentionSpan: 0.681981
-  impulsiveness: 0.48439217
+  patience: 0.4039083
+  attentionSpan: 0.46892095
+  impulsiveness: 0.4874069
   canFidget: 1
   canLookAround: 1
-  canStandUp: 0
+  canStandUp: 1
   canMoveAround: 0
   canDropItems: 0
   canKnockOverObjects: 0
@@ -39,7 +39,7 @@ MonoBehaviour:
   defaultConfiscationReactionDuration: 3
   defaultConfiscationChangesState: 0
   defaultConfiscationNewState: 0
-  influenceSusceptibility: 0.58866036
-  influenceResistance: 0.5347613
-  panicThreshold: 0.538062
+  influenceSusceptibility: 0.61553663
+  influenceResistance: 0.5794846
+  panicThreshold: 0.46696153
   customInfluenceRadius: 0

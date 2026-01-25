@@ -15,9 +15,9 @@ MonoBehaviour:
   studentId: student_1
   studentName: 1
   initialState: 0
-  patience: 0.5326029
-  attentionSpan: 0.67699057
-  impulsiveness: 0.47247732
+  patience: 0.5895374
+  attentionSpan: 0.6194295
+  impulsiveness: 0.33598465
   canFidget: 1
   canLookAround: 1
   canStandUp: 1
@@ -39,7 +39,7 @@ MonoBehaviour:
   defaultConfiscationReactionDuration: 3
   defaultConfiscationChangesState: 0
   defaultConfiscationNewState: 0
-  influenceSusceptibility: 0.47109073
-  influenceResistance: 0.5245732
-  panicThreshold: 0.7719684
+  influenceSusceptibility: 0.4887287
+  influenceResistance: 0.31042156
+  panicThreshold: 0.74802196
   customInfluenceRadius: 0

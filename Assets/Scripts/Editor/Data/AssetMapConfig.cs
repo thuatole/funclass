@@ -163,38 +163,44 @@ namespace FunClass.Editor.Data
         
         /// <summary>
         /// Attempt to auto-assign prefab references from known project paths
+        /// ONLY uses prefabs from Assets/school/Prefabs/
         /// </summary>
         public void TryAutoAssignPrefabs()
         {
 #if UNITY_EDITOR
             bool anyAssigned = false;
-            
-            // Define known prefab paths
+
+            // Define prefab paths - ONLY from Assets/school/Prefabs/
             var prefabPaths = new Dictionary<string, string[]>
             {
-                { "DESK", new[] { "Assets/Prefabs/Chair.prefab", "Assets/school/Prefabs/props/board.prefab" } },
-                { "CHAIR", new[] { "Assets/Prefabs/Chair.prefab" } },
+                { "DESK", new[] { "Assets/school/Prefabs/props/table1.prefab", "Assets/school/Prefabs/props/table2.prefab", "Assets/school/Prefabs/props/table3.prefab" } },
+                { "CHAIR", new[] { "Assets/school/Prefabs/props/chair.prefab", "Assets/school/Prefabs/props/chair1.prefab" } },
                 { "STUDENT", new[] { "Assets/Prefabs/Student.prefab" } },
-                { "BOARD", new[] { "Assets/school/Prefabs/props/board.prefab", "Assets/school/Prefabs/props/board1.prefab" } },
+                { "BOARD", new[] { "Assets/school/Prefabs/props/board.prefab", "Assets/school/Prefabs/props/board1.prefab", "Assets/school/Prefabs/props/board2.prefab" } },
                 { "TEACHER", new[] { "Assets/Prefabs/TeacherPlayer.prefab" } },
                 { "DOOR", new[] { "Assets/school/Prefabs/props/a door.prefab", "Assets/school/Prefabs/props/a door1.prefab" } },
                 { "FLOOR", new[] { "Assets/school/Prefabs/road/floor.prefab", "Assets/school/Prefabs/road/floor1.prefab" } },
-                { "WALL", new[] { "Assets/school/props/wall001.fbx", "Assets/school/props/wall2.fbx", "Assets/school/props/wall4.fbx" } },
-                { "CEILING", new[] { "Assets/school/props/wall001.fbx" } } // Reuse wall for ceiling placeholder
+                { "WALL", new[] { "Assets/school/Prefabs/props/wall.prefab", "Assets/school/Prefabs/props/wall2.prefab", "Assets/school/Prefabs/props/wall001.prefab", "Assets/school/Prefabs/props/wall4.prefab" } },
+                { "CEILING", new[] { "Assets/school/Prefabs/props/wall.prefab" } }
             };
             
             foreach (var mapping in assetMappings)
             {
-                if (mapping.prefabReference == null && prefabPaths.ContainsKey(mapping.assetKey))
+                if (prefabPaths.ContainsKey(mapping.assetKey))
                 {
                     foreach (var path in prefabPaths[mapping.assetKey])
                     {
                         GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                         if (prefab != null)
                         {
+                            // Always overwrite (even if already assigned)
+                            bool wasNull = mapping.prefabReference == null;
                             mapping.prefabReference = prefab;
                             anyAssigned = true;
-                            Debug.Log($"[AssetMapConfig] Auto-assigned {mapping.assetKey} to {path}");
+                            if (wasNull || mapping.prefabReference != prefab)
+                            {
+                                Debug.Log($"[AssetMapConfig] Auto-assigned {mapping.assetKey} to {path}");
+                            }
                             break;
                         }
                     }

@@ -14,10 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FunClass.Editor::FunClass.Editor.Data.AssetMapConfig
   assetMappings:
   - assetKey: DESK
-    prefabReference: {fileID: 7105866068210168408, guid: fcecd1f3544aafc45ad3917908362845, type: 3}
+    prefabReference: {fileID: 1429071196916812, guid: 006691b87ee6ce7429992a2a172ecf29, type: 3}
     description: Student desk (use Chair prefab if no desk available)
   - assetKey: CHAIR
-    prefabReference: {fileID: 7105866068210168408, guid: fcecd1f3544aafc45ad3917908362845, type: 3}
+    prefabReference: {fileID: 1578530219999206, guid: 5a652a60006d6ec46980e623412396f9, type: 3}
     description: Chair for desk
   - assetKey: STUDENT
     prefabReference: {fileID: 4602995871849014586, guid: 0490e6f2be5e4874aa8c981da286dd0f, type: 3}
@@ -35,10 +35,10 @@ MonoBehaviour:
     prefabReference: {fileID: 1817511018758452, guid: 405988af1bd38ee4fb92e86058b6c926, type: 3}
     description: Classroom floor (plane or prefab)
   - assetKey: WALL
-    prefabReference: {fileID: 100004, guid: 674bca1160f50d546aaac5b261a08000, type: 3}
+    prefabReference: {fileID: 1471179749966258, guid: d8553808ed1fd2a41982e26a8f099b9a, type: 3}
     description: Classroom wall (cube or prefab)
   - assetKey: CEILING
-    prefabReference: {fileID: 100004, guid: 674bca1160f50d546aaac5b261a08000, type: 3}
+    prefabReference: {fileID: 1471179749966258, guid: d8553808ed1fd2a41982e26a8f099b9a, type: 3}
     description: Classroom ceiling (optional)
   materialMappings:
   - materialKey: Default
