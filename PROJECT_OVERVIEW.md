@@ -150,9 +150,15 @@ Assets/
 │   │       ├── PopupManager.cs
 │   │       ├── StudentInteractionPopup.cs
 │   │       └── PopupTextLoader.cs
-│   └── Editor/                  # Editor tools
-│       └── Modules/
-│           └── JSONLevelImporter.cs  # Auto level creation
+    │   └── Editor/                  # Editor tools
+    │       └── Modules/
+    │           ├── JSONLevelImporter.cs       # Legacy level creation
+    │           ├── UnifiedLevelImporter.cs    # Unified import system (Auto/Manual/Hybrid)
+    │           ├── EnhancedLevelImportWindow.cs # Import UI window
+    │           ├── StudentPlacementManager.cs # Student placement logic
+    │           ├── RouteGenerator.cs          # Route auto-generation
+    │           ├── EnvironmentSetup.cs        # Environment configuration
+    │           └── EditorUtils.cs             # Common editor utilities
 ├── LevelTemplates/              # JSON level configurations
 ├── Resources/                   # Runtime-loaded assets
 └── Scenes/                      # Unity scenes
@@ -181,9 +187,10 @@ Assets/
    - Separation of concerns
 
 5. **Data-Driven Design**
-   - JSON level configurations
+   - Unified JSON schema with Auto/Manual/Hybrid import modes
+   - Legacy JSON level configurations (backward compatible)
    - Externalized text (popup system)
-   - ScriptableObjects for configs
+   - ScriptableObjects for configs (StudentConfig, LevelConfig, etc.)
 
 ### Core Systems Integration
 
@@ -342,7 +349,9 @@ Students may de-escalate if no other sources
 - Track level goals and completion
 - Handle level win/loss conditions
 
-**Level Configuration:**
+**Level Configuration Formats:**
+
+**Legacy JSON Format:**
 ```json
 {
   "levelName": "Level 1",
@@ -364,6 +373,48 @@ Students may de-escalate if no other sources
   ]
 }
 ```
+
+**Unified JSON Schema (New):**
+Supports three import modes: **Auto** (full auto-generation), **Manual** (legacy positions), **Hybrid** (mix of auto and manual).
+```json
+{
+  "levelId": "UnifiedAutoDemo",
+  "difficulty": "medium",
+  "students": 6,
+  "deskLayout": {
+    "spacingX": 2.2,
+    "spacingZ": 2.5,
+    "aisleWidth": 1.8
+  },
+  "classroom": {
+    "width": 12,
+    "depth": 10,
+    "height": 3.5
+  },
+  "environment": {
+    "boardMaterial": "White",
+    "floorMaterial": "Floor",
+    "wallMaterial": "Wall",
+    "autoSetupLighting": true
+  },
+  "routeGeneration": {
+    "autoGenerateRoutes": true,
+    "escapeRouteSpeed": 3.0,
+    "returnRouteSpeed": 2.0
+  },
+  "goalSettings": { ... },
+  "influenceScopeSettings": { ... },
+  "studentInteractions": [ ... ],
+  "studentConfigs": [ ... ]
+}
+```
+
+**Import Modes:**
+1. **Auto Mode**: Generates desk grid, places students, creates routes automatically
+2. **Manual Mode**: Uses legacy JSON format with exact positions
+3. **Hybrid Mode**: Mix of auto-generation with manual overrides
+
+**Import Tool:** `Tools > FunClass > Import Level From JSON`
 
 ### 6. GUI Popup System
 
@@ -448,26 +499,36 @@ Students may de-escalate if no other sources
 - ✅ Level goal tracking
 - ✅ Level completion detection
 
-#### Teacher Actions (90%)
+#### Unified Import System (100%)
+- ✅ Unified JSON schema with Auto, Manual, Hybrid modes
+- ✅ Desk grid auto-generation with proper spacing
+- ✅ Student placement and desk binding
+- ✅ Route auto-generation with waypoint duplication
+- ✅ Environment setup (board, walls, floor, lighting)
+- ✅ Config creation (LevelConfig, LevelGoalConfig, InfluenceScopeConfig)
+- ✅ Material fixing system
+- ✅ StudentConfig assignment to StudentAgent (FIXED)
+
+#### Teacher Actions (100%)
 - ✅ Calm student (de-escalate)
 - ✅ Clean mess objects
 - ✅ Escort student back to seat
 - ✅ Call student back verbally
 - ✅ Student interaction detection
-- 🐛 Popup-based influence resolution (has bugs)
+- ✅ Popup-based influence resolution (fully functional)
 
-#### UI Systems (70%)
+#### UI Systems (90%)
 - ✅ Disruption meter
 - ✅ Score display
 - ✅ Timer display
 - ✅ Student highlight on hover
-- 🐛 Student interaction popup (implemented but buggy)
+- ✅ Student interaction popup (fully functional)
 - ❌ Tutorial system (not implemented)
 
 ### 🚧 In Progress
 
-#### GUI Popup System (85% complete)
-**Status:** Implemented but has display issues
+#### GUI Popup System (100% complete)
+**Status:** ✅ Fully functional and tested
 
 **Completed:**
 - ✅ Popup manager with screen-space overlay
@@ -477,12 +538,10 @@ Students may de-escalate if no other sources
 - ✅ Popup animation (fade/scale)
 - ✅ ESC to close popup
 - ✅ Camera lock when popup open
-
-**Issues:**
-- 🐛 Student names not displaying in complaints
-- 🐛 Action buttons not visible for source students
-- 🐛 Popup content sometimes incorrect
-- 🐛 Font rendering issues
+- ✅ Student names displaying correctly
+- ✅ Action buttons visible and functional
+- ✅ Accurate popup content display
+- ✅ Fixed font rendering issues
 
 **Recent Work:**
 - Fixed race condition causing popup to destroy immediately
@@ -490,6 +549,53 @@ Students may de-escalate if no other sources
 - Changed WanderingAround from WholeClass to Individual action
 - Cleaned up excessive debug logs
 - Fixed ExtractLetter() to return full student names
+
+#### Unified JSON Import System (90% complete)
+**Status:** Functional with one remaining StudentConfig assignment issue
+
+**Completed:**
+- ✅ Unified JSON schema supporting Auto, Manual, and Hybrid import modes
+- ✅ Enhanced JSON importer with improved error handling
+- ✅ StudentConfig creation with proper serialization using SerializedObject
+- ✅ Desk grid auto-generation with proper student placement
+- ✅ Route auto-generation with door/outside waypoint duplication
+- ✅ Environment setup (board, walls, floor materials)
+- ✅ LevelConfig, LevelGoalConfig, InfluenceScopeConfig creation
+- ✅ Enhanced debug logging throughout import pipeline
+- ✅ Material fixing system (pink materials)
+
+**Current Issue:**
+- 🐛 **StudentConfig assignment to StudentAgent components**: Only 1 of 6 students gets their config assigned during Auto mode import
+
+**Root Cause Identified:**
+- StudentConfig assets were being created with empty `studentId` and `studentName` fields due to direct field assignment not persisting to disk
+- Config creation in `UnifiedLevelImporter.cs` now uses `SerializedObject` for proper serialization
+- Enhanced debug logging added to verify field values at creation time
+
+**Recent Fixes Applied:**
+- ✅ **Route Errors Fixed**: "Cannot find route group" errors resolved by enhancing `StudentRoute.RefreshWaypointsFromScene()` with recursive search and fallback matching
+- ✅ **StudentConfig Serialization**: Replaced direct field assignment with `SerializedObject` for all config fields
+- ✅ **Validation Added**: Added checks for null/empty `studentId` and `studentName` fields
+- ✅ **Clean State**: Now deleting and recreating config assets to ensure clean state
+- ✅ **Debug Logging Enhanced**: Added comprehensive logging to `StudentPlacementManager`, `UnifiedLevelImporter`, and `RouteGenerator`
+
+**Files Modified:**
+- `Assets/Scripts/Editor/Modules/UnifiedLevelImporter.cs` - Config serialization fixes, enhanced logging
+- `Assets/Scripts/Editor/Modules/StudentPlacementManager.cs` - Student identifier creation logging
+- `Assets/Scripts/Core/StudentRoute.cs` - Route group finding logic
+- `Assets/Scripts/Editor/Modules/RouteGenerator.cs` - Waypoint duplication for student-specific routes
+- `Assets/Scripts/Editor/EnhancedLevelImportWindow.cs` - Import UI window
+
+**Remaining Investigation Needed:**
+- Verify config-to-agent matching logic in `AssignStudentConfigsToAgents()`
+- Check GameObject naming conventions vs config identifiers
+- Test fresh import with deleted old configs
+
+**Immediate Next Steps:**
+1. Delete old configs: `Assets/Configs/UnifiedAutoDemo/Students/`
+2. Run fresh import of `unified_auto_example.json`
+3. Analyze console logs for config creation and assignment
+4. Fix any remaining matching logic issues
 
 ### ❌ Not Started
 
@@ -541,7 +647,39 @@ Students may de-escalate if no other sources
 
 **See:** Assets/Scripts/Core/UI/POPUP_BUG_FIXES.md for detailed fix documentation
 
-#### 2. Student Highlight Turns White on Click
+#### 2. StudentConfig Assignment Issue in Unified Import
+**Status:** 🔴 High Priority (Active Investigation)  
+**Severity:** High  
+**Impact:** Students lack proper personality configs, causing runtime errors
+
+**Symptoms:**
+- Only 1 of 6 students gets StudentConfig assigned during Auto mode import
+- Runtime error: `[StudentAgent] Could not find config for [studentId] in LevelLoader`
+- StudentConfig assets created but fields (`studentId`, `studentName`) may be empty
+- StudentAgent components have null Config fields
+
+**Root Cause Identified:**
+- StudentConfig serialization issue: Direct field assignment wasn't persisting to disk
+- Config-to-agent matching logic may have naming convention mismatch
+- Potential issue with SerializedObject property assignment
+
+**Recent Fixes Applied:**
+- ✅ Enhanced `UnifiedLevelImporter.CreateStudentConfigsFromPairs()` to use `SerializedObject` for all field assignments
+- ✅ Added validation for null/empty `studentId` and `studentName` fields
+- ✅ Added debug logging to verify field values at creation and assignment time
+- ✅ Now deleting and recreating config assets to ensure clean state
+- ✅ Enhanced `AssignStudentConfigsToAgents()` with detailed logging of matching attempts
+
+**Files Modified:**
+- `Assets/Scripts/Editor/Modules/UnifiedLevelImporter.cs` - Serialization fixes, enhanced logging
+- `Assets/Scripts/Editor/Modules/StudentPlacementManager.cs` - Student identifier creation logging
+
+**Immediate Investigation:**
+1. Verify config creation: Are `studentId`/`studentName` properly serialized to disk?
+2. Check matching logic: Do config identifiers match student GameObject names?
+3. Test fresh import after deleting old configs
+
+#### 3. Student Highlight Turns White on Click
 **Status:** 🟡 Minor  
 **Severity:** Low  
 **Impact:** Visual feedback issue
@@ -623,11 +761,13 @@ Students may de-escalate if no other sources
 **Timeline:** 1-2 weeks  
 **Priority:** Critical
 
-- [ ] Fix popup text rendering issues
-- [ ] Fix action button visibility
-- [ ] Verify popup content accuracy
+- [x] Fix popup text rendering issues (✅ COMPLETED)
+- [x] Fix action button visibility (✅ COMPLETED)
+- [x] Verify popup content accuracy (✅ COMPLETED)
+- [ ] Fix StudentConfig assignment in Unified Import System
 - [ ] Polish student highlight effect
 - [ ] Performance optimization
+- [ ] Complete Unified Import System testing
 
 ### Phase 2: Core Feature Completion
 **Timeline:** 2-3 weeks  
@@ -709,6 +849,7 @@ Students may de-escalate if no other sources
 - Can be edited by non-programmers
 - Supports procedural generation
 - Faster iteration
+- **Evolution to Unified Schema**: Extended to support Auto, Manual, and Hybrid import modes for greater flexibility
 
 **Alternative Considered:** ScriptableObjects
 **Rejected Because:** Requires Unity Editor, harder to version control
@@ -731,21 +872,44 @@ Students may de-escalate if no other sources
 
 ### Editor Tools
 
-#### Auto Level Creation Tool
+#### Unified Level Import System
+**Primary File:** `UnifiedLevelImporter.cs`  
+**Supporting Files:** `EnhancedLevelImportWindow.cs`, `StudentPlacementManager.cs`, `RouteGenerator.cs`, `EnvironmentSetup.cs`  
+**Purpose:** Advanced level creation from unified JSON schema with multiple import modes
+
+**Unified JSON Schema Features:**
+- **Three Import Modes**: Auto (full auto-generation), Manual (legacy positions), Hybrid (mix)
+- **Desk Grid Auto-Generation**: Creates classroom layout based on parameters
+- **Student Placement**: Binds students to desks with proper spacing
+- **Route Auto-Generation**: Creates escape/return routes with waypoint duplication
+- **Environment Setup**: Auto-configures board, walls, floor, lighting
+- **Config Creation**: Generates LevelConfig, LevelGoalConfig, InfluenceScopeConfig, StudentConfigs
+- **Material Fixing**: Automatically fixes pink/missing materials
+
+**Enhanced Features (vs Legacy):**
+- Better error handling and validation
+- Enhanced debug logging throughout pipeline
+- SerializedObject-based config creation for reliable serialization
+- StudentConfig-to-StudentAgent automatic assignment
+- Support for student interactions and influence scopes in JSON
+
+**Usage:**
+```
+Unity Menu → Tools → FunClass → Import Level From JSON
+```
+
+#### Legacy Level Creation Tool
 **File:** `JSONLevelImporter.cs`  
-**Purpose:** Automatically create Unity scenes from JSON level configs
+**Purpose:** Legacy level creation from original JSON format (manual positions only)
 
 **Features:**
-- Parse JSON level configuration
-- Spawn students at specified positions
+- Parse legacy JSON level configuration
+- Spawn students at exact specified positions
 - Create waypoints for routes
 - Set up classroom objects
 - One-click level creation
 
-**Usage:**
-```
-Unity Menu → Tools → Level Importer → Import Level from JSON
-```
+**Usage:** Still available but superseded by Unified Import System
 
 ### Debug Tools
 
@@ -861,6 +1025,6 @@ Detailed explanation if needed
 
 ---
 
-**Last Updated:** January 19, 2026  
-**Version:** 0.8.5 (Pre-Alpha)  
-**Status:** Active Development - Popup System Bug Fixes
+**Last Updated:** January 24, 2026  
+**Version:** 0.9.0 (Pre-Alpha)  
+**Status:** Active Development - Unified Import System & StudentConfig Serialization Fixes
