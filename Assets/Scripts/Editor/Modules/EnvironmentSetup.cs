@@ -271,32 +271,32 @@ namespace FunClass.Editor.Modules
             {
                 GameObject doorObj = PrefabUtility.InstantiatePrefab(doorPrefab) as GameObject;
                 doorObj.name = "ClassroomDoor";
-                doorObj.transform.position = doorPosition;
-                
-                // Determine door rotation based on which wall it's on
-                // Default: assume prefab faces positive Z (outward from classroom)
-                float doorRotationY = 0f;
-                if (Mathf.Abs(doorPosition.z - frontWallZ) < 0.1f) // Front wall
-                {
-                    doorRotationY = 180f; // Face negative Z (outward from front wall)
-                    Debug.Log($"[EnvironmentSetup] Door on front wall, rotating to face outward (Y={doorRotationY})");
-                }
-                else if (Mathf.Abs(doorPosition.z - backWallZ) < 0.1f) // Back wall
-                {
-                    doorRotationY = 0f; // Face positive Z (outward from back wall)
-                    Debug.Log($"[EnvironmentSetup] Door on back wall, rotating to face outward (Y={doorRotationY})");
-                }
-                else
-                {
-                    // Door on side wall or custom position, keep default rotation
-                    Debug.Log($"[EnvironmentSetup] Door at custom position, using default rotation (Y={doorRotationY})");
-                }
-                
+
+                // Door dimensions - door is OPEN (90 degrees outward), hinge on left
+                float doorWidth = 1.0f;
+                float doorHeight = 2.5f;
+                float gapWidth = 2.5f;
+
+                // Position door with hinge at left edge of gap
+                // When open 90 degrees, door extends along Z axis (not X)
+                float doorX = doorPosition.x - (gapWidth / 2f);  // Hinge at gap left edge
+                float doorZ = backWallZ + 0.1f + (doorWidth / 2f);  // Offset by half width since door extends along Z
+                float doorY = 0f;  // Assume pivot at bottom, door touches floor
+
+                doorObj.transform.position = new Vector3(doorX, doorY, doorZ);
+
+                // Door rotation: open 90 degrees, hinge on left
+                // When hinge is on left (negative X side), door swings outward along +Z
+                // Rotation Y = -90: door opens 90 degrees, panel extends along +Z (outward)
+                float doorRotationY = -90f;
+
                 doorObj.transform.rotation = Quaternion.Euler(0, doorRotationY, 0);
                 doorObj.transform.SetParent(doorGroup.transform);
+
+                Debug.Log($"[EnvironmentSetup] Door OPEN at ({doorX}, {doorY}, {doorZ}), rotation Y={doorRotationY}");
             }
-            
-            // Always create door marker for navigation
+
+            // Always create door marker for navigation (center of gap, for navigation)
             GameObject doorMarker = new GameObject("DoorMarker");
             doorMarker.transform.position = doorPosition;
             doorMarker.transform.SetParent(doorGroup.transform);
@@ -310,65 +310,93 @@ namespace FunClass.Editor.Modules
         }
         
         /// <summary>
-        /// Setup visual walls (optional, for visual reference)
+        /// Setup visual walls
+        /// Back wall uses WallGenerator to create wall with door opening
+        /// Front/side walls use cube primitives
         /// </summary>
         private static void SetupWalls(EnhancedLevelSchema schema, AssetMapConfig assetMap, GameObject classroomGroup)
         {
-            // This is optional - can be skipped if walls are part of room prefab
-            if (schema.environment == null || string.IsNullOrEmpty(schema.environment.wallMaterial))
+            // Get wall material
+            Material wallMaterial = null;
+            GameObject wallPrefab = assetMap.GetPrefab("WALL");
+            if (wallPrefab != null)
             {
-                return;
+                var renderer = wallPrefab.GetComponentInChildren<Renderer>();
+                if (renderer != null && renderer.sharedMaterials.Length > 0)
+                {
+                    wallMaterial = renderer.sharedMaterials[0];
+                }
             }
-            
+
             // Create walls group
             GameObject wallsGroup = SceneSetupManager.CreateOrFindGameObject("Walls", classroomGroup.transform);
-            
+
             float halfWidth = schema.classroom.width / 2f;
             float halfDepth = schema.classroom.depth / 2f;
             float height = schema.classroom.height;
+            float wallThickness = 0.2f;
+
+            // Front wall - solid cube
+            WallGenerator.CreateSolidWall("Wall_Front", 
+                new Vector3(0, height/2, -halfDepth), 
+                new Vector3(schema.classroom.width, height, wallThickness), 
+                wallMaterial, wallsGroup.transform);
+
+            // Back wall - wall with door opening (using WallGenerator)
+            // IMPORTANT: Use DeskGridGenerator.CalculateDoorPosition() for consistent position
+            float doorWidth = 2.5f;
+            float doorHeight = 2.5f;
+            Vector3 doorPosition = DeskGridGenerator.CalculateDoorPosition(schema);
+
+            // Wall is at (0, 0, halfDepth) with thickness 0.2
+            // Wall's back surface is at Z = halfDepth, front surface at Z = halfDepth - 0.2
+            // Door should be at wall's front surface (Z = halfDepth - 0.2) to align with wall gap
+            Vector3 wallGroupPosition = new Vector3(0, 0, halfDepth);
+            float wallFrontZ = halfDepth - 0.2f;  // Front surface of wall
+
+            // Convert door world X to local position within wall group
+            // Door local X = door world X - wall group world X = doorPosition.x - 0 = doorPosition.x
+            // Door local Z = wall front surface (no offset needed)
+            Vector3 doorLocalPosition = new Vector3(doorPosition.x, 0f, 0f);
+
+            WallGenerator.CreateWallWithDoor("Wall_Back",
+                wallGroupPosition,
+                schema.classroom.width, height, doorWidth, doorHeight, doorLocalPosition,
+                wallMaterial, wallsGroup.transform);
+
+            // Side walls - solid cubes
+            WallGenerator.CreateSolidWall("Wall_Left", 
+                new Vector3(-halfWidth, height/2, 0), 
+                new Vector3(wallThickness, height, schema.classroom.depth), 
+                wallMaterial, wallsGroup.transform);
+            WallGenerator.CreateSolidWall("Wall_Right", 
+                new Vector3(halfWidth, height/2, 0), 
+                new Vector3(wallThickness, height, schema.classroom.depth), 
+                wallMaterial, wallsGroup.transform);
             
-            // Create four walls
-            CreateWall("Wall_Front", new Vector3(0, height/2, -halfDepth), 
-                new Vector3(schema.classroom.width, height, 0.1f), wallsGroup.transform);
-            CreateWall("Wall_Back", new Vector3(0, height/2, halfDepth), 
-                new Vector3(schema.classroom.width, height, 0.1f), wallsGroup.transform);
-            CreateWall("Wall_Left", new Vector3(-halfWidth, height/2, 0), 
-                new Vector3(0.1f, height, schema.classroom.depth), wallsGroup.transform);
-            CreateWall("Wall_Right", new Vector3(halfWidth, height/2, 0), 
-                new Vector3(0.1f, height, schema.classroom.depth), wallsGroup.transform);
-            
-            Debug.Log("[EnvironmentSetup] Walls created");
+            Debug.Log("[EnvironmentSetup] Walls created using WallGenerator");
         }
         
         /// <summary>
-        /// Create a wall GameObject
-        /// </summary>
-        private static void CreateWall(string name, Vector3 position, Vector3 scale, Transform parent)
-        {
-            GameObject wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            wall.name = name;
-            wall.transform.position = position;
-            wall.transform.localScale = scale;
-            wall.transform.SetParent(parent);
-            
-            // Apply wall material if available
-            // Material will be applied by MaterialFixer if needed
-        }
-        
-        /// <summary>
-        /// Setup floor
+        /// Setup floor - extends to cover outside area for teacher escape
         /// </summary>
         private static void SetupFloor(EnhancedLevelSchema schema, AssetMapConfig assetMap, GameObject classroomGroup)
         {
             // Create floor group
             GameObject floorGroup = SceneSetupManager.CreateOrFindGameObject("Floor", classroomGroup.transform);
             
-            // Create floor plane
+            // Extend floor to cover outside area (door at back wall)
+            float outsideDepth = 3f;  // Extend 3 units outside classroom
+            float totalDepth = schema.classroom.depth + outsideDepth;
+            
+            // Create floor plane - larger to cover classroom + outside
             GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
             floor.name = "ClassroomFloor";
-            floor.transform.position = new Vector3(0, 0, 0);
-            floor.transform.localScale = new Vector3(schema.classroom.width / 10f, 1, schema.classroom.depth / 10f);
+            floor.transform.position = new Vector3(0, 0, outsideDepth / 2f);  // Shift forward to cover outside
+            floor.transform.localScale = new Vector3(schema.classroom.width / 10f, 1, totalDepth / 10f);
             floor.transform.SetParent(floorGroup.transform);
+            
+            Debug.Log($"[EnvironmentSetup] Floor created: classroom depth={schema.classroom.depth}, outside={outsideDepth}, total depth={totalDepth}");
             
             // Apply floor material if specified
             if (schema.environment != null && !string.IsNullOrEmpty(schema.environment.floorMaterial))
@@ -386,7 +414,7 @@ namespace FunClass.Editor.Modules
             navMeshSurface.collectObjects = Unity.AI.Navigation.CollectObjects.Children;
             #endif
             
-            Debug.Log("[EnvironmentSetup] Floor created");
+            Debug.Log("[EnvironmentSetup] Floor created - extends to outside area");
         }
         
         /// <summary>

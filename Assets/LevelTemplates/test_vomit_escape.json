@@ -1,0 +1,114 @@
+{
+  "levelId": "TestVomitEscape",
+  "difficulty": "easy",
+
+  "students": 2,
+
+  "deskLayout": {
+    "spacingX": 2.5,
+    "spacingZ": 2.5,
+    "aisleWidth": 1.5
+  },
+
+  "classroom": {
+    "width": 10,
+    "depth": 8,
+    "height": 3.0
+  },
+
+  "environment": {
+    "boardMaterial": "White",
+    "floorMaterial": "Floor",
+    "wallMaterial": "Wall",
+    "autoSetupLighting": true
+  },
+
+  "routeGeneration": {
+    "autoGenerateRoutes": true,
+    "escapeRouteSpeed": 5.0,
+    "returnRouteSpeed": 3.0
+  },
+
+  "goalSettings": {
+    "maxDisruptionThreshold": 80,
+    "catastrophicDisruptionLevel": 95,
+    "timeLimitSeconds": 60,
+    "requiredCalmDowns": 0,
+    "requiredResolvedProblems": 0,
+
+    "enableDisruptionTimeout": false,
+    "disruptionTimeoutThreshold": 70,
+    "disruptionTimeoutSeconds": 30,
+    "disruptionTimeoutWarningSeconds": 10,
+
+    "oneStarScore": 50,
+    "twoStarScore": 100,
+    "threeStarScore": 150
+  },
+
+  "influenceScopeSettings": {
+    "description": "Test vomit escape scenario",
+    "disruptionPenaltyPerUnresolvedSource": 5.0,
+    "eventScopes": [
+      {
+        "eventTypeName": "MessCreated",
+        "scope": "WholeClass",
+        "baseSeverity": 1.0,
+        "description": "Vomit affects all students"
+      }
+    ]
+  },
+
+  "studentInteractions": [],
+
+  "studentConfigs": [
+    {
+      "studentId": "student_a",
+      "studentName": "Student_A",
+      "personality": {
+        "patience": 0.1,
+        "attentionSpan": 0.2,
+        "impulsiveness": 1.0,
+        "influenceSusceptibility": 0.3,
+        "influenceResistance": 0.5,
+        "panicThreshold": 0.2
+      },
+      "behaviors": {
+        "canFidget": true,
+        "canLookAround": true,
+        "canStandUp": true,
+        "canMoveAround": true,
+        "canDropItems": false,
+        "canKnockOverObjects": false,
+        "canMakeNoiseWithObjects": false,
+        "canThrowObjects": false,
+        "minIdleTime": 1,
+        "maxIdleTime": 2
+      }
+    },
+    {
+      "studentId": "student_b",
+      "studentName": "Student_B",
+      "personality": {
+        "patience": 0.9,
+        "attentionSpan": 0.8,
+        "impulsiveness": 0.1,
+        "influenceSusceptibility": 1.0,
+        "influenceResistance": 0.1,
+        "panicThreshold": 0.7
+      },
+      "behaviors": {
+        "canFidget": true,
+        "canLookAround": true,
+        "canStandUp": false,
+        "canMoveAround": false,
+        "canDropItems": false,
+        "canKnockOverObjects": false,
+        "canMakeNoiseWithObjects": false,
+        "canThrowObjects": false,
+        "minIdleTime": 5,
+        "maxIdleTime": 10
+      }
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 {
     "levelId": "level_01",
+    "levelName": "",
     "difficulty": "medium",
     "students": 6,
     "deskLayout": {
@@ -23,16 +24,110 @@
             "z": -7.0
         }
     },
+    "assetMapping": {},
+    "routeGeneration": {
+        "autoGenerateRoutes": true,
+        "doorPosition": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        "outsidePosition": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        "waypointNamePattern": "{studentId}_{routeType}_{index:00}",
+        "escapeRouteSpeed": 3.0,
+        "returnRouteSpeed": 2.0,
+        "isRunning": false
+    },
     "environment": {
         "boardSize": {
             "x": 4.0,
             "y": 2.0,
-            "z": 0.1
+            "z": 0.10000000149011612
         },
         "boardMaterial": "White",
         "floorMaterial": "Floor",
         "wallMaterial": "Wall",
         "autoSetupLighting": true,
         "ambientIntensity": 1.0
+    },
+    "studentConfigs": [],
+    "studentsManual": [],
+    "routesManual": [],
+    "prefabs": [],
+    "interactableObjects": [],
+    "messPrefabs": [],
+    "sequences": [],
+    "environmentManual": {
+        "classroomSize": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        "doorPosition": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        "windowPositions": [],
+        "floorMaterial": "",
+        "wallMaterial": ""
+    },
+    "goalSettings": {
+        "maxDisruptionThreshold": 80.0,
+        "catastrophicDisruptionLevel": 95.0,
+        "maxAllowedCriticalStudents": 2,
+        "catastrophicCriticalStudents": 4,
+        "maxAllowedOutsideStudents": 2,
+        "catastrophicOutsideStudents": 5,
+        "maxOutsideTimePerStudent": 60.0,
+        "maxAllowedOutsideGracePeriod": 10.0,
+        "timeLimitSeconds": 300.0,
+        "requiredResolvedProblems": 5,
+        "requiredCalmDowns": 3,
+        "enableDisruptionTimeout": false,
+        "disruptionTimeoutThreshold": 80.0,
+        "disruptionTimeoutSeconds": 60.0,
+        "disruptionTimeoutWarningSeconds": 15.0,
+        "oneStarScore": 100,
+        "twoStarScore": 250,
+        "threeStarScore": 500
+    },
+    "influenceScopeSettings": {
+        "eventScopes": [],
+        "disruptionPenaltyPerUnresolvedSource": 10.0,
+        "description": ""
+    },
+    "studentInteractions": [
+        {
+            "sourceStudent": "Student_0",
+            "targetStudent": "Student_1",
+            "eventType": "ThrowingObject",
+            "triggerCondition": "Always",
+            "probability": 0.5,
+            "customSeverity": -1.0,
+            "description": "Sample interaction: Student 0 throws object at Student 1"
+        }
+    ],
+    "routes": [],
+    "expectedFlow": {
+        "description": "Sample scenario: Students gradually become disruptive.",
+        "steps": [
+            {
+                "stepId": "step1",
+                "description": "Students start calm"
+            },
+            {
+                "stepId": "step2",
+                "description": "First student becomes disruptive"
+            },
+            {
+                "stepId": "step3",
+                "description": "Influence spreads to neighbors"
+            }
+        ]
     }
 }

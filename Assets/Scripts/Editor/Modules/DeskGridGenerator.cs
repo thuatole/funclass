@@ -120,28 +120,49 @@ namespace FunClass.Editor.Modules
         }
         
         /// <summary>
-        /// Calculate door position (default at back center of classroom, opposite board)
+        /// Calculate door position (default at back wall, 60% from left edge)
+        /// This ensures alignment with wall gap and escape routes
         /// </summary>
         public static Vector3 CalculateDoorPosition(EnhancedLevelSchema schema)
         {
+            float halfWidth = schema.classroom.width / 2f;
+            float halfDepth = schema.classroom.depth / 2f;
+
             if (schema.classroom.doorPosition != null && schema.classroom.doorPosition.ToVector3() != Vector3.zero)
             {
-                Debug.Log($"[DeskGridGenerator] Using manual door position: {schema.classroom.doorPosition.ToVector3()}");
-                return schema.classroom.doorPosition.ToVector3();
+                Vector3 manualPos = schema.classroom.doorPosition.ToVector3();
+
+                // Validate door is within classroom bounds
+                bool outOfBounds = false;
+                if (Mathf.Abs(manualPos.x) > halfWidth)
+                {
+                    Debug.LogWarning($"[DeskGridGenerator] Door X={manualPos.x} outside classroom width (half={halfWidth}). Clamping.");
+                    outOfBounds = true;
+                }
+                if (Mathf.Abs(manualPos.z) > halfDepth)
+                {
+                    Debug.LogWarning($"[DeskGridGenerator] Door Z={manualPos.z} outside classroom depth (half={halfDepth}). Should be between -{halfDepth} and +{halfDepth}.");
+                    outOfBounds = true;
+                }
+
+                if (outOfBounds)
+                {
+                    Debug.LogWarning($"[DeskGridGenerator] Door position {manualPos} is out of bounds! Classroom: W={schema.classroom.width}, D={schema.classroom.depth}");
+                    Debug.Log($"[DeskGridGenerator] Using auto-calculated door position instead.");
+                }
+                else
+                {
+                    Debug.Log($"[DeskGridGenerator] Using manual door position: {manualPos}");
+                    return manualPos;
+                }
             }
-            
-            // Default door position: back center of classroom (opposite board)
-            // Board is at front wall (negative Z), door should be at back wall (positive Z)
-            Vector3 pos = new Vector3(0, 0, schema.classroom.depth / 2f);
-            Debug.Log($"[DeskGridGenerator] Calculated door position: {pos} (classroom depth={schema.classroom.depth}, back wall)");
-            
-            // Warn if door is on same side as board (both negative Z)
-            Vector3 boardPos = CalculateBoardPosition(schema);
-            if (Mathf.Sign(pos.z) == Mathf.Sign(boardPos.z) && Mathf.Abs(pos.z) > 0.1f && Mathf.Abs(boardPos.z) > 0.1f)
-            {
-                Debug.LogWarning($"[DeskGridGenerator] Door at Z={pos.z} is on same side as board at Z={boardPos.z}. Consider placing door opposite board.");
-            }
-            
+
+            // Default door position: back wall, at 60% from left edge
+            // This ensures alignment with wall gap and escape routes
+            float doorX = -halfWidth + (schema.classroom.width * 0.6f);  // 60% from left
+            Vector3 pos = new Vector3(doorX, 0, halfDepth);
+            Debug.Log($"[DeskGridGenerator] Calculated door position: {pos} (60% from left, classroom width={schema.classroom.width})");
+
             return pos;
         }
         

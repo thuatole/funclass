@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5a5c0edfc5c9265498f19e420247e7ed, type: 3}
-  m_Name: UnifiedAutoDemo_Goal
+  m_Name: TestVomitEscape_Goal
   m_EditorClassIdentifier: FunClass.Runtime::FunClass.Core.LevelGoalConfig
-  maxDisruptionThreshold: 75
-  catastrophicDisruptionLevel: 90
+  maxDisruptionThreshold: 80
+  catastrophicDisruptionLevel: 95
   maxAllowedCriticalStudents: 2
   catastrophicCriticalStudents: 4
   maxAllowedOutsideStudents: 2
@@ -21,14 +21,14 @@ MonoBehaviour:
   maxOutsideTimePerStudent: 60
   maxAllowedOutsideGracePeriod: 10
   hasTimeLimit: 1
-  timeLimitSeconds: 240
-  requiredResolvedProblems: 2
-  requiredCalmDowns: 3
-  oneStarScore: 100
-  twoStarScore: 250
-  threeStarScore: 500
-  enableDisruptionTimeout: 1
-  disruptionTimeoutThreshold: 65
-  disruptionTimeoutSeconds: 45
-  disruptionTimeoutWarningSeconds: 15
+  timeLimitSeconds: 60
+  requiredResolvedProblems: 0
+  requiredCalmDowns: 0
+  oneStarScore: 50
+  twoStarScore: 100
+  threeStarScore: 150
+  enableDisruptionTimeout: 0
+  disruptionTimeoutThreshold: 70
+  disruptionTimeoutSeconds: 30
+  disruptionTimeoutWarningSeconds: 10
   winDisruptionThreshold: 50

@@ -180,7 +180,7 @@ namespace FunClass.Editor.Data
                 { "TEACHER", new[] { "Assets/Prefabs/TeacherPlayer.prefab" } },
                 { "DOOR", new[] { "Assets/school/Prefabs/props/a door.prefab", "Assets/school/Prefabs/props/a door1.prefab" } },
                 { "FLOOR", new[] { "Assets/school/Prefabs/road/floor.prefab", "Assets/school/Prefabs/road/floor1.prefab" } },
-                { "WALL", new[] { "Assets/school/Prefabs/props/wall.prefab", "Assets/school/Prefabs/props/wall2.prefab", "Assets/school/Prefabs/props/wall001.prefab", "Assets/school/Prefabs/props/wall4.prefab" } },
+                { "WALL", new[] { "Assets/school/Prefabs/props/wall4 (2).prefab", "Assets/school/Prefabs/props/wall4.prefab", "Assets/school/Prefabs/props/wall2.prefab", "Assets/school/Prefabs/props/wall001.prefab" } },
                 { "CEILING", new[] { "Assets/school/Prefabs/props/wall.prefab" } }
             };
             

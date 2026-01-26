@@ -23,6 +23,7 @@ namespace FunClass.Core
         private StudentAgent studentAgent;
         private float lastVomitTime = -999f;
         private bool hasVomitedThisLevel = false;
+        private bool wasInCriticalLastFrame = false;
 
         void Awake()
         {
@@ -36,20 +37,73 @@ namespace FunClass.Core
 
         void Update()
         {
-            // Automatic vomit disabled - use ScenarioController for one-time events
-            // This prevents repeated vomit actions
-            
-            // Original automatic vomit code (now disabled):
-            // if (studentAgent.CurrentState == StudentState.Critical)
-            // {
-            //     if (Time.time - lastVomitTime > vomitCooldown)
-            //     {
-            //         if (Random.value < vomitChanceWhenCritical * Time.deltaTime)
-            //         {
-            //             PerformVomit();
-            //         }
-            //     }
-            // }
+            // Only check when in Critical state and not on cooldown
+            if (studentAgent.CurrentState != StudentState.Critical)
+            {
+                wasInCriticalLastFrame = false;
+                return;
+            }
+
+            // Already vomited this level
+            if (hasVomitedThisLevel)
+            {
+                return;
+            }
+
+            // On cooldown - reset flag để retry sau cooldown
+            if (Time.time - lastVomitTime < vomitCooldown)
+            {
+                return;
+            }
+
+            // Already checked this Critical state with success (prevent spam)
+            // Nếu check thất bại (Random >= chance), vẫn reset để retry
+            // vì student có thể stay Critical lâu và chúng ta muốn retry
+            if (wasInCriticalLastFrame)
+            {
+                // Reset mỗi 5 giây nếu vẫn Critical để retry
+                if (Time.time - lastVomitTime >= 5f)
+                {
+                    wasInCriticalLastFrame = false;
+                }
+                else
+                {
+                    return;
+                }
+            }
+
+            // Check if should vomit
+            float chance = GetVomitChance();
+            Debug.Log($"[StudentMessCreator] Critical check: chance={chance}, Random={Random.value}");
+
+            if (Random.value < chance)
+            {
+                PerformVomit();
+            }
+
+            // Mark as checked for this Critical state
+            wasInCriticalLastFrame = true;
+        }
+
+        /// <summary>
+        /// Get vomit chance from StudentAgent config, or use inspector default
+        /// </summary>
+        private float GetVomitChance()
+        {
+            // Try to get from config (if available)
+            if (studentAgent.Config != null)
+            {
+                // Use impulsiveness as vomit chance - more impulsive = more likely to vomit
+                // If impulsiveness is not set (0), use default
+                float impulsiveness = studentAgent.Config.impulsiveness;
+                float chance = (impulsiveness > 0) ? impulsiveness : vomitChanceWhenCritical;
+                Debug.Log($"[StudentMessCreator] GetVomitChance: impulsiveness={impulsiveness}, finalChance={chance}");
+                return chance;
+            }
+
+            // Fallback to inspector value
+            Debug.Log($"[StudentMessCreator] GetVomitChance: using default={vomitChanceWhenCritical}");
+            return vomitChanceWhenCritical;
         }
 
         /// <summary>

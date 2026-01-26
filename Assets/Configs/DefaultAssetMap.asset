@@ -35,7 +35,7 @@ MonoBehaviour:
     prefabReference: {fileID: 1817511018758452, guid: 405988af1bd38ee4fb92e86058b6c926, type: 3}
     description: Classroom floor (plane or prefab)
   - assetKey: WALL
-    prefabReference: {fileID: 1471179749966258, guid: d8553808ed1fd2a41982e26a8f099b9a, type: 3}
+    prefabReference: {fileID: 1999326427868500, guid: 4af663313fdc5d04889a6710948329c3, type: 3}
     description: Classroom wall (cube or prefab)
   - assetKey: CEILING
     prefabReference: {fileID: 1471179749966258, guid: d8553808ed1fd2a41982e26a8f099b9a, type: 3}
