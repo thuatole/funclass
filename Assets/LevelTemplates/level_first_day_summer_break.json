@@ -1,0 +1,284 @@
+{
+  "levelId": "FirstDaySummerBreak",
+  "levelName": "Buổi học đầu tiên sau nghỉ hè",
+  "difficulty": "easy",
+  "description": "Cô giáo quay lại lớp sau kỳ nghỉ hè. Học sinh còn ham chơi, khó tập trung.",
+
+  "students": 4,
+
+  "deskLayout": {
+    "rows": 2,
+    "spacingX": 3.0,
+    "spacingZ": 3.0,
+    "aisleWidth": 1.5
+  },
+
+  "classroom": {
+    "width": 12,
+    "depth": 10,
+    "height": 3.5,
+    "doorPosition": null
+  },
+
+  "environment": {
+    "boardMaterial": "White",
+    "floorMaterial": "Floor",
+    "wallMaterial": "Wall",
+    "autoSetupLighting": true
+  },
+
+  "routeGeneration": {
+    "autoGenerateRoutes": true,
+    "escapeRouteSpeed": 5.0,
+    "returnRouteSpeed": 3.0
+  },
+
+  "goalSettings": {
+    "maxDisruptionThreshold": 70,
+    "catastrophicDisruptionLevel": 90,
+    "timeLimitSeconds": 300,
+    "requiredCalmDowns": 2,
+    "requiredResolvedProblems": 0,
+
+    "enableDisruptionTimeout": false,
+    "disruptionTimeoutThreshold": 70,
+    "disruptionTimeoutSeconds": 30,
+    "disruptionTimeoutWarningSeconds": 10,
+
+    "oneStarScore": 60,
+    "twoStarScore": 100,
+    "threeStarScore": 150
+  },
+
+  "influenceScopeSettings": {
+    "description": "Summer break scenario - high susceptibility due to post-vacation restlessness",
+    "disruptionPenaltyPerUnresolvedSource": 8.0,
+    "eventScopes": [
+      {
+        "eventTypeName": "MessCreated",
+        "scope": "None",
+        "baseSeverity": 0,
+        "description": "Vomit does NOT cause chain reaction - only affects source student"
+      },
+      {
+        "eventTypeName": "ThrowingObject",
+        "scope": "SingleStudent",
+        "baseSeverity": 0.7,
+        "description": "Throwing affects target student only - escalating to individual"
+      },
+      {
+        "eventTypeName": "MakingNoise",
+        "scope": "WholeClass",
+        "baseSeverity": 0.6,
+        "description": "Noise distracts entire class"
+      },
+      {
+        "eventTypeName": "WanderingAround",
+        "scope": "WholeClass",
+        "baseSeverity": 0.3,
+        "description": "Individual behavior but mildly distracting to class"
+      },
+      {
+        "eventTypeName": "KnockedOverObject",
+        "scope": "SingleStudent",
+        "baseSeverity": 0.8,
+        "description": "Knocking over affects target student only - escalating to individual"
+      }
+    ]
+  },
+
+  "studentInteractions": [
+    {
+      "id": "interaction_1",
+      "triggerCondition": "timeElapsed",
+       "triggerValue": 20,
+       "sourceStudentId": "student_binh",
+       "targetStudentId": "",
+       "eventType": "WanderingAround",
+       "description": "Bình bắt đầu không tập trung, nhìn xung quanh"
+    },
+    {
+      "id": "interaction_2",
+      "triggerCondition": "timeElapsed",
+      "triggerValue": 40,
+      "sourceStudentId": "student_binh",
+      "targetStudentId": "student_lan",
+      "eventType": "KnockedOverObject",
+      "description": "Bình đứng dậy, đẩy đổ vật gần Lan"
+    },
+    {
+      "id": "interaction_3",
+      "triggerCondition": "timeElapsed",
+       "triggerValue": 60,
+       "sourceStudentId": "student_lan",
+       "targetStudentId": "",
+       "eventType": "WanderingAround",
+       "description": "Lan bị ảnh hưởng, cũng bắt đầu nhìn xung quanh lo lắng"
+    },
+    {
+      "id": "interaction_4",
+      "triggerCondition": "timeElapsed",
+      "triggerValue": 80,
+      "sourceStudentId": "student_nam",
+      "targetStudentId": "student_lan",
+      "eventType": "ThrowingObject",
+      "description": "Nam thấy vui, cũng ném đồ về phía Lan"
+    }
+  ],
+
+  "studentConfigs": [
+    {
+      "studentId": "student_binh",
+      "studentName": "Bình",
+      "personality": {
+        "patience": 0.3,
+        "attentionSpan": 0.5,
+        "impulsiveness": 0.6,
+        "influenceSusceptibility": 0.5,
+        "influenceResistance": 0.3,
+        "panicThreshold": 0.8
+      },
+      "behaviors": {
+        "canFidget": true,
+        "canLookAround": true,
+        "canStandUp": true,
+        "canMoveAround": true,
+        "canDropItems": true,
+        "canKnockOverObjects": true,
+        "canMakeNoiseWithObjects": true,
+        "canThrowObjects": true,
+        "canTouchObjects": true,
+        "minIdleTime": 5,
+        "maxIdleTime": 10,
+        "interactionRange": 0,
+        "calmInteractionChance": 0.03,
+        "distractedInteractionChance": 0.5,
+        "actingOutInteractionChance": 0.8,
+        "criticalInteractionChance": 1.0
+      }
+    },
+    {
+      "studentId": "student_lan",
+      "studentName": "Lan",
+      "personality": {
+        "patience": 0.4,
+        "attentionSpan": 0.6,
+        "impulsiveness": 0.2,
+        "influenceSusceptibility": 0.9,
+        "influenceResistance": 0.5,
+        "panicThreshold": 0.5
+      },
+      "behaviors": {
+        "canFidget": true,
+        "canLookAround": true,
+        "canStandUp": false,
+        "canMoveAround": false,
+        "canDropItems": false,
+        "canKnockOverObjects": false,
+        "canMakeNoiseWithObjects": false,
+        "canThrowObjects": false,
+        "canTouchObjects": true,
+        "minIdleTime": 5,
+        "maxIdleTime": 10,
+        "interactionRange": 0,
+        "calmInteractionChance": 0.01,
+        "distractedInteractionChance": 0.6,
+        "actingOutInteractionChance": 0.9,
+        "criticalInteractionChance": 1.0
+      }
+    },
+    {
+      "studentId": "student_nam",
+      "studentName": "Nam",
+      "personality": {
+        "patience": 0.5,
+        "attentionSpan": 0.4,
+        "impulsiveness": 0.7,
+        "influenceSusceptibility": 0.5,
+        "influenceResistance": 0.5,
+        "panicThreshold": 0.5
+      },
+      "behaviors": {
+        "canFidget": true,
+        "canLookAround": true,
+        "canStandUp": true,
+        "canMoveAround": true,
+        "canDropItems": false,
+        "canKnockOverObjects": true,
+        "canMakeNoiseWithObjects": false,
+        "canThrowObjects": true,
+        "canTouchObjects": true,
+        "minIdleTime": 5,
+        "maxIdleTime": 10,
+        "interactionRange": 0,
+        "calmInteractionChance": 0.02,
+        "distractedInteractionChance": 0.4,
+        "actingOutInteractionChance": 0.7,
+        "criticalInteractionChance": 0.9
+      }
+    },
+    {
+      "studentId": "student_mai",
+      "studentName": "Mai",
+      "personality": {
+        "patience": 0.8,
+        "attentionSpan": 0.9,
+        "impulsiveness": 0.2,
+        "influenceSusceptibility": 0.3,
+        "influenceResistance": 0.7,
+        "panicThreshold": 0.6
+      },
+      "behaviors": {
+        "canFidget": false,
+        "canLookAround": true,
+        "canStandUp": false,
+        "canMoveAround": false,
+        "canDropItems": false,
+        "canKnockOverObjects": false,
+        "canMakeNoiseWithObjects": false,
+        "canThrowObjects": false,
+        "canTouchObjects": true,
+        "minIdleTime": 8,
+        "maxIdleTime": 15,
+        "interactionRange": 0,
+        "calmInteractionChance": 0.01,
+        "distractedInteractionChance": 0.2,
+        "actingOutInteractionChance": 0.4,
+        "criticalInteractionChance": 0.6
+      }
+    }
+  ],
+
+  "scenarioHints": {
+    "title": "Buổi học đầu tiên sau nghỉ hè",
+    "objectives": [
+      "Giữ disruption dưới 70%",
+      "Can thiệp Bình sớm (nguồn gốc chính)",
+      "Resolve influence lên Lan trước khi calm",
+      "Theo dõi Nam - có thể trở thành source thứ hai"
+    ],
+    "suggestedStrategy": "Ưu tiên can thiệp Bình ngay khi có dấu hiệu không tập trung. Nếu Lan đã bị ảnh hưởng, giải quyết influence trước khi calm. Theo dõi Nam vì dễ bắt chước Bình.",
+    "eventTimeline": [
+      {
+        "timeRange": "0-20 giây",
+        "description": "Bình bắt đầu không tập trung, nhìn xung quanh"
+      },
+      {
+        "timeRange": "20-40 giây",
+        "description": "Bình đứng dậy, đẩy đổ vật gần Lan (KnockedOverObject)"
+      },
+      {
+        "timeRange": "40-60 giây",
+        "description": "Lan lo lắng, bắt đầu nhìn xung quanh (WanderingAround)"
+      },
+      {
+        "timeRange": "60-80 giây",
+        "description": "Nam thấy vui, ném đồ về phía Lan (ThrowingObject)"
+      },
+      {
+        "timeRange": "80+ giây",
+        "description": "Nếu không can thiệp, cả lớp có thể chaos, ảnh hưởng cả Mai"
+      }
+    ]
+  }
+}

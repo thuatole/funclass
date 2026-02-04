@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33cf1a0d02154d241a8b991cbcdda9c7, type: 3}
+  m_Name: FirstDaySummerBreak_InfluenceScope
+  m_EditorClassIdentifier: FunClass.Runtime::FunClass.Core.InfluenceScopeConfig
+  description: Summer break scenario - high susceptibility due to post-vacation restlessness
+  disruptionPenaltyPerUnresolvedSource: 8
+  eventScopes:
+  - eventTypeName: MessCreated
+    scope: None
+    baseSeverity: 0
+    description: Vomit does NOT cause chain reaction - only affects source student
+  - eventTypeName: ThrowingObject
+    scope: SingleStudent
+    baseSeverity: 0.7
+    description: Throwing affects target student only - escalating to individual
+  - eventTypeName: MakingNoise
+    scope: WholeClass
+    baseSeverity: 0.6
+    description: Noise distracts entire class
+  - eventTypeName: WanderingAround
+    scope: WholeClass
+    baseSeverity: 0.3
+    description: Individual behavior but mildly distracting to class
+  - eventTypeName: KnockedOverObject
+    scope: SingleStudent
+    baseSeverity: 0.8
+    description: Knocking over affects target student only - escalating to individual

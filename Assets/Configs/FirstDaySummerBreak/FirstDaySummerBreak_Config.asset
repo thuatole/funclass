@@ -1,0 +1,102 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f9082d06048fbc4da3673444f90583b, type: 3}
+  m_Name: FirstDaySummerBreak_Config
+  m_EditorClassIdentifier: FunClass.Runtime::FunClass.Core.LevelConfig
+  levelId: FirstDaySummerBreak
+  grade: 0
+  description: 
+  students:
+  - {fileID: 11400000, guid: 9bfb5f234ec90db46bb595b416b3ea2c, type: 2}
+  - {fileID: 11400000, guid: 018d6336b222f7b408b02d401e96978e, type: 2}
+  - {fileID: 11400000, guid: 10a83d2f52a353b43a1328d9a7d9b8dd, type: 2}
+  - {fileID: 11400000, guid: 59dd29ad7158a8b47b3251eb8da16bcc, type: 2}
+  availableSequences: []
+  studentInteractions:
+  - id: interaction_1
+    sourceStudentId: student_binh
+    targetStudentId: 
+    eventType: WanderingAround
+    triggerCondition: timeElapsed
+    triggerValue: 20
+    probability: 1
+    oneTimeOnly: 1
+    hasTriggered: 0
+    description: "B\xECnh b\u1EAFt \u0111\u1EA7u kh\xF4ng t\u1EADp trung, nh\xECn
+      xung quanh"
+  - id: interaction_2
+    sourceStudentId: student_binh
+    targetStudentId: student_lan
+    eventType: KnockedOverObject
+    triggerCondition: timeElapsed
+    triggerValue: 40
+    probability: 1
+    oneTimeOnly: 1
+    hasTriggered: 0
+    description: "B\xECnh \u0111\u1EE9ng d\u1EADy, \u0111\u1EA9y \u0111\u1ED5 v\u1EADt
+      g\u1EA7n Lan"
+  - id: interaction_3
+    sourceStudentId: student_lan
+    targetStudentId: 
+    eventType: WanderingAround
+    triggerCondition: timeElapsed
+    triggerValue: 60
+    probability: 1
+    oneTimeOnly: 1
+    hasTriggered: 0
+    description: "Lan b\u1ECB \u1EA3nh h\u01B0\u1EDFng, c\u0169ng b\u1EAFt \u0111\u1EA7u
+      nh\xECn xung quanh lo l\u1EAFng"
+  - id: interaction_4
+    sourceStudentId: student_nam
+    targetStudentId: student_lan
+    eventType: ThrowingObject
+    triggerCondition: timeElapsed
+    triggerValue: 80
+    probability: 1
+    oneTimeOnly: 1
+    hasTriggered: 0
+    description: "Nam th\u1EA5y vui, c\u0169ng n\xE9m \u0111\u1ED3 v\u1EC1 ph\xEDa
+      Lan"
+  levelGoal: {fileID: 11400000, guid: 0c1ad56956a1bb64ca849bb0e9c88629, type: 2}
+  availableRoutes:
+  - {fileID: 11400000, guid: 9102ab6ec90fcc742bbc56c303b12dc6, type: 2}
+  - {fileID: 11400000, guid: 6722c332e4e818c45b94a88354e25467, type: 2}
+  - {fileID: 11400000, guid: f60bd7216ddfbf04f84edcfed8e897d8, type: 2}
+  - {fileID: 11400000, guid: f8efeb47e28b4d345b0cf3218112d7c4, type: 2}
+  - {fileID: 11400000, guid: 49ddda6c854b5fb41969c9baefac428c, type: 2}
+  - {fileID: 11400000, guid: 2bf76d408ef111043ace95288deb02a4, type: 2}
+  - {fileID: 11400000, guid: 512a855746fa15c4fbbb6457b6c40684, type: 2}
+  - {fileID: 11400000, guid: f497fcb47ba9e1b4fb02bbafe8c61c44, type: 2}
+  - {fileID: 11400000, guid: fe283fddb42128b428a3b56761c95465, type: 2}
+  - {fileID: 11400000, guid: 63ab0eda4369ff0418ba54e67486baa1, type: 2}
+  - {fileID: 11400000, guid: 8a6b8b600a3b4f74793e05a071ee7c64, type: 2}
+  - {fileID: 11400000, guid: df64f67e6900ff347b9c2f414584c709, type: 2}
+  - {fileID: 11400000, guid: 9a06c557eecd90c45ababdd9d97e9c99, type: 2}
+  - {fileID: 11400000, guid: 88cf60d6a6bf0b04399ff78a7932c647, type: 2}
+  - {fileID: 11400000, guid: 932f82d72602f1242bd1ebcd8ef99339, type: 2}
+  - {fileID: 11400000, guid: 56a890fe8d61e0145bffb65020af3618, type: 2}
+  - {fileID: 11400000, guid: 9a26e5b6e5e2f1c49bdf1542ded2466f, type: 2}
+  - {fileID: 11400000, guid: 488fec4743a313d43bb5308a0e8354ad, type: 2}
+  - {fileID: 11400000, guid: 47857290eb1180d4493ac1b18c0b8013, type: 2}
+  - {fileID: 11400000, guid: b4ea6c0b99ea9514195fd9297513d039, type: 2}
+  - {fileID: 11400000, guid: 3ad32e755a97cf74898a7829b3201d50, type: 2}
+  - {fileID: 11400000, guid: 3dadf64607b983f488d05b518c9c9544, type: 2}
+  - {fileID: 11400000, guid: cf1dbf16cc426b549a7897689aa95e46, type: 2}
+  - {fileID: 11400000, guid: 13fa532da9c3e194ea9d68ceee6d7d5b, type: 2}
+  - {fileID: 11400000, guid: 285073187ccfdb440aa104faadd3532c, type: 2}
+  - {fileID: 11400000, guid: 80e46a221abc1f949b3faa2242c4f8f5, type: 2}
+  escapeRoute: {fileID: 11400000, guid: 36f15aa0270a5c1448bc35146e89964e, type: 2}
+  returnRoute: {fileID: 11400000, guid: f5c74ab7150c9e24c81cd9773dba0065, type: 2}
+  influenceScopeConfig: {fileID: 11400000, guid: 96ab095d9a3eeca439c5f7571959f0e1, type: 2}
+  classroomDoor: {fileID: 0}
+  outsideArea: {fileID: 0}
+  seatPositions: []

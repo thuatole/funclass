@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f2731a77cb567649808d888269f25be, type: 3}
+  m_Name: "Student_B\xECnh"
+  m_EditorClassIdentifier: FunClass.Runtime::FunClass.Core.StudentConfig
+  studentId: student_binh
+  studentName: "B\xECnh"
+  initialState: 0
+  patience: 0.3
+  attentionSpan: 0.5
+  impulsiveness: 0.6
+  canFidget: 1
+  canLookAround: 1
+  canStandUp: 1
+  canMoveAround: 1
+  canDropItems: 1
+  canKnockOverObjects: 1
+  canMakeNoiseWithObjects: 1
+  canThrowObjects: 1
+  canTouchObjects: 1
+  interactionRange: 4
+  minIdleTime: 5
+  maxIdleTime: 10
+  calmInteractionChance: 0.03
+  distractedInteractionChance: 0.5
+  actingOutInteractionChance: 0.8
+  criticalInteractionChance: 1
+  confiscationBehaviors: []
+  defaultConfiscationReaction: 5
+  defaultConfiscationReactionDuration: 3
+  defaultConfiscationChangesState: 0
+  defaultConfiscationNewState: 0
+  influenceSusceptibility: 0.5
+  influenceResistance: 0.3
+  panicThreshold: 0.8
+  customInfluenceRadius: 0

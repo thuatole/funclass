@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a5c0edfc5c9265498f19e420247e7ed, type: 3}
+  m_Name: FirstDaySummerBreak_Goal
+  m_EditorClassIdentifier: FunClass.Runtime::FunClass.Core.LevelGoalConfig
+  maxDisruptionThreshold: 70
+  catastrophicDisruptionLevel: 90
+  maxAllowedCriticalStudents: 2
+  catastrophicCriticalStudents: 4
+  maxAllowedOutsideStudents: 2
+  catastrophicOutsideStudents: 5
+  maxOutsideTimePerStudent: 60
+  maxAllowedOutsideGracePeriod: 10
+  hasTimeLimit: 1
+  timeLimitSeconds: 300
+  requiredResolvedProblems: 0
+  requiredCalmDowns: 2
+  oneStarScore: 60
+  twoStarScore: 100
+  threeStarScore: 150
+  enableDisruptionTimeout: 0
+  disruptionTimeoutThreshold: 70
+  disruptionTimeoutSeconds: 30
+  disruptionTimeoutWarningSeconds: 10
+  winDisruptionThreshold: 50

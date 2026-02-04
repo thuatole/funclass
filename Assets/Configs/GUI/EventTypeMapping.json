@@ -1,0 +1,20 @@
+{
+  "sourceStatementMapping": {
+    "MessCreated": "Vomit",
+    "ThrowingObject": "ThrowObject",
+    "MakingNoise": "MakeNoise",
+    "KnockedOverObject": "Push",
+    "WanderingAround": "Distract",
+    "DroppedItem": "Push",
+    "LeftSeat": "Distract",
+    "StudentActedOut": "Hit"
+  },
+  "complaintMapping": {
+    "Vomit": "MessCreated",
+    "ThrowObject": "ThrowingObject",
+    "MakeNoise": "MakingNoise",
+    "Push": "KnockedOverObject",
+    "Distract": "WanderingAround",
+    "Hit": "StudentActedOut"
+  }
+}
