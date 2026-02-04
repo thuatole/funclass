@@ -241,12 +241,14 @@ namespace FunClass.Editor
                 {
                     new StudentInteractionData
                     {
-                        sourceStudent = "Student_0",
-                        targetStudent = "Student_1",
+                        id = "sample_interaction_1",
+                        sourceStudentId = "Student_0",
+                        targetStudentId = "Student_1",
                         eventType = "ThrowingObject",
-                        triggerCondition = "Always",
+                        triggerCondition = "timeElapsed",
+                        triggerValue = 30f,
                         probability = 0.5f,
-                        customSeverity = -1f,
+                        oneTimeOnly = true,
                         description = "Sample interaction: Student 0 throws object at Student 1"
                     }
                 },

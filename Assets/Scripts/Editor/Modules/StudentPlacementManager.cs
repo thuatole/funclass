@@ -1,10 +1,10 @@
 using UnityEngine;
 using System.Collections.Generic;
 using FunClass.Editor.Data;
-#if UNITY_EDITOR
 using UnityEditor;
-#endif
+using UnityEditor.SceneManagement;
 using FunClass.Core.UI;
+using FunClass.Core;
 
 namespace FunClass.Editor.Modules
 {
@@ -57,24 +57,43 @@ namespace FunClass.Editor.Modules
                     continue;
                 }
                 
-                // Instantiate desk
-                GameObject deskObj = PrefabUtility.InstantiatePrefab(deskPrefab) as GameObject;
+                // Instantiate desk without position first, then set parent and localPosition
+                GameObject deskObj = Object.Instantiate(deskPrefab);
                 deskObj.name = desk.deskId;
-                deskObj.transform.position = desk.position;
-                deskObj.transform.rotation = desk.rotation;
-                deskObj.transform.SetParent(desksGroup.transform);
+                deskObj.transform.SetParent(desksGroup.transform, false);  // false = don't maintain world position
+                deskObj.transform.localPosition = desk.position;
+                deskObj.transform.localRotation = Quaternion.Euler(desk.rotation.eulerAngles);
+                EditorUtility.SetDirty(deskObj);
+                
+                // Debug: Verify position after SetParent
+                Debug.Log($"[StudentPlacementManager] Desk {desk.deskId}:");
+                Debug.Log($"[StudentPlacementManager]   - Data position (desk.position): {desk.position}");
+                Debug.Log($"[StudentPlacementManager]   - World position (deskObj.transform.position): {deskObj.transform.position}");
+                Debug.Log($"[StudentPlacementManager]   - Local position (deskObj.transform.localPosition): {deskObj.transform.localPosition}");
+                Debug.Log($"[StudentPlacementManager]   - Parent (desksGroup) position: {desksGroup.transform.position}");
+                
+                // Add StudentInteractableObject component so students can interact with desks
+                // NOTE: Moved to runtime (LevelManager) to avoid import-time serialization issues
+                // AddDeskInteractableComponent(deskObj);
                 
                 // Parent student and mess slots to desk
                 if (desk.studentSlot != null)
                 {
-                    desk.studentSlot.transform.SetParent(deskObj.transform);
-                    desk.studentSlot.transform.localPosition = desk.studentSlot.transform.position - desk.position;
+                    // Set parent first, then calculate local position relative to desk
+                    // studentSlot position = desk.position + (0, 0, 0.5)
+                    // So localPosition = (desk.position + 0.5) - desk.position = (0, 0, 0.5)
+                    desk.studentSlot.transform.SetParent(deskObj.transform, true);
+                    desk.studentSlot.transform.localPosition = new Vector3(0, 0, 0.5f);
+                    Debug.Log($"[StudentPlacementManager]   - StudentSlot parented to desk, localPosition: {desk.studentSlot.transform.localPosition}");
                 }
                 
                 if (desk.messSlot != null)
                 {
-                    desk.messSlot.transform.SetParent(deskObj.transform);
-                    desk.messSlot.transform.localPosition = desk.messSlot.transform.position - desk.position;
+                    // messSlot position = desk.position + (0, 0.8, 0)
+                    // So localPosition = (desk.position + 0.8) - desk.position = (0, 0.8, 0)
+                    desk.messSlot.transform.SetParent(deskObj.transform, true);
+                    desk.messSlot.transform.localPosition = new Vector3(0, 0.8f, 0);
+                    Debug.Log($"[StudentPlacementManager]   - MessSlot parented to desk, localPosition: {desk.messSlot.transform.localPosition}");
                 }
                 
                 desk.deskObject = deskObj;
@@ -101,9 +120,8 @@ namespace FunClass.Editor.Modules
                     
                     GameObject studentObj;
                     
-                    // Get student position
-                    Vector3 studentPosition = desk.studentSlot != null ? 
-                        desk.studentSlot.transform.position : desk.position;
+                    // Get student position - use desk.position + offset directly to avoid parent/child issues
+                    Vector3 studentPosition = desk.position + new Vector3(0, 0, 0.5f);
                     Debug.Log($"[StudentPlacementManager] Desk {desk.deskId}: Student position {studentPosition}, studentSlot: {(desk.studentSlot != null ? "EXISTS" : "NULL")}, desk position: {desk.position}");
                     
                     // Adjust height if too low (prevent underground students)
@@ -124,9 +142,8 @@ namespace FunClass.Editor.Modules
                     }
                     else
                     {
-                        studentObj = PrefabUtility.InstantiatePrefab(studentPrefab) as GameObject;
-                        studentObj.transform.position = studentPosition;
-                        studentObj.transform.rotation = Quaternion.identity;
+                        // Use Object.Instantiate with position to properly preserve position
+                        studentObj = Object.Instantiate(studentPrefab, studentPosition, Quaternion.identity);
                         Debug.Log($"[StudentPlacementManager] Instantiated prefab {studentPrefab.name} for student {studentIndex}");
                     }
                     
@@ -140,9 +157,11 @@ namespace FunClass.Editor.Modules
                     // GameObject name always has "Student_" prefix for consistency
                     string gameObjectName = studentIdentifier.StartsWith("Student_") ? studentIdentifier : "Student_" + studentIdentifier;
                     studentObj.name = gameObjectName;
-                    Debug.Log($"[StudentPlacementManager] Setting student {studentObj.name} (identifier: {studentIdentifier}) parent to {studentsGroup.name}");
-                    studentObj.transform.SetParent(studentsGroup.transform);
-                    Debug.Log($"[StudentPlacementManager] Student {studentObj.name} parent set to: {(studentObj.transform.parent != null ? studentObj.transform.parent.name : "NULL")}");
+                    studentObj.transform.SetParent(studentsGroup.transform, true);
+                    Debug.Log($"[StudentPlacementManager] Student {studentObj.name}:");
+                    Debug.Log($"[StudentPlacementManager]   - World position: {studentObj.transform.position}");
+                    Debug.Log($"[StudentPlacementManager]   - Local position: {studentObj.transform.localPosition}");
+                    Debug.Log($"[StudentPlacementManager]   - Parent (studentsGroup) position: {studentsGroup.transform.position}");
                     
                     // Create student-desk pair
                     EnhancedLevelImporter.StudentDeskPair pair = new EnhancedLevelImporter.StudentDeskPair
@@ -187,6 +206,10 @@ namespace FunClass.Editor.Modules
                 var child = studentsGroup.transform.GetChild(i);
                 Debug.Log($"[StudentPlacementManager]   Child {i}: {child.name}, active: {child.gameObject.activeSelf}, position: {child.position}");
             }
+            
+            // Mark scene as dirty so Unity knows to save changes
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            Debug.Log("[StudentPlacementManager] Scene marked dirty for saving");
             
             return pairs;
         }
@@ -469,15 +492,17 @@ namespace FunClass.Editor.Modules
             }
             
             if (!hasVisual)
-            {
-                Debug.Log($"[StudentPlacementManager] No visual found for {studentObj.name}, creating capsule...");
-                visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-                visual.name = "Visual";
-                visual.transform.SetParent(studentObj.transform);
-                visual.transform.localPosition = Vector3.zero;
-                Debug.Log($"[StudentPlacementManager] Created visual capsule for {studentObj.name}, localPosition: {visual.transform.localPosition}");
-                
-                // Remove duplicate collider from primitive
+                {
+                    Debug.Log($"[StudentPlacementManager] No visual found for {studentObj.name}, creating capsule...");
+                    visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                    visual.name = "Visual";
+                    visual.transform.SetParent(studentObj.transform, true);
+                    visual.transform.localPosition = Vector3.zero;
+                    Debug.Log($"[StudentPlacementManager] Created visual capsule for {studentObj.name}");
+                    Debug.Log($"[StudentPlacementManager]   - Visual world pos: {visual.transform.position}");
+                    Debug.Log($"[StudentPlacementManager]   - Visual local pos: {visual.transform.localPosition}");
+                    
+                    // Remove duplicate collider from primitive
                 var primitiveCollider = visual.GetComponent<Collider>();
                 if (primitiveCollider != null)
                 {
@@ -592,6 +617,49 @@ namespace FunClass.Editor.Modules
             
             // Log visual details
             Debug.Log($"[StudentPlacementManager] Visual '{visual.name}' for {studentName}: active={visual.activeSelf}, renderer={(renderer != null ? $"enabled={renderer.enabled}, material={renderer.sharedMaterial?.name}" : "NULL")}, scale={visual.transform.localScale}, position={visual.transform.position}, localPosition={visual.transform.localPosition}");
+        }
+        
+        /// <summary>
+        /// Add StudentInteractableObject component to desk so students can interact with it
+        /// </summary>
+        private static void AddDeskInteractableComponent(GameObject deskObj)
+        {
+            // Check if component already exists
+            if (deskObj.GetComponent<StudentInteractableObject>() != null)
+            {
+                Debug.Log($"[StudentPlacementManager] Desk {deskObj.name} already has StudentInteractableObject");
+                return;
+            }
+            
+            // Add the component
+            StudentInteractableObject interactable = deskObj.AddComponent<StudentInteractableObject>();
+            
+            // Configure the desk as an interactable object
+            interactable.objectName = deskObj.name;
+            interactable.canBeKnockedOver = true;
+            interactable.canBeThrown = false;
+            interactable.canMakeNoise = false;
+            interactable.canBeDropped = false;
+            
+            // Ensure desk has a non-trigger collider for OverlapSphere detection
+            Collider collider = deskObj.GetComponent<Collider>();
+            if (collider != null)
+            {
+                if (collider.isTrigger)
+                {
+                    collider.isTrigger = false;
+                    Debug.Log($"[StudentPlacementManager] Disabled isTrigger on desk {deskObj.name} collider for OverlapSphere detection");
+                }
+            }
+            else
+            {
+                // Add BoxCollider if no collider exists
+                BoxCollider boxCollider = deskObj.AddComponent<BoxCollider>();
+                boxCollider.isTrigger = false;
+                Debug.Log($"[StudentPlacementManager] Added BoxCollider to desk {deskObj.name} for OverlapSphere detection");
+            }
+            
+            Debug.Log($"[StudentPlacementManager] Added StudentInteractableObject to desk {deskObj.name}");
         }
     }
 }

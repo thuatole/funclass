@@ -59,6 +59,13 @@ namespace FunClass.Core.UI
         public Dictionary<string, string> tooltips;
     }
 
+    [Serializable]
+    public class EventTypeMappingData
+    {
+        public Dictionary<string, string> sourceStatementMapping;
+        public Dictionary<string, string> complaintMapping;
+    }
+
     public class PopupTextLoader : MonoBehaviour
     {
         private static PopupTextLoader _instance;
@@ -80,6 +87,7 @@ namespace FunClass.Core.UI
         private ComplaintTemplatesData complaintTemplates;
         private SourceStatementsData sourceStatements;
         private ButtonLabelsData buttonLabels;
+        private EventTypeMappingData eventTypeMapping;
 
         private bool isLoaded = false;
 
@@ -106,6 +114,7 @@ namespace FunClass.Core.UI
                 string complaintTemplatesPath = Path.Combine(configPath, "ComplaintTemplates.json");
                 string sourceStatementsPath = Path.Combine(configPath, "SourceStatements.json");
                 string buttonLabelsPath = Path.Combine(configPath, "ButtonLabels.json");
+                string eventTypeMappingPath = Path.Combine(configPath, "EventTypeMapping.json");
 
                 if (File.Exists(popupTextPath))
                 {
@@ -149,6 +158,17 @@ namespace FunClass.Core.UI
                 {
                     Debug.LogError($"[PopupTextLoader] ButtonLabels.json not found");
                     CreateDefaultButtonLabels();
+                }
+
+                if (File.Exists(eventTypeMappingPath))
+                {
+                    string json = File.ReadAllText(eventTypeMappingPath);
+                    eventTypeMapping = JsonUtility.FromJson<EventTypeMappingData>(json);
+                }
+                else
+                {
+                    Debug.LogWarning($"[PopupTextLoader] EventTypeMapping.json not found, using default mapping");
+                    CreateDefaultEventTypeMapping();
                 }
 
                 isLoaded = true;
@@ -241,12 +261,46 @@ namespace FunClass.Core.UI
             };
         }
 
+        private void CreateDefaultEventTypeMapping()
+        {
+            eventTypeMapping = new EventTypeMappingData
+            {
+                sourceStatementMapping = new Dictionary<string, string>
+                {
+                    { "MessCreated", "Vomit" },
+                    { "StudentVomited", "Vomit" },
+                    { "Poop", "Poop" },
+                    { "StudentPooped", "Poop" },
+                    { "PhysicalInteraction", "Hit" },
+                    { "StudentHit", "Hit" },
+                    { "ThrowingObject", "ThrowObject" },
+                    { "StudentThrewObject", "ThrowObject" },
+                    { "MakingNoise", "MakeNoise" },
+                    { "StudentMadeNoise", "MakeNoise" },
+                    { "KnockedOverObject", "Push" },
+                    { "Distraction", "Distract" },
+                    { "WanderingAround", "Distract" }
+                },
+                complaintMapping = new Dictionary<string, string>
+                {
+                    { "Vomit", "MessCreated" },
+                    { "StudentVomited", "MessCreated" },
+                    { "Hit", "PhysicalInteraction" },
+                    { "ThrowObject", "ThrowingObject" },
+                    { "MakeNoise", "MakingNoise" },
+                    { "Push", "PhysicalInteraction" },
+                    { "Distract", "Distraction" }
+                }
+            };
+        }
+
         private void CreateAllDefaults()
         {
             CreateDefaultPopupText();
             CreateDefaultComplaintTemplates();
             CreateDefaultSourceStatements();
             CreateDefaultButtonLabels();
+            CreateDefaultEventTypeMapping();
             isLoaded = true;
         }
 
@@ -284,22 +338,46 @@ namespace FunClass.Core.UI
 
         public ComplaintTemplate GetComplaintTemplate(string eventType)
         {
-            if (complaintTemplates?.complaints != null && complaintTemplates.complaints.ContainsKey(eventType))
-                return complaintTemplates.complaints[eventType];
+            string mappedEventType = MapToComplaintKey(eventType);
+            if (complaintTemplates?.complaints != null && complaintTemplates.complaints.ContainsKey(mappedEventType))
+                return complaintTemplates.complaints[mappedEventType];
             return new ComplaintTemplate { template = "Bạn {source} làm gì đó!", icon = "❓" };
         }
 
         public string GetComplaint(string eventType, string sourceName)
         {
-            ComplaintTemplate template = GetComplaintTemplate(eventType);
+            string mappedEventType = MapToComplaintKey(eventType);
+            ComplaintTemplate template = GetComplaintTemplate(mappedEventType);
             return template.template.Replace("{source}", sourceName);
         }
 
-        public string GetSourceStatement(string actionType, string targets = "")
+        public string MapToSourceStatementKey(string eventType)
         {
-            if (sourceStatements?.statements != null && sourceStatements.statements.ContainsKey(actionType))
+            if (eventTypeMapping?.sourceStatementMapping != null 
+                && eventTypeMapping.sourceStatementMapping.ContainsKey(eventType))
             {
-                List<string> templates = sourceStatements.statements[actionType];
+                return eventTypeMapping.sourceStatementMapping[eventType];
+            }
+            return eventType; // fallback to original key
+        }
+
+        public string MapToComplaintKey(string eventType)
+        {
+            if (eventTypeMapping?.complaintMapping != null 
+                && eventTypeMapping.complaintMapping.ContainsKey(eventType))
+            {
+                return eventTypeMapping.complaintMapping[eventType];
+            }
+            return eventType; // fallback to original key
+        }
+
+        public string GetSourceStatement(string eventType, string targets = "")
+        {
+            string mappedKey = MapToSourceStatementKey(eventType);
+            
+            if (sourceStatements?.statements != null && sourceStatements.statements.ContainsKey(mappedKey))
+            {
+                List<string> templates = sourceStatements.statements[mappedKey];
                 if (templates.Count > 0)
                 {
                     string template = templates[UnityEngine.Random.Range(0, templates.Count)];

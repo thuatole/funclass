@@ -36,7 +36,7 @@ namespace FunClass.Core
 
         [Header("SingleStudent Influence Settings")]
         [Tooltip("Maximum distance for SingleStudent influence to apply")]
-        [SerializeField] private float singleStudentMaxDistance = 2f;
+        [SerializeField] private float singleStudentMaxDistance = 6f;
 
         [Header("Debug")]
         [SerializeField] private bool enableDebugLogs = true;
@@ -256,101 +256,76 @@ namespace FunClass.Core
 
             if (scope == InfluenceScope.SingleStudent)
             {
-                // Single student influence - WITH distance check (<= 2m)
-                if (evt.targetStudent != null)
+                // Handle SingleStudent influence with or without target
+                if (evt.targetStudent == null)
                 {
-                    // Check distance between source and target
-                    float distance = Vector3.Distance(sourceStudent.transform.position, evt.targetStudent.transform.position);
-
-                    if (distance > singleStudentMaxDistance)
+                    // No target specified - find nearest student or fallback to WholeClass
+                    Log($"[Influence] SingleStudent scope but no target specified, finding nearest student...");
+                    StudentAgent nearestStudent = FindNearestStudentInRange(sourceStudent, singleStudentMaxDistance);
+                    
+                    if (nearestStudent != null)
                     {
-                        Log($"[Influence] SingleStudent: {sourceStudent.Config?.studentName} → {evt.targetStudent.Config?.studentName} BLOCKED - distance {distance:F2}m > {singleStudentMaxDistance}m");
-                        Log($"[Influence] ✗ Influence not applied - source too far from target");
-                        return;
-                    }
-
-                    Log($"[Influence] SingleStudent: {sourceStudent.Config?.studentName} → {evt.targetStudent.Config?.studentName} (distance: {distance:F2}m <= {singleStudentMaxDistance}m ✓)");
-
-                    // Check if target has config
-                    if (evt.targetStudent.Config == null)
-                    {
-                        Debug.LogError($"[Influence] Target student {evt.targetStudent.name} has NULL Config!");
-                        return;
-                    }
-
-                    // Calculate influence strength based on susceptibility and resistance only
-                    float susceptibility = evt.targetStudent.Config.influenceSusceptibility;
-                    float resistance = evt.targetStudent.Config.influenceResistance;
-                    float influenceStrength = baseSeverity * susceptibility * (1f - resistance);
-
-                    Log($"[Influence] Calculating strength: base={baseSeverity:F2}, susceptibility={susceptibility:F2}, resistance={resistance:F2}");
-                    Log($"[Influence] Result strength: {influenceStrength:F2}");
-
-                    if (influenceStrength > 0.01f)
-                    {
-                        Log($"[Influence] Adding influence source...");
-                        // Add influence source tracking
-                        evt.targetStudent.InfluenceSources.AddSource(sourceStudent, evt.eventType, influenceStrength);
-                        ApplyInfluence(evt.targetStudent, sourceStudent, influenceStrength, evt.eventType);
-
-                        // Update influence icons
-                        UpdateInfluenceIcons(sourceStudent, evt.targetStudent, true);
-
-                        Log($"[Influence] ✓ Added source and applied influence");
+                        Log($"[Influence] Found nearest student: {nearestStudent.Config?.studentName}");
+                        evt.targetStudent = nearestStudent;
                     }
                     else
                     {
-                        Log($"[Influence] Strength too low ({influenceStrength:F2}), not adding source");
+                        Log($"[Influence] No student within {singleStudentMaxDistance}m, falling back to WholeClass scope");
+                        // Process as WholeClass influence instead
+                        ProcessWholeClassInfluence(sourceStudent, baseSeverity, evt);
+                        return;
                     }
+                }
+                
+                // Now we have a target student (either specified or found)
+                // Check distance between source and target
+                float distance = Vector3.Distance(sourceStudent.transform.position, evt.targetStudent.transform.position);
+                
+                if (distance > singleStudentMaxDistance)
+                {
+                    Log($"[Influence] SingleStudent: {sourceStudent.Config?.studentName} → {evt.targetStudent.Config?.studentName} BLOCKED - distance {distance:F2}m > {singleStudentMaxDistance}m");
+                    Log($"[Influence] ✗ Influence not applied - source too far from target");
+                    return;
+                }
+                
+                Log($"[Influence] SingleStudent: {sourceStudent.Config?.studentName} → {evt.targetStudent.Config?.studentName} (distance: {distance:F2}m <= {singleStudentMaxDistance}m ✓)");
+                
+                // Check if target has config
+                if (evt.targetStudent.Config == null)
+                {
+                    Debug.LogError($"[Influence] Target student {evt.targetStudent.name} has NULL Config!");
+                    return;
+                }
+                
+                // Calculate influence strength based on susceptibility and resistance only
+                float susceptibility = evt.targetStudent.Config.influenceSusceptibility;
+                float resistance = evt.targetStudent.Config.influenceResistance;
+                float influenceStrength = baseSeverity * susceptibility * (1f - resistance);
+                
+                Log($"[Influence] Calculating strength: base={baseSeverity:F2}, susceptibility={susceptibility:F2}, resistance={resistance:F2}");
+                Log($"[Influence] Result strength: {influenceStrength:F2}");
+                
+                if (influenceStrength > 0.01f)
+                {
+                    Log($"[Influence] Adding influence source...");
+                    // Add influence source tracking
+                    evt.targetStudent.InfluenceSources.AddSource(sourceStudent, evt.eventType, influenceStrength);
+                    ApplyInfluence(evt.targetStudent, sourceStudent, influenceStrength, evt.eventType);
+                    
+                    // Update influence icons
+                    UpdateInfluenceIcons(sourceStudent, evt.targetStudent, true);
+                    
+                    Log($"[Influence] ✓ Added source and applied influence");
                 }
                 else
                 {
-                    Log($"[Influence] Warning: SingleStudent scope but no target student specified");
+                    Log($"[Influence] Strength too low ({influenceStrength:F2}), not adding source");
                 }
             }
             else if (scope == InfluenceScope.WholeClass)
             {
-                // Whole class influence - affects students in SAME LOCATION only
-                StudentAgent[] allStudents = FindObjectsOfType<StudentAgent>();
-                int affectedCount = 0;
-                int skippedDifferentLocation = 0;
-
-                string sourceLocation = StudentLocationHelper.GetLocationString(sourceStudent);
-                Log($"[Influence] WholeClass: {sourceStudent.Config?.studentName} ({sourceLocation}) affects students in same location");
-
-                foreach (StudentAgent targetStudent in allStudents)
-                {
-                    // Skip self
-                    if (targetStudent == sourceStudent) continue;
-
-                    // Check if in same location (inside/outside)
-                    if (!StudentLocationHelper.AreInSameLocation(sourceStudent, targetStudent))
-                    {
-                        string targetLocation = StudentLocationHelper.GetLocationString(targetStudent);
-                        Log($"[Influence]   ✗ {targetStudent.Config?.studentName} ({targetLocation}) - different location, no influence");
-                        skippedDifferentLocation++;
-                        continue;
-                    }
-
-                    // Calculate influence strength
-                    float susceptibility = targetStudent.Config.influenceSusceptibility;
-                    float resistance = targetStudent.Config.influenceResistance;
-                    float influenceStrength = baseSeverity * susceptibility * (1f - resistance);
-
-                    if (influenceStrength > 0.01f)
-                    {
-                        // Add influence source tracking
-                        targetStudent.InfluenceSources.AddSource(sourceStudent, evt.eventType, influenceStrength);
-                        ApplyInfluence(targetStudent, sourceStudent, influenceStrength, evt.eventType);
-
-                        // Update influence icons
-                        UpdateInfluenceIcons(sourceStudent, targetStudent, true);
-
-                        affectedCount++;
-                    }
-                }
-
-                Log($"[Influence] WholeClass affected {affectedCount} students (skipped {skippedDifferentLocation} in different location)");
+                ProcessWholeClassInfluence(sourceStudent, baseSeverity, evt);
+                return;
             }
         }
 
@@ -420,6 +395,54 @@ namespace FunClass.Core
         }
 
         /// <summary>
+        /// Process WholeClass influence (extracted from ProcessInfluence for reuse)
+        /// </summary>
+        private void ProcessWholeClassInfluence(StudentAgent sourceStudent, float baseSeverity, StudentEvent evt)
+        {
+            // Whole class influence - affects students in SAME LOCATION only
+            StudentAgent[] allStudents = FindObjectsOfType<StudentAgent>();
+            int affectedCount = 0;
+            int skippedDifferentLocation = 0;
+
+            string sourceLocation = StudentLocationHelper.GetLocationString(sourceStudent);
+            Log($"[Influence] WholeClass: {sourceStudent.Config?.studentName} ({sourceLocation}) affects students in same location");
+
+            foreach (StudentAgent targetStudent in allStudents)
+            {
+                // Skip self
+                if (targetStudent == sourceStudent) continue;
+
+                // Check if in same location (inside/outside)
+                if (!StudentLocationHelper.AreInSameLocation(sourceStudent, targetStudent))
+                {
+                    string targetLocation = StudentLocationHelper.GetLocationString(targetStudent);
+                    Log($"[Influence]   ✗ {targetStudent.Config?.studentName} ({targetLocation}) - different location, no influence");
+                    skippedDifferentLocation++;
+                    continue;
+                }
+
+                // Calculate influence strength
+                float susceptibility = targetStudent.Config.influenceSusceptibility;
+                float resistance = targetStudent.Config.influenceResistance;
+                float influenceStrength = baseSeverity * susceptibility * (1f - resistance);
+
+                if (influenceStrength > 0.01f)
+                {
+                    // Add influence source tracking
+                    targetStudent.InfluenceSources.AddSource(sourceStudent, evt.eventType, influenceStrength);
+                    ApplyInfluence(targetStudent, sourceStudent, influenceStrength, evt.eventType);
+
+                    // Update influence icons
+                    UpdateInfluenceIcons(sourceStudent, targetStudent, true);
+
+                    affectedCount++;
+                }
+            }
+
+            Log($"[Influence] WholeClass affected {affectedCount} students (skipped {skippedDifferentLocation} in different location)");
+        }
+
+        /// <summary>
         /// Finds all students within the specified radius, excluding the source student
         /// </summary>
         private List<StudentAgent> FindNearbyStudents(StudentAgent sourceStudent, float radius)
@@ -461,6 +484,41 @@ namespace FunClass.Core
             
             Log($"[FindNearbyStudents] Found {nearbyStudents.Count} nearby students");
             return nearbyStudents;
+        }
+
+        /// <summary>
+        /// Finds the nearest student within the specified range, excluding the source student
+        /// Returns null if no student found within range
+        /// </summary>
+        private StudentAgent FindNearestStudentInRange(StudentAgent sourceStudent, float maxRange)
+        {
+            if (sourceStudent == null) return null;
+            
+            List<StudentAgent> nearbyStudents = FindNearbyStudents(sourceStudent, maxRange);
+            
+            if (nearbyStudents.Count == 0)
+            {
+                return null;
+            }
+            
+            // Find the closest one
+            StudentAgent nearestStudent = null;
+            float nearestDistance = float.MaxValue;
+            Vector3 sourcePos = sourceStudent.transform.position;
+            
+            foreach (StudentAgent student in nearbyStudents)
+            {
+                if (student == sourceStudent) continue;
+                
+                float distance = Vector3.Distance(sourcePos, student.transform.position);
+                if (distance < nearestDistance)
+                {
+                    nearestDistance = distance;
+                    nearestStudent = student;
+                }
+            }
+            
+            return nearestStudent;
         }
 
         /// <summary>

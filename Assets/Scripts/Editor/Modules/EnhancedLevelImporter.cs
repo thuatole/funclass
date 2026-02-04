@@ -931,12 +931,12 @@ namespace FunClass.Editor.Modules
         foreach (var interactionData in schema.studentInteractions)
         {
             StudentInteractionConfig config = new StudentInteractionConfig();
-            config.sourceStudent = interactionData.sourceStudent;
-            config.targetStudent = interactionData.targetStudent;
+            config.sourceStudent = interactionData.sourceStudentId;
+            config.targetStudent = interactionData.targetStudentId;
             config.eventType = interactionData.eventType;
             config.triggerCondition = interactionData.triggerCondition;
             config.probability = interactionData.probability;
-            config.customSeverity = interactionData.customSeverity;
+            config.customSeverity = interactionData.triggerValue;  // triggerValue maps to customSeverity for time-based triggers
             config.description = interactionData.description;
             interactionConfigs.Add(config);
         }

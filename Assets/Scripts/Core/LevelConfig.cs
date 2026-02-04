@@ -18,6 +18,10 @@ namespace FunClass.Core
         [Header("Interaction Sequences")]
         public List<StudentSequenceConfig> availableSequences = new List<StudentSequenceConfig>();
 
+        [Header("Student Interactions")]
+        [Tooltip("Scripted events that trigger at specific times or conditions")]
+        public List<RuntimeStudentInteraction> studentInteractions = new List<RuntimeStudentInteraction>();
+
         [Header("Level Goals")]
         public LevelGoalConfig levelGoal;
 
@@ -34,7 +38,7 @@ namespace FunClass.Core
         [Header("Influence Settings")]
         [Tooltip("Influence scope configuration for this level")]
         public InfluenceScopeConfig influenceScopeConfig;
-
+    
         [Header("Key Locations")]
         [Tooltip("Classroom door position")]
         public Transform classroomDoor;

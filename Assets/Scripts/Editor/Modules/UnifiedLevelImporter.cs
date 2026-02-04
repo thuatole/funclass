@@ -336,6 +336,10 @@ namespace FunClass.Editor.Modules
         {
             var studentDeskPairs = new List<EnhancedLevelImporter.StudentDeskPair>();
             
+            // Get or create classroom group
+            GameObject classroomGroup = SceneSetupManager.GetOrCreateClassroomGroup();
+            GameObject desksGroup = SceneSetupManager.CreateOrFindGameObject("Desks", classroomGroup.transform);
+            
             // For each manual student, find nearest desk or create at position
             for (int i = 0; i < schema.studentsManual.Count; i++)
             {
@@ -360,14 +364,13 @@ namespace FunClass.Editor.Modules
                     GameObject deskPrefab = assetMap.GetPrefab("DESK");
                     if (deskPrefab != null)
                     {
+                        // Use Object.Instantiate with position directly (simpler than PrefabUtility)
                         desk.deskObject = Object.Instantiate(deskPrefab, desk.position, desk.rotation);
                         desk.deskObject.name = $"Desk_Manual_{i}";
-                        // Parent to classroom group
-                        GameObject classroomGroup = GameObject.Find("=== CLASSROOM ===");
-                        if (classroomGroup != null)
-                        {
-                            desk.deskObject.transform.SetParent(classroomGroup.transform);
-                        }
+                        desk.deskObject.transform.SetParent(desksGroup.transform);
+                        
+                        // Add StudentInteractableObject for student interactions
+                        AddDeskInteractableComponent(desk.deskObject);
                     }
                 }
                 
@@ -816,8 +819,30 @@ namespace FunClass.Editor.Modules
                     serializedConfig.FindProperty("canKnockOverObjects").boolValue = studentData.behaviors.canKnockOverObjects;
                     serializedConfig.FindProperty("canMakeNoiseWithObjects").boolValue = studentData.behaviors.canMakeNoiseWithObjects;
                     serializedConfig.FindProperty("canThrowObjects").boolValue = studentData.behaviors.canThrowObjects;
+                    serializedConfig.FindProperty("canTouchObjects").boolValue = studentData.behaviors.canTouchObjects;
                     serializedConfig.FindProperty("minIdleTime").floatValue = studentData.behaviors.minIdleTime;
                     serializedConfig.FindProperty("maxIdleTime").floatValue = studentData.behaviors.maxIdleTime;
+                    
+                    // Calculate interactionRange - auto from desk spacing if not specified
+                    float interactionRange = studentData.behaviors.interactionRange;
+                    if (interactionRange <= 0f && schema.deskLayout != null)
+                    {
+                        // Auto calculate: max(spacingX, spacingZ) + 1.0 buffer
+                        float autoRange = Mathf.Max(schema.deskLayout.spacingX, schema.deskLayout.spacingZ) + 1.0f;
+                        interactionRange = Mathf.Clamp(autoRange, 3.0f, 8.0f);
+                        Debug.Log($"[UnifiedLevelImporter] Auto-calculated interactionRange for {pair.studentName}: {interactionRange} (spacingX={schema.deskLayout.spacingX}, spacingZ={schema.deskLayout.spacingZ})");
+                    }
+                    else if (interactionRange <= 0f)
+                    {
+                        interactionRange = 4.0f;  // Default fallback
+                    }
+                    serializedConfig.FindProperty("interactionRange").floatValue = interactionRange;
+                    
+                    // State-based interaction chances
+                    serializedConfig.FindProperty("calmInteractionChance").floatValue = studentData.behaviors.calmInteractionChance;
+                    serializedConfig.FindProperty("distractedInteractionChance").floatValue = studentData.behaviors.distractedInteractionChance;
+                    serializedConfig.FindProperty("actingOutInteractionChance").floatValue = studentData.behaviors.actingOutInteractionChance;
+                    serializedConfig.FindProperty("criticalInteractionChance").floatValue = studentData.behaviors.criticalInteractionChance;
                 }
                 else
                 {
@@ -830,8 +855,24 @@ namespace FunClass.Editor.Modules
                     serializedConfig.FindProperty("canKnockOverObjects").boolValue = Random.value < 0.3f;
                     serializedConfig.FindProperty("canMakeNoiseWithObjects").boolValue = true;
                     serializedConfig.FindProperty("canThrowObjects").boolValue = Random.value < 0.2f;
+                    serializedConfig.FindProperty("canTouchObjects").boolValue = true;
                     serializedConfig.FindProperty("minIdleTime").floatValue = 2f;
                     serializedConfig.FindProperty("maxIdleTime").floatValue = 8f;
+                    
+                    // Auto-calculate interactionRange from deskLayout
+                    float interactionRange = 4.0f;  // Default
+                    if (schema.deskLayout != null)
+                    {
+                        float autoRange = Mathf.Max(schema.deskLayout.spacingX, schema.deskLayout.spacingZ) + 1.0f;
+                        interactionRange = Mathf.Clamp(autoRange, 3.0f, 8.0f);
+                    }
+                    serializedConfig.FindProperty("interactionRange").floatValue = interactionRange;
+                    
+                    // Default state-based chances
+                    serializedConfig.FindProperty("calmInteractionChance").floatValue = 0.1f;
+                    serializedConfig.FindProperty("distractedInteractionChance").floatValue = 0.3f;
+                    serializedConfig.FindProperty("actingOutInteractionChance").floatValue = 0.6f;
+                    serializedConfig.FindProperty("criticalInteractionChance").floatValue = 0.9f;
                 }
                 serializedConfig.ApplyModifiedProperties();
                 
@@ -1079,6 +1120,35 @@ namespace FunClass.Editor.Modules
             
             levelConfig.levelId = schema.levelId;
             levelConfig.levelGoal = goalConfig;
+            
+            // Load student interactions as RuntimeStudentInteraction list
+            if (schema.studentInteractions != null && schema.studentInteractions.Count > 0)
+            {
+                // Clear existing interactions first to avoid duplicates
+                levelConfig.studentInteractions.Clear();
+                
+                foreach (var interactionData in schema.studentInteractions)
+                {
+                    RuntimeStudentInteraction runtimeInteraction = new RuntimeStudentInteraction
+                    {
+                        id = interactionData.id ?? $"{interactionData.sourceStudentId}_{interactionData.targetStudentId}_{interactionData.eventType}",
+                        sourceStudentId = interactionData.sourceStudentId,
+                        targetStudentId = interactionData.targetStudentId,
+                        eventType = interactionData.eventType,
+                        triggerCondition = interactionData.triggerCondition,
+                        triggerValue = interactionData.triggerValue,
+                        probability = interactionData.probability,
+                        oneTimeOnly = interactionData.oneTimeOnly,
+                        description = interactionData.description
+                    };
+                    levelConfig.studentInteractions.Add(runtimeInteraction);
+                }
+                Debug.Log($"[UnifiedLevelImporter] Added {levelConfig.studentInteractions.Count} student interactions to LevelConfig");
+            }
+            else
+            {
+                Debug.Log($"[UnifiedLevelImporter] No student interactions in schema (null: {schema.studentInteractions == null}, count: {schema.studentInteractions?.Count ?? 0})");
+            }
             
             EditorUtility.SetDirty(levelConfig);
             AssetDatabase.SaveAssets();
@@ -1536,12 +1606,12 @@ namespace FunClass.Editor.Modules
             foreach (var interactionData in schema.studentInteractions)
             {
                 StudentInteractionConfig config = new StudentInteractionConfig();
-                config.sourceStudent = interactionData.sourceStudent;
-                config.targetStudent = interactionData.targetStudent;
+                config.sourceStudent = interactionData.sourceStudentId;
+                config.targetStudent = interactionData.targetStudentId;
                 config.eventType = interactionData.eventType;
                 config.triggerCondition = interactionData.triggerCondition;
                 config.probability = interactionData.probability;
-                config.customSeverity = interactionData.customSeverity;
+                config.customSeverity = interactionData.triggerValue;  // Use triggerValue for time-based triggers
                 config.description = interactionData.description;
                 interactionConfigs.Add(config);
             }
@@ -1630,6 +1700,51 @@ namespace FunClass.Editor.Modules
                 Debug.LogError("[UnifiedLevelImporter] Failed to find CreateRoutesFromData method in JSONLevelImporter");
                 return new System.Collections.Generic.List<StudentRoute>();
             }
+        }
+        
+        /// <summary>
+        /// Add StudentInteractableObject component to desk so students can interact with it
+        /// </summary>
+        private static void AddDeskInteractableComponent(GameObject deskObj)
+        {
+            if (deskObj == null) return;
+            
+            // Check if component already exists
+            if (deskObj.GetComponent<StudentInteractableObject>() != null)
+            {
+                Debug.Log($"[UnifiedLevelImporter] Desk {deskObj.name} already has StudentInteractableObject");
+                return;
+            }
+            
+            // Add the component
+            StudentInteractableObject interactable = deskObj.AddComponent<StudentInteractableObject>();
+            
+            // Configure the desk as an interactable object
+            interactable.objectName = deskObj.name;
+            interactable.canBeKnockedOver = true;
+            interactable.canBeThrown = false;
+            interactable.canMakeNoise = false;
+            interactable.canBeDropped = false;
+            
+            // Ensure desk has a non-trigger collider for OverlapSphere detection
+            Collider collider = deskObj.GetComponent<Collider>();
+            if (collider != null)
+            {
+                if (collider.isTrigger)
+                {
+                    collider.isTrigger = false;
+                    Debug.Log($"[UnifiedLevelImporter] Disabled isTrigger on desk {deskObj.name} collider for OverlapSphere detection");
+                }
+            }
+            else
+            {
+                // Add BoxCollider if no collider exists
+                BoxCollider boxCollider = deskObj.AddComponent<BoxCollider>();
+                boxCollider.isTrigger = false;
+                Debug.Log($"[UnifiedLevelImporter] Added BoxCollider to desk {deskObj.name} for OverlapSphere detection");
+            }
+            
+            Debug.Log($"[UnifiedLevelImporter] Added StudentInteractableObject to desk {deskObj.name}");
         }
     }
 }

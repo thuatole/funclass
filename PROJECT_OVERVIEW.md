@@ -150,16 +150,23 @@ Assets/
 │   │       ├── PopupManager.cs
 │   │       ├── StudentInteractionPopup.cs
 │   │       └── PopupTextLoader.cs
-    │   └── Editor/                  # Editor tools
-    │       └── Modules/
-    │           ├── JSONLevelImporter.cs       # Legacy level creation
-    │           ├── UnifiedLevelImporter.cs    # Unified import system (Auto/Manual/Hybrid)
-    │           ├── EnhancedLevelImportWindow.cs # Import UI window
-    │           ├── StudentPlacementManager.cs # Student placement logic
-    │           ├── RouteGenerator.cs          # Route auto-generation
-    │           ├── EnvironmentSetup.cs        # Environment configuration
-    │           └── EditorUtils.cs             # Common editor utilities
+│   └── Editor/                  # Editor tools
+│       └── Modules/
+│           ├── JSONLevelImporter.cs       # Legacy level creation
+│           ├── UnifiedLevelImporter.cs    # Unified import system (Auto/Manual/Hybrid)
+│           ├── EnhancedLevelImportWindow.cs # Import UI window
+│           ├── StudentPlacementManager.cs # Student placement logic
+│           ├── RouteGenerator.cs          # Route auto-generation
+│           ├── EnvironmentSetup.cs        # Environment configuration
+│           └── EditorUtils.cs             # Common editor utilities
 ├── LevelTemplates/              # JSON level configurations
+├── Configs/
+│   └── GUI/                     # GUI text and mapping configs
+│       ├── PopupText.json
+│       ├── ComplaintTemplates.json
+│       ├── SourceStatements.json
+│       ├── ButtonLabels.json
+│       └── EventTypeMapping.json
 ├── Resources/                   # Runtime-loaded assets
 └── Scenes/                      # Unity scenes
 ```
@@ -189,7 +196,7 @@ Assets/
 5. **Data-Driven Design**
    - Unified JSON schema with Auto/Manual/Hybrid import modes
    - Legacy JSON level configurations (backward compatible)
-   - Externalized text (popup system)
+   - Externalized text configs in `Assets/Configs/GUI/` (PopupText, Complaints, Statements, Labels, EventTypeMapping)
    - ScriptableObjects for configs (StudentConfig, LevelConfig, etc.)
 
 ### Core Systems Integration
@@ -422,6 +429,13 @@ Supports three import modes: **Auto** (full auto-generation), **Manual** (legacy
 - `PopupManager.cs` (8KB)
 - `StudentInteractionPopup.cs` (18KB)
 - `PopupTextLoader.cs` (10KB)
+- `Assets/Configs/GUI/*.json` - Text configs and event mappings
+
+**EventTypeMapping System:**
+- `EventTypeMapping.json` maps StudentEventType → config keys
+- `PopupTextLoader.cs` loads configs and performs mappings
+- Enables easy text customization without code changes
+- Supports multiple event types mapping to same action key
 
 **Responsibilities:**
 - Display student information on click
@@ -517,12 +531,14 @@ Supports three import modes: **Auto** (full auto-generation), **Manual** (legacy
 - ✅ Student interaction detection
 - ✅ Popup-based influence resolution (fully functional)
 
-#### UI Systems (90%)
+#### UI Systems (95%)
 - ✅ Disruption meter
 - ✅ Score display
 - ✅ Timer display
 - ✅ Student highlight on hover
 - ✅ Student interaction popup (fully functional)
+- ✅ Cursor state management (CursorManager)
+- ✅ EventTypeMapping system for flexible text config
 - ❌ Tutorial system (not implemented)
 
 ### 🚧 In Progress
@@ -566,6 +582,10 @@ Supports three import modes: **Auto** (full auto-generation), **Manual** (legacy
 - ✅ StudentConfig assignment to StudentAgent (FIXED 2026-01-26)
 
 **Recent Fixes Applied:**
+- ✅ **Door Positioning Fix**: Door now positioned at left edge of gap with hinge on left, always open (-90° rotation), touching floor (Y=0)
+- ✅ **Student Position Fix**: Student slots moved behind desk (+Z offset 0.5f) instead of in front (-0.3f)
+- ✅ **CursorManager Integration**: Added CursorManager for proper cursor state management (locked during gameplay, unlocked on popup)
+- ✅ **EventTypeMapping System**: Created EventTypeMapping.json and PopupTextLoader.cs mapping for flexible text configuration
 - ✅ **Route Errors Fixed**: "Cannot find route group" errors resolved by enhancing `StudentRoute.RefreshWaypointsFromScene()` with recursive search and fallback matching
 - ✅ **StudentConfig Serialization**: Replaced direct field assignment with `SerializedObject` for all config fields
 - ✅ **StudentConfig Assignment**: All students now properly receive their configs during import
@@ -573,6 +593,9 @@ Supports three import modes: **Auto** (full auto-generation), **Manual** (legacy
 - ✅ **Clean State**: Now deleting and recreating config assets to ensure clean state
 
 **Files Modified:**
+- `Assets/Scripts/Editor/Modules/EnvironmentSetup.cs` - Door positioning and student slot fixes
+- `Assets/Scripts/Core/UI/PopupTextLoader.cs` - EventTypeMapping system
+- `Assets/Configs/GUI/EventTypeMapping.json` - New mapping config file
 - `Assets/Scripts/Editor/Modules/UnifiedLevelImporter.cs` - Config serialization fixes, enhanced logging
 - `Assets/Scripts/Editor/Modules/StudentPlacementManager.cs` - Student identifier creation logging
 - `Assets/Scripts/Core/StudentRoute.cs` - Route group finding logic
@@ -672,6 +695,27 @@ Supports three import modes: **Auto** (full auto-generation), **Manual** (legacy
 - Use proper shader properties instead of material color multiplication
 
 ### Medium Priority Bugs
+
+#### EventTypeMapping.json Vietnamese Keys Issue
+**Status:** 🟡 Known
+**Severity:** Medium
+**Impact:** Event type mapping may not work correctly if JSON has Vietnamese keys
+
+**Symptoms:**
+- Mapping file contains Vietnamese keys instead of English config keys
+- Event type mapping may fail or return incorrect values
+
+**Root Cause:**
+- Initial version of EventTypeMapping.json used Vietnamese text as keys
+- Should use English keys matching SourceStatements.json and ComplaintTemplates.json
+
+**Fix Required:**
+- Update EventTypeMapping.json to use correct keys:
+  - sourceStatementMapping: EventType → config key (e.g., "MessCreated" → "Vomit")
+  - complaintMapping: Action key → template key (e.g., "Vomit" → "MessCreated")
+
+**Files to Fix:**
+- `Assets/Configs/GUI/EventTypeMapping.json`
 
 #### 3. Influence Event Logging Spam
 **Status:** 🟢 Fixed  
@@ -913,6 +957,7 @@ Unity Menu → Tools → FunClass → Import Level From JSON
 
 ### Core Documentation
 - `PROJECT_OVERVIEW.md` (this file) - Complete project overview
+- `CONFIG_GUIDE.md` - Complete configuration guide (Level, GUI, Events, States, Actions)
 - `README.md` - Quick start guide (to be created)
 
 ### System Documentation
@@ -1001,6 +1046,6 @@ Detailed explanation if needed
 
 ---
 
-**Last Updated:** January 26, 2026
-**Version:** 0.9.1 (Pre-Alpha)
-**Status:** Active Development - Core Systems Complete, UI/Menu Development Next
+**Last Updated:** January 27, 2026
+**Version:** 0.9.2 (Pre-Alpha)
+**Status:** Active Development - UI Systems 95% Complete, Polish & Documentation Next

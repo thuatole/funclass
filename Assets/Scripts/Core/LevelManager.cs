@@ -171,6 +171,9 @@ namespace FunClass.Core
                 {
                     LevelTimeRemaining = currentGoal.timeLimitSeconds;
                 }
+
+                // Load student interactions for scripted events
+                LoadStudentInteractions();
             }
 
             Debug.Log("[LevelManager] Level started");
@@ -201,6 +204,120 @@ namespace FunClass.Core
         {
             IsLevelActive = false;
             Debug.Log("[LevelManager] Level ended");
+        }
+
+        /// <summary>
+        /// Load student interactions from level config and pass to processor
+        /// </summary>
+        private void LoadStudentInteractions()
+        {
+            LevelConfig levelConfig = GetCurrentLevelConfig();
+            if (levelConfig == null || levelConfig.studentInteractions == null)
+            {
+                Debug.Log("[LevelManager] No student interactions in level config");
+                return;
+            }
+
+            // Ensure StudentInteractionProcessor exists at runtime
+            if (StudentInteractionProcessor.Instance == null)
+            {
+                Debug.Log("[LevelManager] StudentInteractionProcessor not found - creating at runtime");
+                GameObject processorObj = new GameObject("StudentInteractionProcessor");
+                processorObj.AddComponent<StudentInteractionProcessor>();
+                DontDestroyOnLoad(processorObj);
+            }
+
+            if (StudentInteractionProcessor.Instance != null)
+            {
+                StudentInteractionProcessor.Instance.LoadRuntimeInteractions(levelConfig.studentInteractions);
+                Debug.Log($"[LevelManager] Loaded {levelConfig.studentInteractions.Count} student interactions");
+            }
+            
+            // Setup desks with StudentInteractableObject at runtime (avoids import-time serialization issues)
+            SetupDesksForInteraction();
+        }
+        
+        /// <summary>
+        /// Setup desks with StudentInteractableObject at runtime to avoid import-time serialization issues
+        /// </summary>
+        private void SetupDesksForInteraction()
+        {
+            Debug.Log("[LevelManager] Setting up desks with StudentInteractableObject at runtime");
+            
+            // Find desks - check "Desks" group first, then fallback to tag
+            Transform desksGroup = GameObject.Find("Desks")?.transform;
+            
+            if (desksGroup != null)
+            {
+                Debug.Log($"[LevelManager] Found Desks group with {desksGroup.childCount} children");
+                
+                foreach (Transform desk in desksGroup)
+                {
+                    SetupDeskComponent(desk.gameObject);
+                }
+            }
+            else
+            {
+                // Fallback: find all objects with "Desk" in name or with specific tag
+                GameObject[] allObjects = FindObjectsOfType<GameObject>();
+                int deskCount = 0;
+                
+                foreach (GameObject obj in allObjects)
+                {
+                    if (obj.name.Contains("Desk") || obj.CompareTag("Desk"))
+                    {
+                        SetupDeskComponent(obj);
+                        deskCount++;
+                    }
+                }
+                
+                Debug.Log($"[LevelManager] Found {deskCount} desks by tag/name search");
+            }
+        }
+        
+        /// <summary>
+        /// Add StudentInteractableObject component to a desk if not already present
+        /// </summary>
+        private void SetupDeskComponent(GameObject deskObj)
+        {
+            if (deskObj == null) return;
+            
+            // Check if component already exists
+            if (deskObj.GetComponent<StudentInteractableObject>() != null)
+            {
+                Debug.Log($"[LevelManager] Desk {deskObj.name} already has StudentInteractableObject");
+                return;
+            }
+            
+            // Add the component
+            StudentInteractableObject interactable = deskObj.AddComponent<StudentInteractableObject>();
+            
+            // Configure the desk as an interactable object
+            interactable.objectName = deskObj.name;
+            interactable.canBeKnockedOver = true;
+            interactable.canBeThrown = false;
+            interactable.canMakeNoise = false;
+            interactable.canBeDropped = false;
+            
+            // Ensure desk has a non-trigger collider for OverlapSphere detection
+            Collider collider = deskObj.GetComponent<Collider>();
+            if (collider != null)
+            {
+                if (collider.isTrigger)
+                {
+                    collider.isTrigger = false;
+                    Debug.Log($"[LevelManager] Disabled isTrigger on desk {deskObj.name} collider for OverlapSphere detection");
+                }
+            }
+            else
+            {
+                // Add BoxCollider if no collider exists
+                BoxCollider boxCollider = deskObj.AddComponent<BoxCollider>();
+                boxCollider.isTrigger = false;
+                Debug.Log($"[LevelManager] Added BoxCollider to desk {deskObj.name} for OverlapSphere detection");
+            }
+            
+            Debug.Log($"[LevelManager] Added StudentInteractableObject to desk {deskObj.name}");
         }
 
         private void HandleStudentEvent(StudentEvent evt)

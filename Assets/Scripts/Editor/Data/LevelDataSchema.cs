@@ -80,8 +80,18 @@ namespace FunClass.Editor.Data
         public bool canKnockOverObjects = false;
         public bool canMakeNoiseWithObjects = true;
         public bool canThrowObjects = false;
+        public bool canTouchObjects = true;
         public float minIdleTime = 2f;
         public float maxIdleTime = 8f;
+        
+        // Interaction range for finding nearby objects (0 = auto calculate)
+        public float interactionRange = 0f;
+        
+        // State-based interaction probabilities (0-1)
+        public float calmInteractionChance = 0.1f;
+        public float distractedInteractionChance = 0.3f;
+        public float actingOutInteractionChance = 0.6f;
+        public float criticalInteractionChance = 0.9f;
     }
 
     [Serializable]

@@ -129,12 +129,14 @@ namespace FunClass.Editor.Data
     [Serializable]
     public class StudentInteractionData
     {
-        public string sourceStudent;
-        public string targetStudent;
+        public string id;
+        public string sourceStudentId;
+        public string targetStudentId;  // Can be null for self-events
         public string eventType;
-        public string triggerCondition;
+        public string triggerCondition;  // "timeElapsed", "OnActingOut", "OnCritical", "Random", "Always"
+        public float triggerValue;       // For timeElapsed: seconds; For state triggers: unused
         public float probability = 1.0f;
-        public float customSeverity = -1f;
+        public bool oneTimeOnly = true;
         public string description;
     }
     

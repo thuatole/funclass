@@ -70,9 +70,9 @@ namespace FunClass.Editor.Modules
                         messSlot = null
                     };
                     
-                    // Calculate student slot (slightly in front of desk)
+                    // Calculate student slot (behind the desk, toward back wall/+Z)
                     desk.studentSlot = new GameObject($"{desk.deskId}_StudentSlot");
-                    desk.studentSlot.transform.position = position + new Vector3(0, 0, -0.3f);
+                    desk.studentSlot.transform.position = position + new Vector3(0, 0, 0.5f);
                     desk.studentSlot.transform.SetParent(null); // Will be parented later
                     
                     // Calculate mess slot (on top of desk)
