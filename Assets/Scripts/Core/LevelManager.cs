@@ -20,38 +20,38 @@ namespace FunClass.Core
         private int criticalStudentCount = 0;
         private float outsideStudentsExceededTime = 0f;
         private bool isTrackingOutsideExcess = false;
-
         private bool hasSubscribedToGameState = false;
+        private float lastProgressLogTime = 0f;
 
         void Awake()
         {
-            Debug.Log($"[LevelManager] ★ Awake called!");
+            GameLogger.Milestone("LevelManager", "Awake called");
 
             if (Instance != null && Instance != this)
             {
-                Debug.LogWarning("[LevelManager] Duplicate instance, destroying...");
+                GameLogger.Warning("LevelManager", "Duplicate instance, destroying...");
                 Destroy(gameObject);
                 return;
             }
 
             Instance = this;
             DontDestroyOnLoad(gameObject);
-            Debug.Log("[LevelManager] ★ Instance set successfully");
+            GameLogger.Milestone("LevelManager", "Instance created");
         }
 
         void OnEnable()
         {
-            Debug.Log($"[LevelManager] ★ OnEnable called!");
+            GameLogger.Detail("LevelManager", "OnEnable called");
 
             if (GameStateManager.Instance != null)
             {
                 GameStateManager.Instance.OnStateChanged += HandleGameStateChanged;
                 hasSubscribedToGameState = true;
-                Debug.Log($"[LevelManager] Subscribed to GameStateManager. Current state: {GameStateManager.Instance.CurrentState}");
+                GameLogger.Detail("LevelManager", $"Subscribed to GameStateManager - state: {GameStateManager.Instance.CurrentState}");
             }
             else
             {
-                Debug.LogWarning("[LevelManager] GameStateManager.Instance is NULL in OnEnable - will retry in Start()");
+                GameLogger.Warning("LevelManager", "GameStateManager.Instance is NULL in OnEnable");
             }
 
             if (StudentEventManager.Instance != null)
@@ -62,26 +62,6 @@ namespace FunClass.Core
             if (ClassroomManager.Instance != null)
             {
                 ClassroomManager.Instance.OnOutsideStudentCountChanged += HandleOutsideStudentCountChanged;
-            }
-        }
-
-        void Start()
-        {
-            Debug.Log("[LevelManager] Start called");
-
-            // Retry subscription if failed in OnEnable
-            if (!hasSubscribedToGameState && GameStateManager.Instance != null)
-            {
-                GameStateManager.Instance.OnStateChanged += HandleGameStateChanged;
-                hasSubscribedToGameState = true;
-                Debug.Log($"[LevelManager] ★ Late subscription to GameStateManager. Current state: {GameStateManager.Instance.CurrentState}");
-
-                // Check if already in InLevel
-                if (GameStateManager.Instance.CurrentState == GameState.InLevel)
-                {
-                    Debug.Log("[LevelManager] Already in InLevel, starting level");
-                    StartLevel();
-                }
             }
         }
 
@@ -103,7 +83,24 @@ namespace FunClass.Core
             }
         }
 
-        private float lastLevelManagerDebugTime = 0f;
+        void Start()
+        {
+            GameLogger.Detail("LevelManager", "Start called");
+
+            // Retry subscription if failed in OnEnable
+            if (!hasSubscribedToGameState && GameStateManager.Instance != null)
+            {
+                GameStateManager.Instance.OnStateChanged += HandleGameStateChanged;
+                hasSubscribedToGameState = true;
+                GameLogger.Detail("LevelManager", $"Late subscription - state: {GameStateManager.Instance.CurrentState}");
+
+                if (GameStateManager.Instance.CurrentState == GameState.InLevel)
+                {
+                    GameLogger.Detail("LevelManager", "Already in InLevel, starting level");
+                    StartLevel();
+                }
+            }
+        }
 
         void Update()
         {
@@ -115,18 +112,11 @@ namespace FunClass.Core
             {
                 LevelTimeRemaining = currentGoal.timeLimitSeconds - LevelTimeElapsed;
 
-                // Debug log every 5 seconds
-                if (Time.time - lastLevelManagerDebugTime >= 5f)
+                // Progress log every 5 seconds
+                if (Time.time - lastProgressLogTime >= 5f)
                 {
-                    lastLevelManagerDebugTime = Time.time;
-                    ScoreSummary summary = TeacherScoreManager.Instance?.GetScoreSummary() ?? new ScoreSummary();
-                    float disruption = ClassroomManager.Instance?.DisruptionLevel ?? 0f;
-
-                    Debug.Log($"[LevelManager] ═══ PROGRESS ═══");
-                    Debug.Log($"[LevelManager] Time remaining: {LevelTimeRemaining:F0}s / {currentGoal.timeLimitSeconds}s");
-                    Debug.Log($"[LevelManager] Disruption: {disruption:F1}% (need ≤ {currentGoal.winDisruptionThreshold}%)");
-                    Debug.Log($"[LevelManager] Problems: {summary.resolvedProblems} / {currentGoal.requiredResolvedProblems}");
-                    Debug.Log($"[LevelManager] CalmDowns: {summary.calmDowns} / {currentGoal.requiredCalmDowns}");
+                    lastProgressLogTime = Time.time;
+                    LogProgress();
                 }
 
                 if (LevelTimeRemaining <= 0)
@@ -134,17 +124,34 @@ namespace FunClass.Core
                     CheckWinConditions();
                 }
             }
-            else if (Time.time - lastLevelManagerDebugTime >= 5f)
+            else if (Time.time - lastProgressLogTime >= 5f)
             {
-                lastLevelManagerDebugTime = Time.time;
-                Debug.LogWarning($"[LevelManager] currentGoal is NULL or hasTimeLimit=false!");
+                lastProgressLogTime = Time.time;
+                GameLogger.Warning("LevelManager", "currentGoal is NULL or hasTimeLimit=false");
             }
 
             CheckLoseConditions();
         }
 
+        private void LogProgress()
+        {
+            ScoreSummary summary = TeacherScoreManager.Instance?.GetScoreSummary() ?? new ScoreSummary();
+            float disruption = ClassroomManager.Instance?.DisruptionLevel ?? 0f;
+
+            GameLogger.Milestone("LevelManager", $"=== PROGRESS ===");
+            GameLogger.Milestone("LevelManager", 
+                $"Time: {LevelTimeRemaining:F0}s remaining / {currentGoal?.timeLimitSeconds ?? 0}s total");
+            GameLogger.Milestone("LevelManager", 
+                $"Disruption: {disruption:F1}% (max: {currentGoal?.maxDisruptionThreshold ?? 0}%)");
+            GameLogger.Milestone("LevelManager", 
+                $"CalmDowns: {summary.calmDowns} / {currentGoal?.requiredCalmDowns ?? 0}");
+            GameLogger.Milestone("LevelManager", $"Resolved: {summary.resolvedProblems} / {currentGoal?.requiredResolvedProblems ?? 0}");
+        }
+
         private void HandleGameStateChanged(GameState oldState, GameState newState)
         {
+            GameLogger.Detail("LevelManager", $"{oldState} → {newState}");
+
             if (newState == GameState.InLevel)
             {
                 StartLevel();
@@ -163,6 +170,7 @@ namespace FunClass.Core
             criticalStudentCount = 0;
             outsideStudentsExceededTime = 0f;
             isTrackingOutsideExcess = false;
+            lastProgressLogTime = 0f;
 
             if (LevelLoader.Instance != null && LevelLoader.Instance.CurrentLevel != null)
             {
@@ -172,25 +180,22 @@ namespace FunClass.Core
                     LevelTimeRemaining = currentGoal.timeLimitSeconds;
                 }
 
-                // Load student interactions for scripted events
                 LoadStudentInteractions();
             }
 
-            Debug.Log("[LevelManager] Level started");
+            GameLogger.Milestone("LevelManager", $"Level started - {LevelLoader.Instance?.CurrentLevel?.levelId ?? "Unknown"}");
+            if (currentGoal != null)
+            {
+                GameLogger.Milestone("LevelManager", 
+                    $"Goal: {currentGoal.timeLimitSeconds}s, disruption ≤ {currentGoal.maxDisruptionThreshold}%, calmDowns: {currentGoal.requiredCalmDowns}");
+            }
         }
 
-        /// <summary>
-        /// Handles changes in the number of students outside the classroom
-        /// </summary>
         private void HandleOutsideStudentCountChanged(int count)
         {
-            // This event is used to trigger immediate checks if needed
-            // The actual lose condition checking happens in CheckLoseConditions()
+            // Event used for tracking, actual checking happens in CheckLoseConditions()
         }
 
-        /// <summary>
-        /// Gets the current level configuration
-        /// </summary>
         public LevelConfig GetCurrentLevelConfig()
         {
             if (LevelLoader.Instance != null)
@@ -203,25 +208,21 @@ namespace FunClass.Core
         private void EndLevel()
         {
             IsLevelActive = false;
-            Debug.Log("[LevelManager] Level ended");
+            GameLogger.Detail("LevelManager", "Level ended");
         }
 
-        /// <summary>
-        /// Load student interactions from level config and pass to processor
-        /// </summary>
         private void LoadStudentInteractions()
         {
             LevelConfig levelConfig = GetCurrentLevelConfig();
             if (levelConfig == null || levelConfig.studentInteractions == null)
             {
-                Debug.Log("[LevelManager] No student interactions in level config");
+                GameLogger.Detail("LevelManager", "No student interactions in level config");
                 return;
             }
 
-            // Ensure StudentInteractionProcessor exists at runtime
             if (StudentInteractionProcessor.Instance == null)
             {
-                Debug.Log("[LevelManager] StudentInteractionProcessor not found - creating at runtime");
+                GameLogger.Detail("LevelManager", "StudentInteractionProcessor not found - creating at runtime");
                 GameObject processorObj = new GameObject("StudentInteractionProcessor");
                 processorObj.AddComponent<StudentInteractionProcessor>();
                 DontDestroyOnLoad(processorObj);
@@ -230,26 +231,21 @@ namespace FunClass.Core
             if (StudentInteractionProcessor.Instance != null)
             {
                 StudentInteractionProcessor.Instance.LoadRuntimeInteractions(levelConfig.studentInteractions);
-                Debug.Log($"[LevelManager] Loaded {levelConfig.studentInteractions.Count} student interactions");
+                GameLogger.Milestone("LevelManager", $"Loaded {levelConfig.studentInteractions.Count} student interactions");
             }
-            
-            // Setup desks with StudentInteractableObject at runtime (avoids import-time serialization issues)
+
             SetupDesksForInteraction();
         }
         
-        /// <summary>
-        /// Setup desks with StudentInteractableObject at runtime to avoid import-time serialization issues
-        /// </summary>
         private void SetupDesksForInteraction()
         {
-            Debug.Log("[LevelManager] Setting up desks with StudentInteractableObject at runtime");
+            GameLogger.Detail("LevelManager", "Setting up desks with StudentInteractableObject at runtime");
             
-            // Find desks - check "Desks" group first, then fallback to tag
             Transform desksGroup = GameObject.Find("Desks")?.transform;
             
             if (desksGroup != null)
             {
-                Debug.Log($"[LevelManager] Found Desks group with {desksGroup.childCount} children");
+                GameLogger.Detail("LevelManager", $"Found Desks group with {desksGroup.childCount} children");
                 
                 foreach (Transform desk in desksGroup)
                 {
@@ -258,7 +254,6 @@ namespace FunClass.Core
             }
             else
             {
-                // Fallback: find all objects with "Desk" in name or with specific tag
                 GameObject[] allObjects = FindObjectsOfType<GameObject>();
                 int deskCount = 0;
                 
@@ -271,53 +266,45 @@ namespace FunClass.Core
                     }
                 }
                 
-                Debug.Log($"[LevelManager] Found {deskCount} desks by tag/name search");
+                GameLogger.Detail("LevelManager", $"Found {deskCount} desks by tag/name search");
             }
         }
         
-        /// <summary>
-        /// Add StudentInteractableObject component to a desk if not already present
-        /// </summary>
         private void SetupDeskComponent(GameObject deskObj)
         {
             if (deskObj == null) return;
             
-            // Check if component already exists
             if (deskObj.GetComponent<StudentInteractableObject>() != null)
             {
-                Debug.Log($"[LevelManager] Desk {deskObj.name} already has StudentInteractableObject");
+                GameLogger.Detail("LevelManager", $"Desk {deskObj.name} already has StudentInteractableObject");
                 return;
             }
             
-            // Add the component
             StudentInteractableObject interactable = deskObj.AddComponent<StudentInteractableObject>();
             
-            // Configure the desk as an interactable object
             interactable.objectName = deskObj.name;
             interactable.canBeKnockedOver = true;
             interactable.canBeThrown = false;
             interactable.canMakeNoise = false;
             interactable.canBeDropped = false;
             
-            // Ensure desk has a non-trigger collider for OverlapSphere detection
             Collider collider = deskObj.GetComponent<Collider>();
             if (collider != null)
             {
                 if (collider.isTrigger)
                 {
                     collider.isTrigger = false;
-                    Debug.Log($"[LevelManager] Disabled isTrigger on desk {deskObj.name} collider for OverlapSphere detection");
+                    GameLogger.Detail("LevelManager", $"Disabled isTrigger on desk {deskObj.name}");
                 }
             }
             else
             {
-                // Add BoxCollider if no collider exists
                 BoxCollider boxCollider = deskObj.AddComponent<BoxCollider>();
                 boxCollider.isTrigger = false;
-                Debug.Log($"[LevelManager] Added BoxCollider to desk {deskObj.name} for OverlapSphere detection");
+                GameLogger.Detail("LevelManager", $"Added BoxCollider to desk {deskObj.name}");
             }
             
-            Debug.Log($"[LevelManager] Added StudentInteractableObject to desk {deskObj.name}");
+            GameLogger.Detail("LevelManager", $"Added StudentInteractableObject to desk {deskObj.name}");
         }
 
         private void HandleStudentEvent(StudentEvent evt)
@@ -362,17 +349,14 @@ namespace FunClass.Core
                     return;
                 }
 
-                // Check outside student conditions
                 int outsideCount = ClassroomManager.Instance.OutsideStudentCount;
 
-                // Catastrophic: Too many students outside at once
                 if (outsideCount >= currentGoal.catastrophicOutsideStudents)
                 {
-                    LoseLevel($"LOSS: Too many students outside the classroom! ({outsideCount} students escaped)");
+                    LoseLevel($"Too many students outside the classroom! ({outsideCount} students escaped)");
                     return;
                 }
 
-                // Check if any individual student has been outside too long
                 if (currentGoal.maxOutsideTimePerStudent > 0)
                 {
                     StudentAgent[] allStudents = FindObjectsOfType<StudentAgent>();
@@ -381,39 +365,38 @@ namespace FunClass.Core
                         float timeOutside = ClassroomManager.Instance.GetStudentOutsideDuration(student);
                         if (timeOutside > currentGoal.maxOutsideTimePerStudent)
                         {
-                            LoseLevel($"LOSS: {student.Config?.studentName} was outside for too long ({timeOutside:F0}s)");
+                            LoseLevel($"{student.Config?.studentName} was outside for too long ({timeOutside:F0}s)");
                             return;
                         }
                     }
                 }
 
-                // Track grace period for exceeding max allowed outside students
                 if (outsideCount > currentGoal.maxAllowedOutsideStudents)
                 {
                     if (!isTrackingOutsideExcess)
                     {
                         isTrackingOutsideExcess = true;
                         outsideStudentsExceededTime = 0f;
-                        Debug.LogWarning($"[LevelManager] Too many students outside ({outsideCount}/{currentGoal.maxAllowedOutsideStudents}), grace period started");
+                        GameLogger.Detail("LevelManager", 
+                            $"Too many students outside ({outsideCount}/{currentGoal.maxAllowedOutsideStudents}), grace period started");
                     }
                     else
                     {
                         outsideStudentsExceededTime += Time.deltaTime;
                         if (outsideStudentsExceededTime >= currentGoal.maxAllowedOutsideGracePeriod)
                         {
-                            LoseLevel($"LOSS: Too many students remained outside for too long ({outsideCount} students)");
+                            LoseLevel($"Too many students remained outside for too long ({outsideCount} students)");
                             return;
                         }
                     }
                 }
                 else
                 {
-                    // Reset grace period if count drops back down
                     if (isTrackingOutsideExcess)
                     {
                         isTrackingOutsideExcess = false;
                         outsideStudentsExceededTime = 0f;
-                        Debug.Log($"[LevelManager] Outside student count back to acceptable levels");
+                        GameLogger.Detail("LevelManager", "Outside student count back to acceptable levels");
                     }
                 }
             }
@@ -431,7 +414,7 @@ namespace FunClass.Core
 
             if (currentGoal == null)
             {
-                Debug.LogWarning("[LevelManager] No level goal configured");
+                GameLogger.Warning("LevelManager", "No level goal configured");
                 return;
             }
 
@@ -444,82 +427,32 @@ namespace FunClass.Core
             }
             else
             {
-                LoseLevel($"Failed to meet objectives (Disruption: {finalDisruption:F0}, Problems: {summary.resolvedProblems}/{currentGoal.requiredResolvedProblems})");
+                LoseLevel($"Failed to meet objectives (Disruption: {finalDisruption:F0}%, CalmDowns: {summary.calmDowns}/{currentGoal.requiredCalmDowns})");
             }
         }
 
-        private void WinLevel(int finalScore)
+        private void WinLevel(float score)
         {
-            if (levelEnded) return;
             levelEnded = true;
-
-            int starRating = currentGoal?.GetStarRating(finalScore) ?? 0;
-
-            Debug.Log($"[LevelManager] LEVEL WON! Score: {finalScore}, Stars: {starRating}");
+            GameLogger.Milestone("LevelManager", $"=== LEVEL COMPLETE ===");
+            GameLogger.Milestone("LevelManager", $"Final Score: {score:F0}");
             
-            OnStarRatingAchieved?.Invoke(starRating);
+            // Calculate stars
+            int stars = 0;
+            if (score >= currentGoal.threeStarScore) stars = 3;
+            else if (score >= currentGoal.twoStarScore) stars = 2;
+            else if (score >= currentGoal.oneStarScore) stars = 1;
+            
+            GameLogger.Milestone("LevelManager", $"Stars: {stars}");
             OnLevelWon?.Invoke();
-
-            if (TeacherScoreManager.Instance != null && currentGoal != null && currentGoal.hasTimeLimit)
-            {
-                TeacherScoreManager.Instance.AwardSpeedBonus(LevelTimeRemaining);
-            }
-
-            if (GameStateManager.Instance != null)
-            {
-                GameStateManager.Instance.CompleteLevel();
-            }
         }
 
         private void LoseLevel(string reason)
         {
-            if (levelEnded) return;
             levelEnded = true;
-
-            Debug.Log($"[LevelManager] LEVEL LOST: {reason}");
+            GameLogger.Milestone("LevelManager", $"=== LEVEL FAILED ===");
+            GameLogger.Milestone("LevelManager", $"Reason: {reason}");
             OnLevelLost?.Invoke(reason);
-
-            if (GameStateManager.Instance != null)
-            {
-                GameStateManager.Instance.CompleteLevel();
-            }
         }
-
-        public void ForceCheckWinConditions()
-        {
-            CheckWinConditions();
-        }
-
-        public LevelProgress GetLevelProgress()
-        {
-            ScoreSummary summary = TeacherScoreManager.Instance?.GetScoreSummary() ?? new ScoreSummary();
-            
-            return new LevelProgress
-            {
-                timeElapsed = LevelTimeElapsed,
-                timeRemaining = LevelTimeRemaining,
-                currentScore = summary.totalScore,
-                resolvedProblems = summary.resolvedProblems,
-                requiredProblems = currentGoal?.requiredResolvedProblems ?? 0,
-                calmDowns = summary.calmDowns,
-                requiredCalmDowns = currentGoal?.requiredCalmDowns ?? 0,
-                disruption = ClassroomManager.Instance?.DisruptionLevel ?? 0f,
-                maxDisruption = currentGoal?.maxDisruptionThreshold ?? 100f
-            };
-        }
-    }
-
-    [System.Serializable]
-    public struct LevelProgress
-    {
-        public float timeElapsed;
-        public float timeRemaining;
-        public int currentScore;
-        public int resolvedProblems;
-        public int requiredProblems;
-        public int calmDowns;
-        public int requiredCalmDowns;
-        public float disruption;
-        public float maxDisruption;
     }
 }

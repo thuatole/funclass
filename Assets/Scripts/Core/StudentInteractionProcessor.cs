@@ -23,9 +23,6 @@ namespace FunClass.Core
         [Tooltip("Tolerance for time-based triggers (seconds)")]
         [SerializeField] private float timeTolerance = 0.5f;
 
-        [Header("Debug")]
-        [SerializeField] private bool enableDebugLogs = true;
-
         private List<StudentInteractionConfig> interactions = new List<StudentInteractionConfig>();
         private HashSet<string> triggeredInteractions = new HashSet<string>();
         private Dictionary<string, StudentAgent> studentsById = new Dictionary<string, StudentAgent>();
@@ -44,12 +41,12 @@ namespace FunClass.Core
             }
 
             Instance = this;
-            Log("[StudentInteractionProcessor] Awake - Instance created");
+            GameLogger.Milestone("StudentInteractionProcessor", "Awake - Instance created");
         }
 
         void Start()
         {
-            Log($"[StudentInteractionProcessor] Start - Interactions loaded: {interactions.Count}");
+            GameLogger.Detail("StudentInteractionProcessor", $"Start - Interactions loaded: {interactions.Count}");
             
             // Retry subscription if failed in OnEnable
             if (!hasSubscribedToGameState && GameStateManager.Instance != null)
@@ -57,12 +54,12 @@ namespace FunClass.Core
                 GameStateManager.Instance.OnStateChanged -= HandleGameStateChanged;
                 GameStateManager.Instance.OnStateChanged += HandleGameStateChanged;
                 hasSubscribedToGameState = true;
-                Log($"[StudentInteractionProcessor] ★ Late subscription to GameStateManager. Current state: {GameStateManager.Instance.CurrentState}");
+                GameLogger.Detail("StudentInteractionProcessor", $"Late subscription - Current state: {GameStateManager.Instance.CurrentState}");
                 
                 // Check if already in InLevel
                 if (GameStateManager.Instance.CurrentState == GameState.InLevel)
                 {
-                    Log("[StudentInteractionProcessor] Already in InLevel, activating processor");
+                    GameLogger.Detail("StudentInteractionProcessor", "Already in InLevel, activating processor");
                     isActive = true;
                     RefreshStudentList();
                 }
@@ -71,17 +68,17 @@ namespace FunClass.Core
 
         void OnEnable()
         {
-            Log("[StudentInteractionProcessor] OnEnable called");
+            GameLogger.Detail("StudentInteractionProcessor", "OnEnable called");
             
             if (GameStateManager.Instance != null)
             {
                 GameStateManager.Instance.OnStateChanged += HandleGameStateChanged;
                 hasSubscribedToGameState = true;
-                Log("[StudentInteractionProcessor] Subscribed to GameStateManager");
+                GameLogger.Detail("StudentInteractionProcessor", "Subscribed to GameStateManager");
             }
             else
             {
-                Log("[StudentInteractionProcessor] WARNING: GameStateManager.Instance is null!");
+                GameLogger.Warning("StudentInteractionProcessor", "GameStateManager.Instance is null!");
             }
         }
 
@@ -98,6 +95,8 @@ namespace FunClass.Core
         {
             if (!isActive || !interactionsLoaded || interactions.Count == 0) return;
 
+            GameLogger.Trace("StudentInteractionProcessor", $"Update tick - checking {interactions.Count} interactions");
+
             if (Time.time - lastCheckTime >= checkInterval)
             {
                 lastCheckTime = Time.time;
@@ -112,11 +111,11 @@ namespace FunClass.Core
             if (isActive)
             {
                 RefreshStudentList();
-                Log($"[StudentInteractionProcessor] Activated - Found {studentsById.Count} students, interactions: {interactions.Count}, loaded: {interactionsLoaded}");
+                GameLogger.Milestone("StudentInteractionProcessor", $"Activated - Found {studentsById.Count} students, {interactions.Count} interactions loaded");
             }
             else
             {
-                Log("[StudentInteractionProcessor] Deactivated");
+                GameLogger.Detail("StudentInteractionProcessor", "Deactivated");
             }
         }
 
@@ -135,7 +134,7 @@ namespace FunClass.Core
                 }
             }
 
-            Log($"[StudentInteractionProcessor] Found {studentsById.Count} students");
+            GameLogger.Detail("StudentInteractionProcessor", $"Found {studentsById.Count} students");
         }
 
         /// <summary>
@@ -149,17 +148,18 @@ namespace FunClass.Core
             
             if (configs == null || configs.Count == 0)
             {
-                Log("[StudentInteractionProcessor] No interactions to load");
+                GameLogger.Detail("StudentInteractionProcessor", "No interactions to load");
                 return;
             }
 
             interactions.AddRange(configs);
             interactionsLoaded = true;
-            Log($"[StudentInteractionProcessor] Loaded {interactions.Count} student interactions");
+            GameLogger.Milestone("StudentInteractionProcessor", $"Loaded {interactions.Count} student interactions");
 
             foreach (var config in interactions)
             {
-                Log($"[StudentInteractionProcessor]   - {config.sourceStudent} → {config.targetStudent} ({config.eventType}, {config.triggerCondition})");
+                GameLogger.Detail("StudentInteractionProcessor", 
+                    $"  {config.sourceStudent} → {config.targetStudent} ({config.eventType}, {config.triggerCondition})");
             }
         }
 
@@ -174,7 +174,7 @@ namespace FunClass.Core
 
             if (runtimeConfigs == null || runtimeConfigs.Count == 0)
             {
-                Log("[StudentInteractionProcessor] No runtime interactions to load");
+                GameLogger.Detail("StudentInteractionProcessor", "No runtime interactions to load");
                 return;
             }
 
@@ -194,11 +194,12 @@ namespace FunClass.Core
             }
 
             interactionsLoaded = true;
-            Log($"[StudentInteractionProcessor] Loaded {interactions.Count} runtime student interactions");
+            GameLogger.Milestone("StudentInteractionProcessor", $"Loaded {interactions.Count} runtime student interactions");
             
             foreach (var config in interactions)
             {
-                Log($"[StudentInteractionProcessor]   - {config.sourceStudent} → {config.targetStudent} ({config.eventType}, trigger={config.triggerCondition}, value={config.customSeverity})");
+                GameLogger.Detail("StudentInteractionProcessor", 
+                    $"  {config.sourceStudent} → {config.targetStudent} ({config.eventType}, trigger={config.triggerCondition}, value={config.customSeverity})");
             }
         }
 
@@ -225,11 +226,7 @@ namespace FunClass.Core
         /// </summary>
         private void CheckAndTriggerInteractions()
         {
-            // Only log occasionally to reduce spam
-            if (UnityEngine.Random.value < 0.05f)  // 5% chance to log
-            {
-                Log($"[StudentInteractionProcessor] Checking {interactions.Count} interactions...");
-            }
+            GameLogger.Trace("StudentInteractionProcessor", $"Checking {interactions.Count} interactions");
             
             foreach (var interaction in interactions)
             {
@@ -248,6 +245,7 @@ namespace FunClass.Core
             // Get source student
             if (!TryGetStudent(interaction.sourceStudent, out StudentAgent source))
             {
+                GameLogger.Trace("StudentInteractionProcessor", $"Skip - source student not found: {interaction.sourceStudent}");
                 return false;
             }
 
@@ -257,6 +255,7 @@ namespace FunClass.Core
             {
                 if (!TryGetStudent(interaction.targetStudent, out target))
                 {
+                    GameLogger.Trace("StudentInteractionProcessor", $"Skip - target student not found: {interaction.targetStudent}");
                     return false;
                 }
             }
@@ -265,18 +264,21 @@ namespace FunClass.Core
             string interactionKey = $"{interaction.sourceStudent}_{interaction.targetStudent}_{interaction.eventType}";
             if (oneTimeOnly && triggeredInteractions.Contains(interactionKey))
             {
+                GameLogger.Trace("StudentInteractionProcessor", $"Skip - already triggered: {interactionKey}");
                 return false;
             }
 
             // Check if source is immune
             if (source.IsImmuneToInfluence())
             {
+                GameLogger.Trace("StudentInteractionProcessor", $"Skip - source immune: {interaction.sourceStudent}");
                 return false;
             }
 
             // Check if source is following a route (skip for scripted time-based events)
             if (interaction.triggerCondition != "timeElapsed" && source.IsFollowingRoute)
             {
+                GameLogger.Trace("StudentInteractionProcessor", $"Skip - source following route: {interaction.sourceStudent}");
                 return false;
             }
 
@@ -298,26 +300,39 @@ namespace FunClass.Core
 
                 case "Always":
                     roll = Random.value;
+                    GameLogger.Detail("StudentInteractionProcessor", 
+                        $"Always trigger - roll={roll:F3} <= prob={interaction.probability:F3}");
                     return roll <= interaction.probability;
 
                 case "OnActingOut":
-                    return source.CurrentState == StudentState.ActingOut &&
-                           Random.value <= interaction.probability;
+                    bool actingOut = source.CurrentState == StudentState.ActingOut;
+                    roll = Random.value;
+                    GameLogger.Detail("StudentInteractionProcessor", 
+                        $"OnActingOut - state={source.CurrentState}, roll={roll:F3} <= prob={interaction.probability:F3}");
+                    return actingOut && roll <= interaction.probability;
 
                 case "OnCritical":
-                    return source.CurrentState == StudentState.Critical &&
-                           Random.value <= interaction.probability;
+                    bool critical = source.CurrentState == StudentState.Critical;
+                    roll = Random.value;
+                    GameLogger.Detail("StudentInteractionProcessor", 
+                        $"OnCritical - state={source.CurrentState}, roll={roll:F3} <= prob={interaction.probability:F3}");
+                    return critical && roll <= interaction.probability;
 
                 case "OnDistracted":
-                    return source.CurrentState == StudentState.Distracted &&
-                           Random.value <= interaction.probability;
+                    bool distracted = source.CurrentState == StudentState.Distracted;
+                    roll = Random.value;
+                    GameLogger.Detail("StudentInteractionProcessor", 
+                        $"OnDistracted - state={source.CurrentState}, roll={roll:F3} <= prob={interaction.probability:F3}");
+                    return distracted && roll <= interaction.probability;
 
                 case "Random":
                     roll = Random.value;
+                    GameLogger.Detail("StudentInteractionProcessor", 
+                        $"Random - roll={roll:F3} <= prob={interaction.probability:F3}");
                     return roll <= interaction.probability;
 
                 default:
-                    Log($"[StudentInteractionProcessor] Unknown trigger condition: {interaction.triggerCondition}");
+                    GameLogger.Warning("StudentInteractionProcessor", $"Unknown trigger condition: {interaction.triggerCondition}");
                     return false;
             }
         }
@@ -333,14 +348,20 @@ namespace FunClass.Core
             }
 
             float elapsed = LevelManager.Instance.LevelTimeElapsed;
-            float targetTime = interaction.triggerCondition == "timeElapsed" ? GetTriggerValue(interaction) : 0f;
+            float targetTime = interaction.customSeverity;
 
             // Check if we're within the tolerance window
             bool withinWindow = Mathf.Abs(elapsed - targetTime) <= timeTolerance;
 
             if (withinWindow)
             {
-                Log($"[StudentInteractionProcessor] ✓ Time-based trigger: {interaction.sourceStudent} at {elapsed:F1}s (target: {targetTime}s)");
+                GameLogger.Milestone("StudentInteractionProcessor", 
+                    $"Time-based trigger: {interaction.sourceStudent} → {interaction.targetStudent} ({interaction.eventType}) at {elapsed:F1}s");
+            }
+            else
+            {
+                GameLogger.Trace("StudentInteractionProcessor", 
+                    $"Time check - elapsed={elapsed:F1}, target={targetTime:F1}, withinWindow={withinWindow}");
             }
 
             return withinWindow;
@@ -368,10 +389,12 @@ namespace FunClass.Core
             string interactionKey = $"{interaction.sourceStudent}_{interaction.targetStudent}_{interaction.eventType}";
             triggeredInteractions.Add(interactionKey);
 
-            Log($"[StudentInteractionProcessor] >>> Triggering: {interaction.sourceStudent} → {interaction.targetStudent} ({interaction.eventType})");
+            GameLogger.Milestone("StudentInteractionProcessor", 
+                $"Triggered: {interaction.sourceStudent} → {interaction.targetStudent} ({interaction.eventType})");
 
             if (!TryGetStudent(interaction.sourceStudent, out StudentAgent source))
             {
+                GameLogger.Warning("StudentInteractionProcessor", $"Source student not found: {interaction.sourceStudent}");
                 return;
             }
 
@@ -384,7 +407,7 @@ namespace FunClass.Core
             // Parse event type
             if (!System.Enum.TryParse(interaction.eventType, out StudentEventType eventType))
             {
-                Log($"[StudentInteractionProcessor] Invalid event type: {interaction.eventType}");
+                GameLogger.Warning("StudentInteractionProcessor", $"Invalid event type: {interaction.eventType}");
                 return;
             }
 
@@ -403,15 +426,6 @@ namespace FunClass.Core
                 );
 
                 StudentEventManager.Instance.LogEvent(evt);
-                Log($"[StudentInteractionProcessor] ✓ Triggered: {interaction.eventType} from {source.Config?.studentName}");
-            }
-        }
-
-        private void Log(string message)
-        {
-            if (enableDebugLogs)
-            {
-                Debug.Log(message);
             }
         }
     }

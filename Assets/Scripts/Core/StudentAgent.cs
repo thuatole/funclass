@@ -25,6 +25,7 @@ namespace FunClass.Core
         private List<StudentInteractionSequence> availableSequences = new List<StudentInteractionSequence>();
         private bool isFollowingRoute = false;
         private StudentInfluenceSources influenceSources;
+        private float influenceImmunityUntil = 0f;
 
         public Vector3 OriginalSeatPosition => originalPosition;
         public bool IsFollowingRoute => isFollowingRoute;
@@ -32,7 +33,7 @@ namespace FunClass.Core
 
         void Start()
         {
-            Debug.Log($"[StudentAgent] {gameObject.name} Start() called - config: {(config != null ? config.studentName : "NULL")}");
+            GameLogger.Detail("StudentAgent", $"{gameObject.name} Start() - config: {(config != null ? config.studentName : "NULL")}");
             
             if (config != null)
             {
@@ -40,7 +41,7 @@ namespace FunClass.Core
             }
             else
             {
-                Debug.LogWarning($"[StudentAgent] {gameObject.name} has no config assigned in Start() - attempting to find from LevelLoader");
+                GameLogger.Warning("StudentAgent", $"{gameObject.name} has no config assigned - attempting to find from LevelLoader");
                 
                 // Try to find config from LevelLoader as fallback
                 if (LevelLoader.Instance != null && LevelLoader.Instance.CurrentLevel != null)
@@ -54,12 +55,12 @@ namespace FunClass.Core
                         
                         if (matchingConfig != null)
                         {
-                            Debug.Log($"[StudentAgent] Found matching config for {studentName} from LevelLoader");
+                            GameLogger.Detail("StudentAgent", $"Found matching config for {studentName} from LevelLoader");
                             Initialize(matchingConfig);
                         }
                         else
                         {
-                            Debug.LogError($"[StudentAgent] Could not find config for {studentName} in LevelLoader");
+                            GameLogger.Error("StudentAgent", $"Could not find config for {studentName} in LevelLoader");
                         }
                     }
                 }
@@ -68,19 +69,19 @@ namespace FunClass.Core
             originalPosition = transform.position;
             originalRotation = transform.rotation;
             
-            Debug.Log($"[StudentAgent] {gameObject.name} initialized at position {originalPosition}");
+            GameLogger.Detail("StudentAgent", $"{gameObject.name} initialized at {originalPosition}");
             
             // Fallback subscription if OnEnable was called before GameStateManager existed
             if (GameStateManager.Instance != null)
             {
                 GameStateManager.Instance.OnStateChanged -= HandleGameStateChanged;
                 GameStateManager.Instance.OnStateChanged += HandleGameStateChanged;
-                Debug.Log($"[StudentAgent] {gameObject.name} subscribed to GameStateManager in Start()");
+                GameLogger.Detail("StudentAgent", $"{gameObject.name} subscribed to GameStateManager in Start()");
                 
                 // If already in InLevel state, activate immediately
                 if (GameStateManager.Instance.CurrentState == GameState.InLevel)
                 {
-                    Debug.Log($"[StudentAgent] {gameObject.name} already in InLevel state, activating immediately");
+                    GameLogger.Detail("StudentAgent", $"{gameObject.name} already in InLevel state, activating immediately");
                     ActivateStudent();
                 }
             }
@@ -104,6 +105,8 @@ namespace FunClass.Core
 
         void Update()
         {
+            GameLogger.Trace("StudentAgent", $"{config?.studentName ?? gameObject.name}: Update - isActive={isActive}, isFollowingRoute={isFollowingRoute}, currentReaction={currentReaction}");
+            
             if (!isActive) return;
 
             // Check if following a route (managed by StudentMovementManager)
@@ -132,7 +135,7 @@ namespace FunClass.Core
 
         private void HandleGameStateChanged(GameState oldState, GameState newState)
         {
-            Debug.Log($"[StudentAgent] {gameObject.name} HandleGameStateChanged: {oldState} -> {newState}");
+            GameLogger.Detail("StudentAgent", $"{gameObject.name}: {oldState} → {newState}");
             
             if (newState == GameState.InLevel)
             {
@@ -148,13 +151,13 @@ namespace FunClass.Core
         {
             isActive = true;
             ScheduleNextBehavior();
-            Debug.Log($"[StudentAgent] {config?.studentName ?? gameObject.name} activated");
+            GameLogger.Milestone("StudentAgent", $"{config?.studentName ?? gameObject.name} activated");
         }
 
         private void DeactivateStudent()
         {
             isActive = false;
-            Debug.Log($"[StudentAgent] {config?.studentName ?? gameObject.name} deactivated");
+            GameLogger.Detail("StudentAgent", $"{config?.studentName ?? gameObject.name} deactivated");
         }
 
         public void Initialize(StudentConfig studentConfig)
@@ -163,7 +166,7 @@ namespace FunClass.Core
             CurrentState = config.initialState;
             influenceSources = new StudentInfluenceSources(this);
             InitializeSequences();
-            Debug.Log($"[StudentAgent] Initialized {config.studentName} with state: {CurrentState}");
+            GameLogger.Milestone("StudentAgent", $"{config.studentName} initialized - state: {CurrentState}");
         }
 
         private void InitializeSequences()
@@ -172,7 +175,7 @@ namespace FunClass.Core
 
             if (LevelLoader.Instance == null || LevelLoader.Instance.CurrentLevel == null)
             {
-                Debug.LogWarning($"[StudentAgent] {config?.studentName} cannot load sequences - no level loaded");
+                GameLogger.Detail("StudentAgent", $"{config?.studentName} cannot load sequences - no level loaded");
                 return;
             }
 
@@ -180,7 +183,7 @@ namespace FunClass.Core
             
             if (currentLevel.availableSequences == null || currentLevel.availableSequences.Count == 0)
             {
-                Debug.Log($"[StudentAgent] {config?.studentName} has no sequences available in this level");
+                GameLogger.Detail("StudentAgent", $"{config?.studentName} has no sequences available in this level");
                 return;
             }
 
@@ -190,11 +193,11 @@ namespace FunClass.Core
                 {
                     StudentInteractionSequence sequence = sequenceConfig.ToInteractionSequence();
                     availableSequences.Add(sequence);
-                    Debug.Log($"[StudentAgent] {config?.studentName} loaded sequence: {sequence.sequenceId}");
+                    GameLogger.Detail("StudentAgent", $"{config?.studentName} loaded sequence: {sequence.sequenceId}");
                 }
             }
 
-            Debug.Log($"[StudentAgent] {config?.studentName} loaded {availableSequences.Count} sequences from level");
+            GameLogger.Detail("StudentAgent", $"{config?.studentName} loaded {availableSequences.Count} sequences");
         }
 
         public void ChangeState(StudentState newState)
@@ -204,7 +207,7 @@ namespace FunClass.Core
             StudentState oldState = CurrentState;
             CurrentState = newState;
 
-            Debug.Log($"[StudentAgent] {config?.studentName ?? gameObject.name}: {oldState} -> {newState}");
+            GameLogger.Milestone("StudentAgent", $"{config?.studentName ?? gameObject.name}: {oldState} → {newState}");
             OnStateChanged?.Invoke(oldState, newState);
         }
 
@@ -216,7 +219,8 @@ namespace FunClass.Core
             float roll = UnityEngine.Random.value;
             bool shouldInteractWithObject = roll < interactionChance;
 
-            Debug.Log($"[StudentAgent] {config?.studentName} behavior check - State: {CurrentState}, InteractionChance: {interactionChance:F2}, Roll: {roll:F2}, ShouldInteract: {shouldInteractWithObject}");
+            GameLogger.Detail("StudentAgent", 
+                $"{config?.studentName}: behavior check - state={CurrentState}, chance={interactionChance:F2}, roll={roll:F2}, interact={shouldInteractWithObject}");
 
             if (shouldInteractWithObject)
             {
@@ -303,8 +307,6 @@ namespace FunClass.Core
             ChangeState(nextState);
         }
 
-        private float influenceImmunityUntil = 0f;
-        
         public bool IsImmuneToInfluence()
         {
             return Time.time < influenceImmunityUntil;
@@ -313,7 +315,7 @@ namespace FunClass.Core
         public void SetInfluenceImmunity(float duration)
         {
             influenceImmunityUntil = Time.time + duration;
-            Debug.Log($"[StudentAgent] {Config?.studentName} immune to influence for {duration}s");
+            GameLogger.Detail("StudentAgent", $"{Config?.studentName} immune to influence for {duration}s");
         }
         
         public void DeescalateState()
@@ -336,16 +338,17 @@ namespace FunClass.Core
 
             float waitTime = UnityEngine.Random.Range(config.minIdleTime, config.maxIdleTime);
             nextBehaviorTime = Time.time + waitTime;
+            GameLogger.Detail("StudentAgent", $"{config?.studentName}: next behavior in {waitTime:F1}s");
         }
 
         private void Fidget()
         {
-            Debug.Log($"[StudentAgent] {config.studentName} fidgets");
+            GameLogger.Detail("StudentAgent", $"{config.studentName} fidgets");
         }
 
         private void LookAround()
         {
-            Debug.Log($"[StudentAgent] {config.studentName} looks around");
+            GameLogger.Detail("StudentAgent", $"{config.studentName} looks around");
             
             float randomYaw = UnityEngine.Random.Range(-45f, 45f);
             transform.rotation = originalRotation * Quaternion.Euler(0f, randomYaw, 0f);
@@ -353,12 +356,12 @@ namespace FunClass.Core
 
         private void StandUp()
         {
-            Debug.Log($"[StudentAgent] {config.studentName} stands up");
+            GameLogger.Detail("StudentAgent", $"{config.studentName} stands up");
         }
 
         private void MoveAround()
         {
-            Debug.Log($"[StudentAgent] {config.studentName} moves around");
+            GameLogger.Detail("StudentAgent", $"{config.studentName} moves around");
             
             Vector3 randomOffset = new Vector3(
                 UnityEngine.Random.Range(-0.5f, 0.5f),
@@ -389,12 +392,13 @@ namespace FunClass.Core
             
             if (nearbyObject != null)
             {
-                Debug.Log($"[StudentAgent] {config?.studentName} found nearby object: {nearbyObject.objectName}");
+                GameLogger.Milestone("StudentAgent", $"{config?.studentName} interacts with {nearbyObject.objectName}");
                 PerformObjectInteraction(nearbyObject);
             }
             else
             {
-                Debug.Log($"[StudentAgent] {config?.studentName} no nearby objects found (range: {config?.interactionRange})");
+                GameLogger.Detail("StudentAgent", 
+                    $"{config?.studentName} no nearby objects found (range: {config?.interactionRange})");
             }
         }
 
@@ -430,37 +434,38 @@ namespace FunClass.Core
             if (config == null || obj == null) return;
 
             float roll = UnityEngine.Random.value;
-            Debug.Log($"[StudentAgent] {config?.studentName} interaction roll: {roll:F2}, checking permissions...");
-            Debug.Log($"[StudentAgent] canKnockOver: {config.canKnockOverObjects}, canMakeNoise: {config.canMakeNoiseWithObjects}, canThrow: {config.canThrowObjects}, canDrop: {config.canDropItems}, canTouch: {config.canTouchObjects}");
+            GameLogger.Detail("StudentAgent", 
+                $"{config?.studentName} interaction roll: {roll:F2}");
 
             if (config.canKnockOverObjects && obj.canBeKnockedOver && roll < 0.3f)
             {
-                Debug.Log($"[StudentAgent] {config?.studentName} will knock over {obj.objectName}");
+                GameLogger.Detail("StudentAgent", $"{config?.studentName} will knock over {obj.objectName}");
                 WalkToObjectAndInteract(obj, ObjectInteractionType.KnockOver);
             }
             else if (config.canMakeNoiseWithObjects && obj.canMakeNoise && roll < 0.5f)
             {
-                Debug.Log($"[StudentAgent] {config?.studentName} will make noise with {obj.objectName}");
+                GameLogger.Detail("StudentAgent", $"{config?.studentName} will make noise with {obj.objectName}");
                 WalkToObjectAndInteract(obj, ObjectInteractionType.MakeNoise);
             }
             else if (config.canThrowObjects && obj.canBeThrown && roll < 0.7f)
             {
-                Debug.Log($"[StudentAgent] {config?.studentName} will throw {obj.objectName}");
+                GameLogger.Detail("StudentAgent", $"{config?.studentName} will throw {obj.objectName}");
                 WalkToObjectAndInteract(obj, ObjectInteractionType.Throw);
             }
             else if (config.canDropItems && obj.canBeDropped && roll < 0.85f)
             {
-                Debug.Log($"[StudentAgent] {config?.studentName} will drop {obj.objectName}");
+                GameLogger.Detail("StudentAgent", $"{config?.studentName} will drop {obj.objectName}");
                 WalkToObjectAndInteract(obj, ObjectInteractionType.Drop);
             }
             else if (config.canTouchObjects)
             {
-                Debug.Log($"[StudentAgent] {config?.studentName} will touch {obj.objectName}");
+                GameLogger.Detail("StudentAgent", $"{config?.studentName} will touch {obj.objectName}");
                 WalkToObjectAndInteract(obj, ObjectInteractionType.Touch);
             }
             else
             {
-                Debug.Log($"[StudentAgent] {config?.studentName} no valid interaction with {obj.objectName} (roll: {roll:F2})");
+                GameLogger.Detail("StudentAgent", 
+                    $"{config?.studentName} no valid interaction with {obj.objectName} (roll: {roll:F2})");
             }
         }
 
@@ -468,11 +473,11 @@ namespace FunClass.Core
         {
             if (obj == null)
             {
-                Debug.LogWarning($"[StudentAgent] {config?.studentName} WalkToObjectAndInteract called with null obj!");
+                GameLogger.Warning("StudentAgent", $"{config?.studentName} WalkToObjectAndInteract called with null obj!");
                 return;
             }
 
-            Debug.Log($"[StudentAgent] {config?.studentName} WalkToObjectAndInteract - obj: {obj.objectName}, type: {obj.GetType().Name}, interaction: {interactionType}");
+            GameLogger.Detail("StudentAgent", $"{config?.studentName} walking to {obj.objectName}");
 
             targetObject = obj;
             isPerformingSequence = true;
@@ -498,7 +503,7 @@ namespace FunClass.Core
             Vector3 moveToPosition = targetPosition + (-direction * 1f);
             transform.position = moveToPosition;
 
-            Debug.Log($"[StudentAgent] {config?.studentName} reached {obj.objectName}, performing {interactionType}...");
+            GameLogger.Detail("StudentAgent", $"{config?.studentName} performing {interactionType} on {obj.objectName}");
             
             try
             {
@@ -520,12 +525,11 @@ namespace FunClass.Core
                         obj.Touch(this);
                         break;
                 }
-                Debug.Log($"[StudentAgent] {config?.studentName} interaction {interactionType} completed");
+                GameLogger.Detail("StudentAgent", $"{config?.studentName} completed {interactionType}");
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"[StudentAgent] {config?.studentName} interaction {interactionType} threw exception: {e.Message}");
-                Debug.LogException(e);
+                GameLogger.Error("StudentAgent", $"{config?.studentName} {interactionType} failed: {e.Message}");
             }
 
             isPerformingSequence = false;
@@ -563,7 +567,7 @@ namespace FunClass.Core
                 );
             }
 
-            Debug.Log($"[StudentAgent] Teacher is interacting with {config?.studentName}");
+            GameLogger.Detail("StudentAgent", $"Teacher interacting with {config?.studentName}");
         }
 
         public void CalmDown()
@@ -590,7 +594,7 @@ namespace FunClass.Core
                 TriggerReaction(StudentReactionType.Embarrassed, 3f);
             }
 
-            Debug.Log($"[StudentAgent] {config?.studentName} is calming down");
+            GameLogger.Detail("StudentAgent", $"{config?.studentName} calming down");
         }
 
         public void StopCurrentAction()
@@ -598,7 +602,6 @@ namespace FunClass.Core
             if (isPerformingSequence)
             {
                 isPerformingSequence = false;
-                targetObject = null;
 
                 if (StudentEventManager.Instance != null)
                 {
@@ -624,7 +627,7 @@ namespace FunClass.Core
                 TriggerReaction(StudentReactionType.Angry, 3f);
             }
 
-            Debug.Log($"[StudentAgent] {config?.studentName} stopped their action");
+            GameLogger.Detail("StudentAgent", $"{config?.studentName} stopped action");
         }
 
         public void ReturnToSeat()
@@ -660,7 +663,7 @@ namespace FunClass.Core
                 TriggerReaction(StudentReactionType.Apologize, 4f);
             }
 
-            Debug.Log($"[StudentAgent] {config?.studentName} returned to seat");
+            GameLogger.Milestone("StudentAgent", $"{config?.studentName} returned to seat");
         }
 
         public void TakeObjectAway(GameObject obj)
@@ -683,24 +686,18 @@ namespace FunClass.Core
 
             OnItemConfiscated(itemName);
 
-            Debug.Log($"[StudentAgent] Teacher took {itemName} away from {config?.studentName}");
+            GameLogger.Detail("StudentAgent", $"Teacher took {itemName} from {config?.studentName}");
         }
 
-        /// <summary>
-        /// Hook method called when an item is confiscated from this student.
-        /// Determines the appropriate reaction and state change based on the item type.
-        /// This is the extension point for adding custom confiscation behavior.
-        /// </summary>
-        /// <param name="itemName">The name of the confiscated item</param>
         public void OnItemConfiscated(string itemName)
         {
             if (config == null)
             {
-                Debug.LogWarning($"[StudentAgent] OnItemConfiscated called but config is null");
+                GameLogger.Warning("StudentAgent", "OnItemConfiscated called but config is null");
                 return;
             }
 
-            Debug.Log($"[StudentAgent] {config.studentName} processing confiscation of: {itemName}");
+            GameLogger.Detail("StudentAgent", $"{config.studentName} processing confiscation of: {itemName}");
 
             ItemConfiscationBehavior matchedBehavior = FindMatchingConfiscationBehavior(itemName);
 
@@ -714,10 +711,6 @@ namespace FunClass.Core
             }
         }
 
-        /// <summary>
-        /// Finds the first confiscation behavior that matches the given item name.
-        /// Returns null if no match is found.
-        /// </summary>
         private ItemConfiscationBehavior FindMatchingConfiscationBehavior(string itemName)
         {
             if (config.confiscationBehaviors == null || config.confiscationBehaviors.Length == 0)
@@ -729,7 +722,7 @@ namespace FunClass.Core
             {
                 if (behavior != null && behavior.MatchesItem(itemName))
                 {
-                    Debug.Log($"[StudentAgent] {config.studentName} matched confiscation behavior for: {itemName}");
+                    GameLogger.Detail("StudentAgent", $"{config.studentName} matched confiscation behavior for: {itemName}");
                     return behavior;
                 }
             }
@@ -737,12 +730,9 @@ namespace FunClass.Core
             return null;
         }
 
-        /// <summary>
-        /// Applies a specific confiscation behavior (reaction, state change, disruption reduction).
-        /// </summary>
         private void ApplyConfiscationBehavior(ItemConfiscationBehavior behavior, string itemName)
         {
-            Debug.Log($"[StudentAgent] {config.studentName} applying custom confiscation behavior for: {itemName}");
+            GameLogger.Detail("StudentAgent", $"{config.studentName} applying custom confiscation behavior for: {itemName}");
 
             if (behavior.reaction != StudentReactionType.None)
             {
@@ -753,22 +743,19 @@ namespace FunClass.Core
             {
                 StudentState oldState = CurrentState;
                 ChangeState(behavior.newState);
-                Debug.Log($"[StudentAgent] {config.studentName} state changed from {oldState} to {behavior.newState} due to confiscation of {itemName}");
+                GameLogger.Detail("StudentAgent", $"{config.studentName} state changed: {oldState} → {behavior.newState}");
             }
 
             if (behavior.disruptionReduction > 0f && ClassroomManager.Instance != null)
             {
                 ClassroomManager.Instance.ReduceDisruption(behavior.disruptionReduction);
-                Debug.Log($"[StudentAgent] {config.studentName} confiscation reduced disruption by {behavior.disruptionReduction}");
+                GameLogger.Detail("StudentAgent", $"{config.studentName} confiscation reduced disruption by {behavior.disruptionReduction}");
             }
         }
 
-        /// <summary>
-        /// Applies the default confiscation behavior when no specific behavior matches.
-        /// </summary>
         private void ApplyDefaultConfiscationBehavior(string itemName)
         {
-            Debug.Log($"[StudentAgent] {config.studentName} applying default confiscation behavior for: {itemName}");
+            GameLogger.Detail("StudentAgent", $"{config.studentName} applying default confiscation behavior for: {itemName}");
 
             if (config.defaultConfiscationReaction != StudentReactionType.None)
             {
@@ -779,7 +766,7 @@ namespace FunClass.Core
             {
                 StudentState oldState = CurrentState;
                 ChangeState(config.defaultConfiscationNewState);
-                Debug.Log($"[StudentAgent] {config.studentName} state changed from {oldState} to {config.defaultConfiscationNewState} due to default confiscation behavior");
+                GameLogger.Detail("StudentAgent", $"{config.studentName} state changed: {oldState} → {config.defaultConfiscationNewState}");
             }
             else
             {
@@ -801,337 +788,58 @@ namespace FunClass.Core
             };
         }
 
-        public void TriggerReaction(StudentReactionType reaction, float duration = 3f)
-        {
-            if (reaction == StudentReactionType.None) return;
-
-            currentReaction = reaction;
-            reactionEndTime = Time.time + duration;
-
-            string reactionText = reaction switch
-            {
-                StudentReactionType.Cry => "started crying",
-                StudentReactionType.Apologize => "apologized",
-                StudentReactionType.Angry => "looks angry",
-                StudentReactionType.Scared => "looks scared",
-                StudentReactionType.Embarrassed => "looks embarrassed",
-                StudentReactionType.Confused => "looks confused",
-                _ => "reacted"
-            };
-
-            if (StudentEventManager.Instance != null)
-            {
-                StudentEventManager.Instance.LogEvent(
-                    this,
-                    StudentEventType.StudentReacted,
-                    reactionText
-                );
-            }
-
-            Debug.Log($"[Reaction] {config?.studentName} {reactionText}");
-        }
-
-        public void ClearReaction()
-        {
-            if (currentReaction == StudentReactionType.None) return;
-
-            StudentReactionType previousReaction = currentReaction;
-            currentReaction = StudentReactionType.None;
-            reactionEndTime = 0f;
-
-            if (StudentEventManager.Instance != null)
-            {
-                StudentEventManager.Instance.LogEvent(
-                    this,
-                    StudentEventType.ReactionEnded,
-                    $"stopped reacting ({previousReaction})"
-                );
-            }
-
-            Debug.Log($"[Reaction] {config?.studentName} stopped reacting");
-        }
-
-        public StudentReactionType GetCurrentReaction()
-        {
-            return currentReaction;
-        }
-
-        public void StartSequence(StudentInteractionSequence sequence)
-        {
-            if (sequence == null) return;
-
-            currentSequence = sequence;
-            currentSequence.Reset();
-            currentSequence.SetStepStartTime(Time.time);
-
-            Debug.Log($"[Sequence] {config?.studentName} started sequence: {sequence.sequenceId}");
-
-            StudentActionStep firstStep = currentSequence.GetCurrentStep();
-            if (firstStep != null)
-            {
-                ExecuteStep(firstStep);
-            }
-        }
-
-        public bool AdvanceSequence(TeacherActionType action)
-        {
-            if (currentSequence == null) return false;
-
-            StudentActionStep currentStep = currentSequence.GetCurrentStep();
-            if (currentStep == null) return false;
-
-            if (currentStep.enableBranching)
-            {
-                bool isSuccess;
-                if (currentSequence.CanBranch(action, CurrentState, out isSuccess))
-                {
-                    ExecuteStep(currentStep);
-
-                    string branchType = isSuccess ? "SUCCESS" : "FAILURE";
-                    Debug.Log($"[Sequence] {config?.studentName} taking {branchType} branch (action: {action})");
-
-                    StudentActionStep nextStep = currentSequence.AdvanceStepWithResult(isSuccess);
-
-                    if (currentSequence.IsComplete())
-                    {
-                        Debug.Log($"[Sequence] {config?.studentName} completed sequence: {currentSequence.sequenceId} via {branchType} path");
-                        Debug.Log($"[Sequence] Outcome: {currentSequence.finalOutcomeDescription}");
-                        currentSequence = null;
-                        return true;
-                    }
-                    else if (nextStep != null)
-                    {
-                        Debug.Log($"[Sequence] {config?.studentName} advanced to step {currentSequence.GetCurrentStep()?.stepDescription}");
-                        return true;
-                    }
-                }
-                else
-                {
-                    Debug.Log($"[Sequence] {config?.studentName} action {action} doesn't match branching requirements");
-                    return false;
-                }
-            }
-            else if (currentSequence.CanAdvance(action, CurrentState))
-            {
-                ExecuteStep(currentStep);
-
-                StudentActionStep nextStep = currentSequence.AdvanceStep();
-
-                if (currentSequence.IsComplete())
-                {
-                    Debug.Log($"[Sequence] {config?.studentName} completed sequence: {currentSequence.sequenceId}");
-                    Debug.Log($"[Sequence] Outcome: {currentSequence.finalOutcomeDescription}");
-                    currentSequence = null;
-                    return true;
-                }
-                else if (nextStep != null)
-                {
-                    Debug.Log($"[Sequence] {config?.studentName} advanced to next step: {nextStep.stepDescription}");
-                    return true;
-                }
-            }
-            else
-            {
-                Debug.Log($"[Sequence] {config?.studentName} action {action} doesn't match current step requirements");
-            }
-
-            return false;
-        }
-
-        public void CancelSequence()
-        {
-            if (currentSequence != null)
-            {
-                Debug.Log($"[Sequence] {config?.studentName} cancelled sequence: {currentSequence.sequenceId}");
-                currentSequence = null;
-            }
-        }
-
-        public bool IsInSequence()
-        {
-            return currentSequence != null;
-        }
-
-        private void ExecuteStep(StudentActionStep step)
-        {
-            if (step == null) return;
-
-            Debug.Log($"[Sequence] {config?.studentName} executing step: {step.stepDescription}");
-
-            if (step.resultingReaction != StudentReactionType.None)
-            {
-                TriggerReaction(step.resultingReaction, 4f);
-            }
-
-            if (step.resultingStateChange.HasValue)
-            {
-                ChangeState(step.resultingStateChange.Value);
-            }
-
-            if (step.enableTimeout)
-            {
-                Debug.Log($"[Sequence] {config?.studentName} step has {step.timeoutSeconds}s timeout");
-            }
-        }
-
-        private void HandleSequenceTimeout()
-        {
-            if (currentSequence == null) return;
-
-            StudentActionStep currentStep = currentSequence.GetCurrentStep();
-            if (currentStep == null || !currentStep.enableTimeout) return;
-
-            Debug.Log($"[Sequence] {config?.studentName} TIMEOUT on step: {currentStep.stepDescription}");
-
-            if (currentStep.timeoutReaction != StudentReactionType.None)
-            {
-                TriggerReaction(currentStep.timeoutReaction, 4f);
-            }
-
-            StudentActionStep nextStep = currentSequence.HandleTimeout();
-
-            if (nextStep != null)
-            {
-                Debug.Log($"[Sequence] {config?.studentName} taking TIMEOUT branch to: {nextStep.stepDescription}");
-                ExecuteStep(nextStep);
-            }
-            else
-            {
-                Debug.Log($"[Sequence] {config?.studentName} timeout ended sequence: {currentSequence.sequenceId}");
-                currentSequence = null;
-            }
-        }
-
-        public bool TryStartSequence(TeacherActionType action)
-        {
-            foreach (StudentInteractionSequence sequence in availableSequences)
-            {
-                if (sequence.MatchesEntry(CurrentState, action))
-                {
-                    StartSequence(sequence);
-                    return true;
-                }
-            }
-            return false;
-        }
-
         public void HandleTeacherAction(TeacherActionType action)
-        {
-            if (IsInSequence())
-            {
-                bool advanced = AdvanceSequence(action);
-                if (!advanced)
-                {
-                    Debug.Log($"[Sequence] {config?.studentName} couldn't advance, cancelling sequence");
-                    CancelSequence();
-                    ExecuteFallbackAction(action);
-                }
-            }
-            else
-            {
-                bool sequenceStarted = TryStartSequence(action);
-                if (!sequenceStarted)
-                {
-                    ExecuteFallbackAction(action);
-                }
-            }
-        }
-
-        private void ExecuteFallbackAction(TeacherActionType action)
         {
             switch (action)
             {
-                case TeacherActionType.Talk:
-                    InteractWithTeacher(TeacherController.Instance);
-                    break;
                 case TeacherActionType.Calm:
                     CalmDown();
-                    break;
-                case TeacherActionType.Stop:
-                    StopCurrentAction();
                     break;
                 case TeacherActionType.SendToSeat:
                     ReturnToSeat();
                     break;
-                case TeacherActionType.Scold:
+                case TeacherActionType.Stop:
                     StopCurrentAction();
                     break;
+                case TeacherActionType.Talk:
+                    InteractWithTeacher(null);
+                    break;
+                case TeacherActionType.Scold:
+                    if (UnityEngine.Random.value < 0.7f)
+                    {
+                        TriggerReaction(StudentReactionType.Embarrassed, 4f);
+                    }
+                    break;
                 case TeacherActionType.Praise:
-                    TriggerReaction(StudentReactionType.Embarrassed, 3f);
-                    break;
-                case TeacherActionType.CallStudentBack:
-                    // Student is being called back - show embarrassed or apologetic reaction
-                    if (CurrentState == StudentState.Critical)
+                    if (UnityEngine.Random.value < 0.6f)
                     {
-                        TriggerReaction(StudentReactionType.Scared, 4f);
-                    }
-                    else
-                    {
-                        TriggerReaction(StudentReactionType.Embarrassed, 3f);
-                    }
-                    DeescalateState();
-                    break;
-                case TeacherActionType.EscortStudentBack:
-                    // Being escorted - show stronger reaction
-                    TriggerReaction(StudentReactionType.Apologize, 5f);
-                    DeescalateState();
-                    DeescalateState(); // Double de-escalate for escort
-                    break;
-                case TeacherActionType.ForceReturnToSeat:
-                    // Forced return - may trigger negative reaction
-                    if (UnityEngine.Random.value < 0.5f)
-                    {
-                        TriggerReaction(StudentReactionType.Angry, 2f);
-                    }
-                    else
-                    {
-                        TriggerReaction(StudentReactionType.Embarrassed, 3f);
+                        DeescalateState();
                     }
                     break;
             }
         }
 
-        /// <summary>
-        /// Starts the student on a predefined route
-        /// </summary>
-        public void StartRoute(StudentRoute route)
+        public void TriggerReaction(StudentReactionType reaction, float duration)
         {
-            if (route == null)
-            {
-                Debug.LogWarning($"[StudentAgent] {config?.studentName} cannot start null route");
-                return;
-            }
-
-            if (StudentMovementManager.Instance != null)
-            {
-                StudentMovementManager.Instance.StartRoute(this, route);
-                Debug.Log($"[StudentAgent] {config?.studentName} starting route: {route.routeName}");
-            }
+            currentReaction = reaction;
+            reactionEndTime = Time.time + duration;
+            GameLogger.Detail("StudentAgent", $"{config?.studentName} reaction: {reaction} for {duration}s");
         }
 
-        /// <summary>
-        /// Stops the student's current route movement
-        /// </summary>
-        public void StopRoute()
+        private void ClearReaction()
         {
-            if (StudentMovementManager.Instance != null)
-            {
-                StudentMovementManager.Instance.StopMovement(this);
-                Debug.Log($"[StudentAgent] {config?.studentName} stopped route");
-            }
+            currentReaction = StudentReactionType.None;
         }
 
-
-        /// <summary>
-        /// Gets the current route the student is following (null if not on a route)
-        /// </summary>
-        public StudentRoute GetCurrentRoute()
+        private bool IsInSequence()
         {
-            if (StudentMovementManager.Instance != null)
-            {
-                return StudentMovementManager.Instance.GetCurrentRoute(this);
-            }
-            return null;
+            return currentSequence != null;
+        }
+
+        private void HandleSequenceTimeout()
+        {
+            currentSequence = null;
+            isPerformingSequence = false;
         }
     }
 }

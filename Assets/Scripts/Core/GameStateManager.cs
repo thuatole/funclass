@@ -19,7 +19,7 @@ namespace FunClass.Core
         {
             if (Instance != null && Instance != this)
             {
-                Debug.LogWarning("[GameStateManager] Duplicate instance destroyed");
+                GameLogger.Warning("GameStateManager", "Duplicate instance destroyed");
                 Destroy(gameObject);
                 return;
             }
@@ -27,61 +27,53 @@ namespace FunClass.Core
             Instance = this;
             DontDestroyOnLoad(gameObject);
             CurrentState = GameState.Boot;
-            Debug.Log("[GameStateManager] Initialized in Boot state");
+            GameLogger.Milestone("GameStateManager", "Initialized in Boot state");
         }
 
         void Start()
         {
-            // Delay transition to ensure all managers are initialized
             StartCoroutine(DelayedLevelStart());
         }
 
         private System.Collections.IEnumerator DelayedLevelStart()
         {
-            Debug.Log("[GameStateManager] Waiting for managers to initialize...");
+            GameLogger.Detail("GameStateManager", "Waiting for managers to initialize...");
 
-            // Wait one frame for all managers to initialize
             yield return null;
 
             if (showStudentIntro)
             {
-                // Transition FIRST so listeners know the state
-                Debug.Log("[GameStateManager] Starting level transition to StudentIntro");
+                GameLogger.Detail("GameStateManager", "Starting level transition to StudentIntro");
                 TransitionTo(GameState.StudentIntro);
 
-                // Then ensure StudentIntroScreen exists (it will show itself because state is StudentIntro)
                 EnsureStudentIntroScreenExists();
             }
             else
             {
-                // Skip intro and go directly to InLevel
-                Debug.Log("[GameStateManager] Skipping StudentIntro, going to InLevel");
+                GameLogger.Detail("GameStateManager", "Skipping StudentIntro, going to InLevel");
                 TransitionTo(GameState.InLevel);
             }
 
-            Debug.Log($"[GameStateManager] Current state after transition: {CurrentState}");
+            GameLogger.Detail("GameStateManager", $"Current state after transition: {CurrentState}");
         }
 
         private void EnsureStudentIntroScreenExists()
         {
-            // Check if StudentIntroScreen singleton already exists
             if (StudentIntroScreen.Instance != null)
             {
-                Debug.Log("[GameStateManager] StudentIntroScreen.Instance already exists");
+                GameLogger.Detail("GameStateManager", "StudentIntroScreen already exists");
                 return;
             }
 
-            // Also check via FindObjectOfType as fallback
             StudentIntroScreen introScreen = FindObjectOfType<StudentIntroScreen>();
             if (introScreen != null)
             {
-                Debug.Log("[GameStateManager] StudentIntroScreen already exists (via FindObjectOfType)");
+                GameLogger.Detail("GameStateManager", "StudentIntroScreen already exists (via FindObjectOfType)");
                 return;
             }
 
-            Debug.Log("[GameStateManager] Creating StudentIntroScreen...");
+            GameLogger.Detail("GameStateManager", "Creating StudentIntroScreen...");
 
-            // Find or create canvas
             Canvas canvas = FindObjectOfType<Canvas>();
             if (canvas == null)
             {
@@ -93,38 +85,31 @@ namespace FunClass.Core
                 canvasObj.AddComponent<GraphicRaycaster>();
             }
 
-            // Create intro screen
             GameObject introObj = new GameObject("StudentIntroScreen");
             introObj.transform.SetParent(canvas.transform, false);
             introScreen = introObj.AddComponent<StudentIntroScreen>();
             introScreen.CreateUI();
 
-            Debug.Log("[GameStateManager] StudentIntroScreen created");
+            GameLogger.Detail("GameStateManager", "StudentIntroScreen created");
         }
 
         public void TransitionTo(GameState newState)
         {
             if (CurrentState == newState)
             {
-                Debug.Log($"[GameStateManager] Already in {newState} state, skipping transition");
+                GameLogger.Detail("GameStateManager", $"Already in {newState} state, skipping transition");
                 return;
             }
 
             GameState oldState = CurrentState;
             CurrentState = newState;
 
-            Debug.Log($"[GameStateManager] STATE TRANSITION: {oldState} -> {newState}");
+            GameLogger.Milestone("GameStateManager", $"STATE TRANSITION: {oldState} → {newState}");
             
-            if (OnStateChanged != null)
-            {
-                int listenerCount = OnStateChanged.GetInvocationList().Length;
-                Debug.Log($"[GameStateManager] Notifying {listenerCount} listeners of state change");
-                OnStateChanged.Invoke(oldState, newState);
-            }
-            else
-            {
-                Debug.LogWarning("[GameStateManager] No listeners subscribed to OnStateChanged!");
-            }
+            int listenerCount = OnStateChanged?.GetInvocationList().Length ?? 0;
+            GameLogger.Detail("GameStateManager", $"Notifying {listenerCount} listeners of state change");
+            
+            OnStateChanged?.Invoke(oldState, newState);
         }
 
         public void CompleteLevel()

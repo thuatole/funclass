@@ -38,9 +38,6 @@ namespace FunClass.Core
         [Tooltip("Maximum distance for SingleStudent influence to apply")]
         [SerializeField] private float singleStudentMaxDistance = 6f;
 
-        [Header("Debug")]
-        [SerializeField] private bool enableDebugLogs = true;
-
         private bool isActive = false;
         private List<StudentAgent> allStudents = new List<StudentAgent>();
 
@@ -61,6 +58,7 @@ namespace FunClass.Core
 
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            GameLogger.Milestone("StudentInfluenceManager", "Awake - Instance created");
         }
 
         void OnEnable()
@@ -91,27 +89,27 @@ namespace FunClass.Core
 
         void Start()
         {
-            Log("[StudentInfluenceManager] Start() called");
+            GameLogger.Detail("StudentInfluenceManager", "Start() called");
             
             // Fallback subscription if OnEnable was called before GameStateManager existed
             if (GameStateManager.Instance != null)
             {
                 GameStateManager.Instance.OnStateChanged -= HandleGameStateChanged;
                 GameStateManager.Instance.OnStateChanged += HandleGameStateChanged;
-                Log("[StudentInfluenceManager] Subscribed to GameStateManager in Start()");
+                GameLogger.Detail("StudentInfluenceManager", "Subscribed to GameStateManager in Start()");
             }
             
             if (StudentEventManager.Instance != null)
             {
                 StudentEventManager.Instance.OnEventLogged -= HandleStudentEvent;
                 StudentEventManager.Instance.OnEventLogged += HandleStudentEvent;
-                Log("[StudentInfluenceManager] Subscribed to StudentEventManager in Start()");
+                GameLogger.Detail("StudentInfluenceManager", "Subscribed to StudentEventManager in Start()");
             }
         }
 
         private void HandleGameStateChanged(GameState oldState, GameState newState)
         {
-            Log($"[StudentInfluenceManager] HandleGameStateChanged: {oldState} -> {newState}");
+            GameLogger.Detail("StudentInfluenceManager", $"State change: {oldState} → {newState}");
             
             if (newState == GameState.InLevel)
             {
@@ -127,14 +125,14 @@ namespace FunClass.Core
         {
             isActive = true;
             RefreshStudentList();
-            Log("[StudentInfluenceManager] Influence system activated");
+            GameLogger.Milestone("StudentInfluenceManager", "Activated - influence system ready");
         }
 
         private void DeactivateInfluenceSystem()
         {
             isActive = false;
             allStudents.Clear();
-            Log("[StudentInfluenceManager] Influence system deactivated");
+            GameLogger.Detail("StudentInfluenceManager", "Deactivated");
         }
 
         private void RefreshStudentList()
@@ -142,22 +140,23 @@ namespace FunClass.Core
             allStudents.Clear();
             StudentAgent[] students = FindObjectsOfType<StudentAgent>();
             allStudents.AddRange(students);
-            Log($"[StudentInfluenceManager] Found {allStudents.Count} students in scene");
+            GameLogger.Detail("StudentInfluenceManager", $"Found {allStudents.Count} students in scene");
         }
 
         private void HandleStudentEvent(StudentEvent evt)
         {
-            Log($"[StudentInfluenceManager] HandleStudentEvent called - Type: {evt.eventType}, Student: {evt.student?.Config?.studentName}, Active: {isActive}");
+            GameLogger.Trace("StudentInfluenceManager", 
+                $"Event: {evt.eventType}, Student: {evt.student?.Config?.studentName}, Active: {isActive}");
             
             if (!isActive)
             {
-                Log("[StudentInfluenceManager] Event ignored - system not active");
+                GameLogger.Trace("StudentInfluenceManager", "Event ignored - system not active");
                 return;
             }
             
             if (evt.student == null)
             {
-                Log("[StudentInfluenceManager] Event ignored - student is null");
+                GameLogger.Warning("StudentInfluenceManager", "Event ignored - student is null");
                 return;
             }
 
@@ -172,19 +171,22 @@ namespace FunClass.Core
             {
                 if (evt.student != null)
                 {
-                    Log($"[StudentInfluenceManager] Mess cleaned - resolving sources from {evt.student.Config?.studentName}");
+                    GameLogger.Detail("StudentInfluenceManager", 
+                        $"Mess cleaned - resolving sources from {evt.student.Config?.studentName}");
                     ResolveInfluenceSourcesFromStudent(evt.student);
                 }
             }
 
             if (IsInfluenceTrigger(evt.eventType))
             {
-                Log($"[StudentInfluenceManager] Processing influence for {evt.eventType}");
+                GameLogger.Detail("StudentInfluenceManager", 
+                    $"Processing influence for {evt.eventType}");
                 ProcessInfluence(evt);
             }
             else
             {
-                Log($"[StudentInfluenceManager] Event type {evt.eventType} is not an influence trigger");
+                GameLogger.Trace("StudentInfluenceManager", 
+                    $"Event type {evt.eventType} is not an influence trigger");
             }
         }
 
@@ -198,8 +200,8 @@ namespace FunClass.Core
                 StudentEventType.ThrowingObject => true,
                 StudentEventType.MakingNoise => true,
                 StudentEventType.KnockedOverObject => true,
-                StudentEventType.LeftSeat => false,  // No influence - just state change
-                StudentEventType.WanderingAround => false,  // No influence - can't be resolved by calming
+                StudentEventType.LeftSeat => false,
+                StudentEventType.WanderingAround => false,
                 StudentEventType.MessCreated => true,
                 StudentEventType.StudentReacted when IsHighIntensityReaction(eventType) => true,
                 _ => false
@@ -208,7 +210,6 @@ namespace FunClass.Core
 
         private bool IsHighIntensityReaction(StudentEventType eventType)
         {
-            // Can be extended to check reaction intensity
             return false;
         }
 
@@ -235,10 +236,10 @@ namespace FunClass.Core
                 _ => 0.3f
             };
         }
-
+    
         /// <summary>
         /// Main influence processing method
-        /// Handles WholeClass and SingleStudent scopes WITHOUT distance checks
+        /// Handles WholeClass and SingleStudent scopes
         /// </summary>
         private void ProcessInfluence(StudentEvent evt)
         {
@@ -246,11 +247,12 @@ namespace FunClass.Core
             float baseSeverity = GetInfluenceSeverity(evt.eventType);
             InfluenceScope scope = evt.influenceScope;
 
-            Log($"[Influence] {sourceStudent.Config?.studentName} triggered {scope} influence: {evt.eventType}");
+            GameLogger.Detail("StudentInfluenceManager", 
+                $"{sourceStudent.Config?.studentName} triggered {scope} influence: {evt.eventType}");
 
             if (scope == InfluenceScope.None)
             {
-                Log($"[Influence] Event has no influence scope, skipping");
+                GameLogger.Detail("StudentInfluenceManager", "Event has no influence scope, skipping");
                 return;
             }
 
@@ -260,18 +262,20 @@ namespace FunClass.Core
                 if (evt.targetStudent == null)
                 {
                     // No target specified - find nearest student or fallback to WholeClass
-                    Log($"[Influence] SingleStudent scope but no target specified, finding nearest student...");
+                    GameLogger.Detail("StudentInfluenceManager", 
+                        "SingleStudent scope but no target specified, finding nearest student...");
                     StudentAgent nearestStudent = FindNearestStudentInRange(sourceStudent, singleStudentMaxDistance);
                     
                     if (nearestStudent != null)
                     {
-                        Log($"[Influence] Found nearest student: {nearestStudent.Config?.studentName}");
+                        GameLogger.Detail("StudentInfluenceManager", 
+                            $"Found nearest student: {nearestStudent.Config?.studentName}");
                         evt.targetStudent = nearestStudent;
                     }
                     else
                     {
-                        Log($"[Influence] No student within {singleStudentMaxDistance}m, falling back to WholeClass scope");
-                        // Process as WholeClass influence instead
+                        GameLogger.Detail("StudentInfluenceManager", 
+                            $"No student within {singleStudentMaxDistance}m, falling back to WholeClass scope");
                         ProcessWholeClassInfluence(sourceStudent, baseSeverity, evt);
                         return;
                     }
@@ -283,17 +287,19 @@ namespace FunClass.Core
                 
                 if (distance > singleStudentMaxDistance)
                 {
-                    Log($"[Influence] SingleStudent: {sourceStudent.Config?.studentName} → {evt.targetStudent.Config?.studentName} BLOCKED - distance {distance:F2}m > {singleStudentMaxDistance}m");
-                    Log($"[Influence] ✗ Influence not applied - source too far from target");
+                    GameLogger.Milestone("StudentInfluenceManager", 
+                        $"BLOCKED: {sourceStudent.Config?.studentName} → {evt.targetStudent.Config?.studentName} (distance {distance:F1}m > {singleStudentMaxDistance}m)");
                     return;
                 }
                 
-                Log($"[Influence] SingleStudent: {sourceStudent.Config?.studentName} → {evt.targetStudent.Config?.studentName} (distance: {distance:F2}m <= {singleStudentMaxDistance}m ✓)");
+                GameLogger.Detail("StudentInfluenceManager", 
+                    $"SingleStudent: {sourceStudent.Config?.studentName} → {evt.targetStudent.Config?.studentName} (distance: {distance:F1}m)");
                 
                 // Check if target has config
                 if (evt.targetStudent.Config == null)
                 {
-                    Debug.LogError($"[Influence] Target student {evt.targetStudent.name} has NULL Config!");
+                    GameLogger.Warning("StudentInfluenceManager", 
+                        $"Target student {evt.targetStudent.name} has NULL Config!");
                     return;
                 }
                 
@@ -302,12 +308,11 @@ namespace FunClass.Core
                 float resistance = evt.targetStudent.Config.influenceResistance;
                 float influenceStrength = baseSeverity * susceptibility * (1f - resistance);
                 
-                Log($"[Influence] Calculating strength: base={baseSeverity:F2}, susceptibility={susceptibility:F2}, resistance={resistance:F2}");
-                Log($"[Influence] Result strength: {influenceStrength:F2}");
+                GameLogger.Detail("StudentInfluenceManager", 
+                    $"Strength calculation: base={baseSeverity:F2}, susceptibility={susceptibility:F2}, resistance={resistance:F2}");
                 
                 if (influenceStrength > 0.01f)
                 {
-                    Log($"[Influence] Adding influence source...");
                     // Add influence source tracking
                     evt.targetStudent.InfluenceSources.AddSource(sourceStudent, evt.eventType, influenceStrength);
                     ApplyInfluence(evt.targetStudent, sourceStudent, influenceStrength, evt.eventType);
@@ -315,17 +320,18 @@ namespace FunClass.Core
                     // Update influence icons
                     UpdateInfluenceIcons(sourceStudent, evt.targetStudent, true);
                     
-                    Log($"[Influence] ✓ Added source and applied influence");
+                    GameLogger.Milestone("StudentInfluenceManager", 
+                        $"{sourceStudent.Config?.studentName} → {evt.targetStudent.Config?.studentName}: influence applied (strength={influenceStrength:F2})");
                 }
                 else
                 {
-                    Log($"[Influence] Strength too low ({influenceStrength:F2}), not adding source");
+                    GameLogger.Detail("StudentInfluenceManager", 
+                        $"Strength too low ({influenceStrength:F2}), not adding source");
                 }
             }
             else if (scope == InfluenceScope.WholeClass)
             {
                 ProcessWholeClassInfluence(sourceStudent, baseSeverity, evt);
-                return;
             }
         }
 
@@ -335,8 +341,8 @@ namespace FunClass.Core
         /// </summary>
         private void ResolveInfluenceSourcesFromStudent(StudentAgent calmedStudent)
         {
-            Log($"[Influence] === TEACHER ACTION: Calming {calmedStudent.Config?.studentName} ===");
-            Log($"[Influence] Resolving influence sources from {calmedStudent.Config?.studentName}");
+            GameLogger.Milestone("StudentInfluenceManager", 
+                $"Teacher action: calming {calmedStudent.Config?.studentName}");
 
             int resolvedCount = 0;
             foreach (StudentAgent student in allStudents)
@@ -356,8 +362,8 @@ namespace FunClass.Core
                         // Update influence icons - calmedStudent no longer influencing this student
                         UpdateInfluenceIcons(calmedStudent, student, false);
 
-                        Log($"[Influence] ✓ Resolved {calmedStudent.Config?.studentName}'s influence on {student.Config?.studentName}");
-                        Log($"[Influence]   {student.Config?.studentName} now has {afterCount} unresolved source(s)");
+                        GameLogger.Detail("StudentInfluenceManager", 
+                            $"Resolved {calmedStudent.Config?.studentName}'s influence on {student.Config?.studentName} ({beforeCount} → {afterCount} sources)");
                     }
                 }
             }
@@ -369,7 +375,8 @@ namespace FunClass.Core
                 calmedIcon.HideAllIcons();
             }
 
-            Log($"[Influence] === Teacher calmed {calmedStudent.Config?.studentName} - resolved influence on {resolvedCount} student(s) ===");
+            GameLogger.Milestone("StudentInfluenceManager", 
+                $"Calmed {calmedStudent.Config?.studentName} - resolved influence on {resolvedCount} student(s)");
         }
 
         /// <summary>
@@ -390,12 +397,10 @@ namespace FunClass.Core
                     sourceIcon.OnInfluenceResolved(targetStudent);
                 }
             }
-
-            // Target student's influenced icon is updated automatically via polling in InfluenceStatusIcon.Update()
         }
 
         /// <summary>
-        /// Process WholeClass influence (extracted from ProcessInfluence for reuse)
+        /// Process WholeClass influence
         /// </summary>
         private void ProcessWholeClassInfluence(StudentAgent sourceStudent, float baseSeverity, StudentEvent evt)
         {
@@ -405,7 +410,8 @@ namespace FunClass.Core
             int skippedDifferentLocation = 0;
 
             string sourceLocation = StudentLocationHelper.GetLocationString(sourceStudent);
-            Log($"[Influence] WholeClass: {sourceStudent.Config?.studentName} ({sourceLocation}) affects students in same location");
+            GameLogger.Detail("StudentInfluenceManager", 
+                $"WholeClass: {sourceStudent.Config?.studentName} ({sourceLocation}) affects students in same location");
 
             foreach (StudentAgent targetStudent in allStudents)
             {
@@ -416,7 +422,8 @@ namespace FunClass.Core
                 if (!StudentLocationHelper.AreInSameLocation(sourceStudent, targetStudent))
                 {
                     string targetLocation = StudentLocationHelper.GetLocationString(targetStudent);
-                    Log($"[Influence]   ✗ {targetStudent.Config?.studentName} ({targetLocation}) - different location, no influence");
+                    GameLogger.Trace("StudentInfluenceManager", 
+                        $"  ✗ {targetStudent.Config?.studentName} ({targetLocation}) - different location, no influence");
                     skippedDifferentLocation++;
                     continue;
                 }
@@ -439,7 +446,8 @@ namespace FunClass.Core
                 }
             }
 
-            Log($"[Influence] WholeClass affected {affectedCount} students (skipped {skippedDifferentLocation} in different location)");
+            GameLogger.Milestone("StudentInfluenceManager", 
+                $"WholeClass: {sourceStudent.Config?.studentName} affected {affectedCount} students (skipped {skippedDifferentLocation} in different location)");
         }
 
         /// <summary>
@@ -450,39 +458,29 @@ namespace FunClass.Core
             List<StudentAgent> nearbyStudents = new List<StudentAgent>();
             Vector3 sourcePosition = sourceStudent.transform.position;
             
-            Log($"[FindNearbyStudents] Searching for students near {sourceStudent.Config?.studentName} within {radius}m. Total students in list: {allStudents.Count}");
+            GameLogger.Trace("StudentInfluenceManager", 
+                $"Searching for students near {sourceStudent.Config?.studentName} within {radius}m");
 
             foreach (StudentAgent student in allStudents)
             {
-                if (student == sourceStudent)
-                {
-                    Log($"[FindNearbyStudents] Skipping source student: {student.Config?.studentName}");
-                    continue;
-                }
-                
-                if (student == null)
-                {
-                    Log($"[FindNearbyStudents] Found null student in list");
-                    continue;
-                }
-                
-                if (student.Config == null)
-                {
-                    Log($"[FindNearbyStudents] Student has null config: {student.gameObject.name}");
-                    continue;
-                }
+                if (student == sourceStudent) continue;
+                if (student == null) continue;
+                if (student.Config == null) continue;
 
                 float distance = Vector3.Distance(sourcePosition, student.transform.position);
-                Log($"[FindNearbyStudents] {student.Config.studentName} at distance {distance:F2}m (radius: {radius}m)");
+                GameLogger.Trace("StudentInfluenceManager", 
+                    $"  {student.Config.studentName}: {distance:F1}m");
                 
                 if (distance <= radius)
                 {
                     nearbyStudents.Add(student);
-                    Log($"[FindNearbyStudents] ✓ Added {student.Config.studentName} to affected list");
+                    GameLogger.Trace("StudentInfluenceManager", 
+                        $"  ✓ Added {student.Config.studentName}");
                 }
             }
             
-            Log($"[FindNearbyStudents] Found {nearbyStudents.Count} nearby students");
+            GameLogger.Trace("StudentInfluenceManager", 
+                $"Found {nearbyStudents.Count} nearby students");
             return nearbyStudents;
         }
 
@@ -566,14 +564,16 @@ namespace FunClass.Core
             string sourceName = sourceStudent.Config?.studentName ?? "Unknown";
             float distance = Vector3.Distance(sourceStudent.transform.position, targetStudent.transform.position);
 
-            // Check if student is immune to influence (e.g., after being calmed down)
+            // Check if student is immune to influence
             if (targetStudent.IsImmuneToInfluence())
             {
-                Log($"[Influence] {targetName} is immune to influence, skipping");
+                GameLogger.Detail("StudentInfluenceManager", 
+                    $"{targetName} is immune to influence, skipping");
                 return;
             }
 
-            Log($"[Influence] {targetName} affected by {sourceName} at {distance:F1}m with strength {strength:F2}");
+            GameLogger.Detail("StudentInfluenceManager", 
+                $"{targetName} affected by {sourceName} at {distance:F1}m with strength {strength:F2}");
 
             // Determine effect based on strength and student's panic threshold
             if (strength >= targetStudent.Config.panicThreshold)
@@ -602,76 +602,46 @@ namespace FunClass.Core
             {
                 StudentState oldState = targetStudent.CurrentState;
                 targetStudent.EscalateState();
-                Log($"[Influence] {targetName} escalated from {oldState} to {targetStudent.CurrentState} (strong influence from {sourceName})");
+                GameLogger.Milestone("StudentInfluenceManager", 
+                    $"{targetName} escalated: {oldState} → {targetStudent.CurrentState} (influence from {sourceName})");
             }
 
             // Trigger panic or scared reaction
             if (strength >= 0.5f)
             {
                 targetStudent.TriggerReaction(StudentReactionType.Scared, 4f);
-                Log($"[Influence] {targetName} → reaction Scared (strength {strength:F2})");
-                
-                Log($"[Influence] Checking escape conditions - strength: {strength:F2}, panicThreshold: {targetStudent.Config.panicThreshold}, LevelManager exists: {LevelManager.Instance != null}");
+                GameLogger.Detail("StudentInfluenceManager", 
+                    $"{targetName} → Scared reaction (strength {strength:F2})");
                 
                 // Trigger escape behavior if panic threshold exceeded and escape route available
                 if (strength >= targetStudent.Config.panicThreshold)
                 {
-                    Log($"[Influence] Strength >= panicThreshold, checking LevelManager...");
-                    
                     if (LevelManager.Instance != null)
                     {
-                        Log($"[Influence] LevelManager exists, getting CurrentLevel...");
                         LevelConfig currentLevel = LevelManager.Instance.GetCurrentLevelConfig();
                         
                         if (currentLevel != null && currentLevel.escapeRoute != null)
                         {
-                            Log($"[Influence] === ESCAPE TRIGGERED ===");
-                            Log($"[Influence] Student: {targetName}");
-                            Log($"[Influence] Current State: {targetStudent.CurrentState}");
-                            Log($"[Influence] Influence Strength: {strength:F2}");
-                            Log($"[Influence] Panic Threshold: {targetStudent.Config.panicThreshold}");
-                            Log($"[Influence] Source: {sourceName}");
-                            Log($"[Influence] Already following route: {targetStudent.IsFollowingRoute}");
-                            
                             // Only start escape if not already escaping AND in high panic state
                             if (!targetStudent.IsFollowingRoute)
                             {
-                                // Only trigger escape for ActingOut or Critical students
                                 if (targetStudent.CurrentState == StudentState.ActingOut || 
                                     targetStudent.CurrentState == StudentState.Critical)
                                 {
                                     targetStudent.StartRoute(currentLevel.escapeRoute);
-                                    Log($"[Influence] ✓ {targetName} started escape route");
-                                }
-                                else
-                                {
-                                    Log($"[Influence] ⚠ {targetName} not in panic state ({targetStudent.CurrentState}), skipping escape");
+                                    GameLogger.Milestone("StudentInfluenceManager", 
+                                        $"{targetName} ESCAPED (route: {currentLevel.escapeRoute.routeName})");
                                 }
                             }
-                            else
-                            {
-                                Log($"[Influence] ⚠ {targetName} already following a route, skipping escape");
-                            }
-                        }
-                        else
-                        {
-                            Log($"[Influence] {targetName} wants to escape but no route available - Level: {(currentLevel != null ? "exists" : "null")}, Route: {(currentLevel?.escapeRoute != null ? "exists" : "null")}");
                         }
                     }
-                    else
-                    {
-                        Log($"[Influence] LevelManager.Instance is NULL - cannot trigger escape");
-                    }
-                }
-                else
-                {
-                    Log($"[Influence] Strength {strength:F2} < panicThreshold {targetStudent.Config.panicThreshold} - no escape triggered");
                 }
             }
             else
             {
                 targetStudent.TriggerReaction(StudentReactionType.Confused, 3f);
-                Log($"[Influence] {targetName} → reaction Confused (strength {strength:F2})");
+                GameLogger.Detail("StudentInfluenceManager", 
+                    $"{targetName} → Confused reaction (strength {strength:F2})");
             }
         }
 
@@ -687,20 +657,23 @@ namespace FunClass.Core
             {
                 StudentState oldState = targetStudent.CurrentState;
                 targetStudent.EscalateState();
-                Log($"[Influence] {targetName} escalated from {oldState} to {targetStudent.CurrentState} (medium influence from {sourceName})");
+                GameLogger.Milestone("StudentInfluenceManager", 
+                    $"{targetName} escalated: {oldState} → {targetStudent.CurrentState} (medium influence from {sourceName})");
             }
             else if (targetStudent.CurrentState == StudentState.Distracted && strength >= 0.5f)
             {
                 StudentState oldState = targetStudent.CurrentState;
                 targetStudent.EscalateState();
-                Log($"[Influence] {targetName} escalated from {oldState} to {targetStudent.CurrentState} (medium influence from {sourceName})");
+                GameLogger.Milestone("StudentInfluenceManager", 
+                    $"{targetName} escalated: {oldState} → {targetStudent.CurrentState} (medium influence from {sourceName})");
             }
 
             // Trigger reaction
             if (UnityEngine.Random.value < 0.6f)
             {
                 targetStudent.TriggerReaction(StudentReactionType.Confused, 2f);
-                Log($"[Influence] {targetName} → reaction Confused (strength {strength:F2})");
+                GameLogger.Detail("StudentInfluenceManager", 
+                    $"{targetName} → Confused reaction (strength {strength:F2})");
             }
         }
 
@@ -716,15 +689,8 @@ namespace FunClass.Core
             {
                 StudentState oldState = targetStudent.CurrentState;
                 targetStudent.EscalateState();
-                Log($"[Influence] {targetName} escalated from {oldState} to {targetStudent.CurrentState} (weak influence from {sourceName})");
-            }
-        }
-
-        private void Log(string message)
-        {
-            if (enableDebugLogs)
-            {
-                Debug.Log(message);
+                GameLogger.Milestone("StudentInfluenceManager", 
+                    $"{targetName} escalated: {oldState} → {targetStudent.CurrentState} (weak influence from {sourceName})");
             }
         }
 
