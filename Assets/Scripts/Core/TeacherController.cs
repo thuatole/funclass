@@ -12,12 +12,14 @@ namespace FunClass.Core
         [Header("Movement")]
         [SerializeField] private float moveSpeed = 5f;
         [SerializeField] private float gravity = -9.81f;
+        [SerializeField] private float movementDeadZone = 0.15f;  // Filter phantom input from joystick/gamepad
 
         [Header("Camera")]
         [SerializeField] private Camera playerCamera;
         [SerializeField] private Transform cameraTransform;
         [SerializeField] private float lookSensitivity = 2f;
         [SerializeField] private float maxLookAngle = 80f;
+        [SerializeField] private float mouseDeadZone = 0.05f;  // Filter phantom mouse input
 
         [Header("Item Holding")]
         [SerializeField] private Transform itemHoldPoint;
@@ -36,6 +38,7 @@ namespace FunClass.Core
         private float verticalVelocity;
         private float cameraPitch;
         private bool isActive = false;
+        private bool hasLoggedFirstActivation = false;
         private InteractableObject currentLookTarget;
         private StudentAgent currentStudentTarget;
         private MessObject currentMessTarget;
@@ -152,6 +155,13 @@ namespace FunClass.Core
         void Update()
         {
             if (!isActive) return;
+            
+            // Log on first activation to verify position
+            if (!hasLoggedFirstActivation)
+            {
+                hasLoggedFirstActivation = true;
+                Debug.Log($"[TeacherController] ★ FIRST ACTIVATION - Position: {transform.position}, Time: {Time.time:F2}");
+            }
 
             HandleMovement();
             
@@ -219,6 +229,16 @@ namespace FunClass.Core
         {
             float horizontal = Input.GetAxis("Horizontal");
             float vertical = Input.GetAxis("Vertical");
+            
+            // Apply dead zone to filter phantom input from gamepad/joystick drift
+            if (Mathf.Abs(horizontal) < movementDeadZone) horizontal = 0f;
+            if (Mathf.Abs(vertical) < movementDeadZone) vertical = 0f;
+            
+            // DEBUG: Log phantom input detection
+            if (horizontal != 0f || vertical != 0f)
+            {
+                Debug.Log($"[TeacherController] ★ INPUT DETECTED - horizontal: {horizontal:F3}, vertical: {vertical:F3}, grounded: {characterController.isGrounded}, Time: {Time.time:F2}");
+            }
 
             Vector3 moveDirection = transform.right * horizontal + transform.forward * vertical;
             moveDirection.Normalize();
@@ -243,8 +263,22 @@ namespace FunClass.Core
         {
             if (cameraTransform == null) return;
 
-            float mouseX = Input.GetAxis("Mouse X") * lookSensitivity;
-            float mouseY = Input.GetAxis("Mouse Y") * lookSensitivity;
+            float mouseX = Input.GetAxis("Mouse X");
+            float mouseY = Input.GetAxis("Mouse Y");
+            
+            // Apply dead zone to filter phantom mouse input
+            if (Mathf.Abs(mouseX) < mouseDeadZone) mouseX = 0f;
+            if (Mathf.Abs(mouseY) < mouseDeadZone) mouseY = 0f;
+            
+            // Apply sensitivity after dead zone
+            mouseX *= lookSensitivity;
+            mouseY *= lookSensitivity;
+            
+            // DEBUG: Log phantom mouse input
+            if (Mathf.Abs(mouseX) > 0.1f || Mathf.Abs(mouseY) > 0.1f)
+            {
+                Debug.Log($"[TeacherController] ★ MOUSE INPUT - mouseX: {mouseX:F3}, mouseY: {mouseY:F3}, Time: {Time.time:F2}");
+            }
 
             transform.Rotate(Vector3.up * mouseX);
 
