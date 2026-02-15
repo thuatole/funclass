@@ -692,7 +692,7 @@ namespace FunClass.Core
             }
 
             student.SetInfluenceImmunity(15f);
-            student.StopRoute();
+            StudentMovementManager.Instance.StopMovement(student);
 
             if (ClassroomManager.Instance != null)
             {
@@ -705,7 +705,7 @@ namespace FunClass.Core
                 
                 if (currentLevel != null && currentLevel.returnRoute != null)
                 {
-                    student.StartRoute(currentLevel.returnRoute);
+                    StudentMovementManager.Instance.StartRoute(student, currentLevel.returnRoute);
                     GameLogger.Detail("TeacherController", 
                         $"{student.Config?.studentName} started return route: {currentLevel.returnRoute.routeName}");
                 }
@@ -769,7 +769,7 @@ namespace FunClass.Core
                     LevelConfig currentLevel = LevelManager.Instance.GetCurrentLevelConfig();
                     if (currentLevel != null && currentLevel.escapeRoute != null)
                     {
-                        student.StartRoute(currentLevel.escapeRoute);
+                        StudentMovementManager.Instance.StartRoute(student, currentLevel.escapeRoute);
                     }
                 }
 
@@ -801,7 +801,7 @@ namespace FunClass.Core
             }
 
             student.SetInfluenceImmunity(15f);
-            student.StopRoute();
+            StudentMovementManager.Instance.StopMovement(student);
 
             if (ClassroomManager.Instance != null)
             {
@@ -840,7 +840,7 @@ namespace FunClass.Core
 
             GameLogger.Detail("TeacherController", $"Forcing {student.Config?.studentName} to return to seat");
 
-            student.StopRoute();
+            StudentMovementManager.Instance.StopMovement(student);
             student.ReturnToSeat();
             student.HandleTeacherAction(TeacherActionType.ForceReturnToSeat);
 

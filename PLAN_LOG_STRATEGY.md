@@ -1,188 +1,267 @@
-# Plan: Structured Log Strategy for FunClass Testing
+# Structured Log Strategy for FunClass Testing
 
-## Problem
-Current logging is ad-hoc across components - each script logs differently, making it hard to trace game flow, identify bugs, and verify scenario timelines during testing.
+## Overview
 
-## Goal
-Implement a unified, tiered logging system that makes testing efficient by providing clear visibility into game flow at different detail levels.
+Implemented a unified, tiered logging system that provides clear visibility into game flow at different detail levels for testing and debugging.
 
 ---
 
-## Design: 3-Tier Log System
+## 3-Tier Log System
 
 ### Tier 1 - MILESTONE (Always On)
-Critical game events that define the scenario flow. These should always be visible.
+Critical game events that define the scenario flow. Always visible.
 
-- Game state changes (MainMenu, InLevel, Paused, GameOver)
-- Level loaded with student count and interaction count
-- Scripted interaction triggered (source, target, event type, timestamp)
-- Student state transitions (Calm to Distracted, Distracted to ActingOut, etc.)
-- Influence applied successfully (source, target, scope, severity)
-- Teacher intervention performed (type, target student)
-- Goal progress updates (disruption percentage, calm downs achieved)
-- Game over reason (timeout, disruption threshold, catastrophic, win)
+**Logged Events:**
+- Game state changes (Boot → StudentIntro → InLevel → LevelComplete)
+- Level loaded (level ID, goal settings, time limit)
+- Scripted interaction triggered (source → target, event type, timestamp)
+- Student state transitions (Calm → Distracted → ActingOut → Critical)
+- Influence successfully applied (source → target, scope, strength)
+- Influence blocked (distance exceeded, immunity, resistance too high)
+- Teacher action performed (calm, escort, clean mess)
+- Goal progress (disruption %, calm downs count, time remaining)
+- Game over (win/lose reason, final score, stars)
+- Periodic summary (30s intervals)
 
-### Tier 2 - DETAIL (Toggle Per Component)
+### Tier 2 - DETAIL (Per-Component Toggle)
 Useful for debugging specific systems. Each component has its own toggle.
 
-- StudentInteractionProcessor: time check results, condition evaluations, why an interaction was skipped
-- StudentInfluenceManager: distance calculations, susceptibility checks, resistance rolls, fallback decisions
-- StudentAgent: autonomous behavior rolls, idle timer resets, behavior selection logic
-- TeacherController: input values after dead zone, movement speed, interaction target selection
-- LevelManager: config loading steps, route generation, student placement
+**StudentInteractionProcessor:**
+- Interactions loaded (count, each interaction details)
+- Time check evaluations, condition results, skip reasons
+- One-time trigger already fired
 
-### Tier 3 - TRACE (Off by Default)
-Verbose per-frame data. Only enable when deep-diving a specific issue.
+**StudentInfluenceManager:**
+- Distance calculations between source and target
+- Susceptibility and resistance checks
+- Fallback from SingleStudent to WholeClass scope
+- Nearest student search results
+- Influence strength calculation breakdown
 
-- Every Update tick check in StudentInteractionProcessor
-- Every influence distance calculation
-- Raw input values in TeacherController
-- Student animation state changes
-- Navigation agent path updates
+**StudentAgent:**
+- Behavior check results (state, chance, roll, decision)
+- Idle timer scheduling (next behavior time)
+- Object interaction selection
+- Reaction triggered (type, duration)
+- Config loading and initialization
+
+**TeacherController:**
+- Input values after dead zone filtering
+- Movement and camera state
+- Interaction target detection and selection
+- Cursor visibility and lock state
+
+**LevelManager:**
+- Config loading steps
+- Student placement
+- Desk setup for interaction
+- Progress updates (5s intervals)
+
+**GameStateManager:**
+- State transition notifications
+- Listener count confirmation
+- Intro screen creation
+
+### Tier 3 - TRACE (Master Toggle)
+Verbose per-frame data. Off by default, only enable when deep-diving.
+
+- Every Update tick in StudentInteractionProcessor
+- Every influence calculation detail
+- Raw input values before dead zone
+- Student state evaluation per frame
+- Influence source tracking changes
 
 ---
 
 ## Unified Log Format
 
-All logs follow the same structure in plain language:
+```
+[ComponentName] ★ (elapsed) message   // MILESTONE - always visible
+[ComponentName] ● (elapsed) message   // DETAIL - per-component toggle
+[ComponentName] ~ (elapsed) message   // TRACE - master toggle
+[ComponentName] ⚠ (elapsed) message  // WARNING
+[ComponentName] ✗ (elapsed) message   // ERROR
+```
 
-- Tag: component name in brackets
-- Tier indicator: MILESTONE uses a star symbol, DETAIL uses a dot, TRACE uses a tilde
-- Timestamp: level elapsed time in seconds with one decimal
-- Message: what happened
-
-Example format description: [ComponentName] tier-symbol (elapsed-time) message-content
-
----
-
-## Step 0 - Clean Up Existing Ad-Hoc Logs
-
-Before implementing the new system, remove all current ad-hoc Debug.Log calls and helper methods from each component.
-
-### TeacherController
-- Remove Debug.Log for "FIRST ACTIVATION" position logging
-- Remove Debug.Log for "INPUT DETECTED" phantom input detection in HandleMovement
-- Remove Debug.Log for "MOUSE INPUT" phantom mouse detection in HandleCamera
-- Remove Debug.Log for "Teacher deactivated"
-- Remove the hasLoggedFirstActivation field (no longer needed)
-
-### StudentInteractionProcessor
-- Remove the private Log() helper method at the bottom of the class
-- Remove the enableDebugLogs SerializeField
-- Remove all Log() calls throughout (Awake, Start, OnEnable, HandleGameStateChanged, RefreshStudentList, LoadInteractions, LoadRuntimeInteractions, CheckAndTriggerInteractions, CheckTriggerCondition, CheckTimeElapsedCondition, TriggerInteraction)
-
-### StudentInfluenceManager
-- Remove the private Log() helper method
-- Remove the enableDebugLogs SerializeField
-- Remove all Log() calls throughout (ProcessInfluence, ProcessWholeClassInfluence, FindNearbyStudents, FindNearestStudentInRange, ResolveInfluenceSourcesFromStudent, UpdateInfluenceIcons)
-- Remove the Debug.LogError for NULL Config (will be replaced by GameLogger)
-
-### StudentAgent
-- Remove any existing ad-hoc Debug.Log calls related to behavior and state changes
-
-### LevelManager / GameStateManager
-- Remove any existing ad-hoc Debug.Log calls related to level loading and state transitions
-
----
-
-## Implementation Steps
-
-### Step 1 - Create GameLogger Utility
-- Create a static utility class in Assets/Scripts/Core called GameLogger
-- Provide three static methods: Milestone, Detail, Trace
-- Each method takes a component name string and a message string
-- Automatically prepends the tier symbol, component tag, and elapsed time from LevelManager
-- Detail and Trace methods check a per-component flag before logging
-- All flags are static booleans, settable from Inspector via a GameLoggerConfig MonoBehaviour
-
-### Step 2 - Create GameLoggerConfig MonoBehaviour
-- Attach to a persistent game object (same as GameStateManager)
-- Expose SerializeField toggles for each component at Detail level
-- Expose a single master toggle for Trace level
-- Expose a toggle for the periodic scenario summary feature
-- Summary interval as a float field (default 30 seconds)
-
-### Step 3 - Refactor StudentInteractionProcessor Logging
-- Replace all Debug.Log calls with GameLogger calls
-- MILESTONE: when a scripted interaction triggers (source, target, event, time)
-- MILESTONE: when interactions are loaded (count)
-- DETAIL: time check evaluations, condition results, skip reasons
-- TRACE: every CheckAndTriggerInteractions tick
-- Remove the existing enableDebugLogs field, use GameLogger flags instead
-
-### Step 4 - Refactor StudentInfluenceManager Logging
-- Replace all Debug.Log calls with GameLogger calls
-- MILESTONE: influence successfully applied (source to target, scope, severity result)
-- MILESTONE: influence blocked by immunity or resistance
-- DETAIL: distance calculations, susceptibility multipliers, nearest student search
-- DETAIL: fallback from SingleStudent to WholeClass scope
-- TRACE: every ProcessInfluence call details
-
-### Step 5 - Refactor StudentAgent Logging
-- MILESTONE: state transitions (old state to new state with student name)
-- MILESTONE: autonomous behavior triggered (behavior type, student name)
-- DETAIL: behavior roll results (chance vs roll value)
-- DETAIL: idle timer events
-- TRACE: per-frame state evaluation
-
-### Step 6 - Refactor TeacherController Logging
-- MILESTONE: teacher intervention performed (calm, warn, redirect with target)
-- DETAIL: input values after dead zone filtering
-- DETAIL: interaction target detection
-- TRACE: raw input values before dead zone
-- Remove existing debug log fields, migrate to GameLogger
-
-### Step 7 - Refactor LevelManager and GameStateManager Logging
-- MILESTONE: level loaded (level name, student count, interaction count, goal settings)
-- MILESTONE: game state transitions
-- MILESTONE: goal progress changes (disruption level, calm downs)
-- DETAIL: config parsing steps, student placement, route generation
-- TRACE: per-frame goal evaluation
-
-### Step 8 - Implement Periodic Scenario Summary
-- In GameLoggerConfig, run a coroutine every N seconds (default 30)
-- Output a MILESTONE summary block containing:
-  - Current elapsed time
-  - Each student name, current state, and whether they are influenced
-  - Current disruption percentage
-  - Number of scripted interactions triggered vs total
-  - Number of teacher interventions performed
-- This gives a snapshot of game health without scrolling through logs
-
-### Step 9 - Testing and Validation
-- Run the FirstDaySummerBreak scenario with only MILESTONE logs
-- Verify the timeline is clearly visible: 20s Binh wanders, 40s Binh knocks object near Lan, 60s Lan wanders, 80s Nam throws at Lan
-- Enable DETAIL for StudentInfluenceManager to verify distance and susceptibility calculations
-- Enable TRACE for TeacherController to verify dead zone filtering
-- Confirm periodic summary shows correct state every 30 seconds
+**Example Output:**
+```
+[GameStateManager] ★ (0.0) STATE TRANSITION: Boot → StudentIntro
+[GameStateManager] ★ (0.0) Notifying 5 listeners of state change
+[LevelManager] ★ (0.1) Level started - level_first_day_summer_break
+[LevelManager] ★ (0.1) Goal: 300s, disruption ≤ 50%, calmDowns: 3
+[LevelManager] ★ (0.1) Loaded 4 student interactions
+[StudentInteractionProcessor] ★ (0.1) Activated - Found 4 students, 4 interactions loaded
+[StudentAgent] ★ (1.2) Bình initialized - state: Calm
+[StudentAgent] ★ (1.3) Lan initialized - state: Calm
+[StudentAgent] ★ (1.4) Nam initialized - state: Calm
+[StudentAgent] ★ (1.5) Mai initialized - state: Calm
+[StudentInteractionProcessor] ★ (20.0) Time-based trigger: student_binh → student_lan (WanderingAround)
+[StudentInfluenceManager] ★ (20.1) WholeClass: Bình affected 3 students (skipped 0 in different location)
+[StudentAgent] ★ (20.1) Bình: Calm → Distracted
+[StudentAgent] ★ (25.3) Lan: Calm → Distracted
+[StudentInteractionProcessor] ★ (40.0) Time-based trigger: student_binh → student_lan (KnockedOverObject)
+[StudentInfluenceManager] ★ (40.1) Bình → Lan: influence applied (strength=0.56)
+[StudentAgent] ★ (40.1) Lan: Distracted → ActingOut
+[GameLogger] ★ (30.0) === SCENARIO SUMMARY ===
+[GameLogger] ★ (30.0) Time: 270s remaining / 300s total
+[GameLogger] ★ (30.0) Disruption: 35.1% (max: 50%)
+[GameLogger] ★ (30.0) CalmDowns: 0 / 3
+[GameLogger] ★ (30.0) Resolved: 0 / 0
+[GameLogger] ★ (30.0) Bình: Distracted
+[GameLogger] ★ (30.0) Lan: ActingOut [influenced by 1]
+[GameLogger] ★ (30.0) Nam: Calm
+[GameLogger] ★ (30.0) Mai: Calm
+[GameLogger] ★ (30.0) === END SUMMARY (4 students, 1 influenced) ===
+```
 
 ---
 
-## Component Flag Matrix
+## Implementation Files
 
-StudentInteractionProcessor - detail toggle, trace toggle
-StudentInfluenceManager - detail toggle, trace toggle
-StudentAgent - detail toggle, trace toggle
-TeacherController - detail toggle, trace toggle
-LevelManager - detail toggle, trace toggle
-GameStateManager - detail toggle, trace toggle
-Periodic Summary - on/off toggle, interval setting
+### Core Logging Infrastructure
+
+**GameLogger.cs** - Static utility class
+- Methods: `Milestone()`, `Detail()`, `Trace()`, `Warning()`, `Error()`
+- `Initialize(GameLoggerConfig)` - Set config reference
+- `SetDetailEnabled(string, bool)` - Toggle per-component detail
+- `IsDetailEnabled(string)` - Check if detail logging is enabled
+- `OutputPeriodicSummary()` - Trigger summary manually
+
+**GameLoggerConfig.cs** - MonoBehaviour for Inspector control
+- `Milestone Enabled` - Master toggle for milestones (always on)
+- `Trace Enabled` - Master toggle for trace (off by default)
+- Per-component Detail toggles:
+  - StudentInteractionProcessor Detail
+  - StudentInfluenceManager Detail
+  - StudentAgent Detail
+  - TeacherController Detail
+  - LevelManager Detail
+  - GameStateManager Detail
+- `Summary Enabled` - Periodic summary feature
+- `Summary Interval` - Summary frequency (default: 30s)
+
+### Components Using GameLogger
+
+| Component | File |
+|-----------|------|
+| StudentInteractionProcessor | Assets/Scripts/Core/ |
+| StudentInfluenceManager | Assets/Scripts/Core/ |
+| StudentAgent | Assets/Scripts/Core/ |
+| TeacherController | Assets/Scripts/Core/ |
+| LevelManager | Assets/Scripts/Core/ |
+| GameStateManager | Assets/Scripts/Core/ |
 
 ---
 
-## Priority Order
-1. GameLogger utility and GameLoggerConfig (foundation)
-2. StudentInteractionProcessor (scripted events are most critical to verify)
-3. StudentInfluenceManager (influence chain is second priority)
-4. StudentAgent (autonomous behavior verification)
-5. Periodic Scenario Summary (testing quality of life)
-6. TeacherController (input debugging, lower priority)
-7. LevelManager and GameStateManager (loading/state, lowest priority)
+## Scenario Timeline Verification
+
+### First Day Summer Break Scenario
+
+**Expected MILESTONE Flow:**
+```
+0.0s: [GameStateManager] STATE TRANSITION: Boot → StudentIntro
+0.1s: [LevelManager] Level started - level_first_day_summer_break
+0.1s: [LevelManager] Goal: 300s, disruption ≤ 50%, calmDowns: 3
+0.1s: [LevelManager] Loaded 4 student interactions
+0.1s: [StudentInteractionProcessor] Activated - Found 4 students, 4 interactions loaded
+
+20.0s: [StudentInteractionProcessor] Time-based trigger: student_binh → student_lan (WanderingAround)
+20.1s: [StudentInfluenceManager] WholeClass: Bình affected 3 students
+20.1s: [StudentAgent] Bình: Calm → Distracted
+
+40.0s: [StudentInteractionProcessor] Time-based trigger: student_binh → student_lan (KnockedOverObject)
+40.1s: [StudentInfluenceManager] Bình → Lan: influence applied (strength=0.56)
+40.1s: [StudentAgent] Lan: Calm → Distracted
+
+60.0s: [StudentInteractionProcessor] Time-based trigger: student_lan → (WanderingAround)
+60.1s: [StudentInfluenceManager] WholeClass: Lan affected 3 students
+60.1s: [StudentAgent] Nam: Calm → Distracted
+
+80.0s: [StudentInteractionProcessor] Time-based trigger: student_nam → student_lan (ThrowingObject)
+80.1s: [StudentInfluenceManager] Nam → Lan: influence applied (strength=0.49)
+80.1s: [StudentAgent] Lan: Distracted → ActingOut
+
+Every 30s: [GameLogger] === SCENARIO SUMMARY ===
+```
+
+---
+
+## Testing Workflow
+
+### Phase 1: MILESTONE Only (Default)
+1. Open scene, play game
+2. Observe MILESTONE logs only
+3. Verify scripted interactions trigger at correct times (20s, 40s, 60s, 80s)
+4. Verify student state transitions match scenario design
+5. Check periodic summary every 30s
+
+### Phase 2: Enable DETAIL as Needed
+**If scripted interactions don't trigger:**
+- Enable StudentInteractionProcessor Detail
+- Check why conditions fail
+
+**If influence doesn't apply:**
+- Enable StudentInfluenceManager Detail
+- Check distance, susceptibility, resistance calculations
+
+**If student behavior seems wrong:**
+- Enable StudentAgent Detail
+- Check roll results, idle timers, state evaluation
+
+### Phase 3: Enable TRACE for Deep Dive
+- Enable Trace Enabled
+- Watch per-frame updates
+- Trace raw input values
+- Track influence source changes
+
+---
+
+## Configuration in Inspector
+
+**GameLoggerConfig Component:**
+```
+┌─────────────────────────────────────────────────┐
+│ GameLoggerConfig                                  │
+├─────────────────────────────────────────────────┤
+│ MILESTONE (Always On)                            │
+│ [✓] Milestone Enabled                            │
+├─────────────────────────────────────────────────┤
+│ TRACE (Master Toggle)                            │
+│ [ ] Trace Enabled                                │
+├─────────────────────────────────────────────────┤
+│ DETAIL Toggles                                   │
+│ [ ] StudentInteractionProcessor Detail           │
+│ [ ] StudentInfluenceManager Detail               │
+│ [ ] StudentAgent Detail                          │
+│ [ ] TeacherController Detail                     │
+│ [ ] LevelManager Detail                          │
+│ [ ] GameStateManager Detail                      │
+├─────────────────────────────────────────────────┤
+│ Periodic Summary                                 │
+│ [✓] Summary Enabled                              │
+│ Summary Interval: 30                             │
+└─────────────────────────────────────────────────┘
+```
+
+---
+
+## Key Design Decisions
+
+1. **No StartRoute/StopRoute on StudentAgent** - Route management delegated to StudentMovementManager.Instance
+
+2. **CurrentDisruption renamed to DisruptionLevel** - Consistent naming with ClassroomManager
+
+3. **Periodic summary uses MILESTONE level** - Important for testing, should always be visible
+
+4. **TeacherController input logging at TRACE level** - Raw values only useful for deep debugging
+
+5. **Elapsed time from LevelManager.LevelTimeElapsed** - Consistent timestamp across all components
 
 ---
 
 ## Notes
-- Keep MILESTONE logs minimal - they should fit on one screen for a full scenario run
-- DETAIL logs should answer "why did this happen or not happen"
-- TRACE logs are only for per-frame deep dives, never leave on in normal testing
-- The periodic summary is the most valuable testing tool - it removes the need to manually track game state while playing
+
+- MILESTONE logs should fit on one screen for a full 5-minute scenario run
+- DETAIL logs answer "why did this happen or not happen"
+- TRACE logs are for per-frame deep dives, never leave on in normal testing
+- Periodic summary is the most valuable testing tool - provides game health snapshot without scrolling

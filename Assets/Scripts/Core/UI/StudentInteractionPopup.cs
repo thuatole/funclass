@@ -822,7 +822,7 @@ namespace FunClass.Core.UI
             student.SetInfluenceImmunity(15f);
 
             // Stop any routes
-            student.StopRoute();
+            StudentMovementManager.Instance.StopMovement(student);
 
             // Return to seat with visual movement
             if (StudentMovementManager.Instance != null)

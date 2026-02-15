@@ -148,7 +148,7 @@ namespace FunClass.Core
             // Disruption level
             if (ClassroomManager.Instance != null)
             {
-                float disruption = ClassroomManager.Instance.CurrentDisruption;
+                float disruption = ClassroomManager.Instance.DisruptionLevel;
                 GameLogger.Milestone("GameLogger", $"  Disruption: {disruption:F1}%");
             }
             

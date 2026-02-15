@@ -621,19 +621,19 @@ namespace FunClass.Core
                         LevelConfig currentLevel = LevelManager.Instance.GetCurrentLevelConfig();
                         
                         if (currentLevel != null && currentLevel.escapeRoute != null)
-                        {
-                            // Only start escape if not already escaping AND in high panic state
-                            if (!targetStudent.IsFollowingRoute)
                             {
-                                if (targetStudent.CurrentState == StudentState.ActingOut || 
-                                    targetStudent.CurrentState == StudentState.Critical)
+                                // Only start escape if not already escaping AND in high panic state
+                                if (!targetStudent.IsFollowingRoute)
                                 {
-                                    targetStudent.StartRoute(currentLevel.escapeRoute);
-                                    GameLogger.Milestone("StudentInfluenceManager", 
-                                        $"{targetName} ESCAPED (route: {currentLevel.escapeRoute.routeName})");
+                                    if (targetStudent.CurrentState == StudentState.ActingOut || 
+                                        targetStudent.CurrentState == StudentState.Critical)
+                                    {
+                                        StudentMovementManager.Instance.StartRoute(targetStudent, currentLevel.escapeRoute);
+                                        GameLogger.Milestone("StudentInfluenceManager", 
+                                            $"{targetName} ESCAPED (route: {currentLevel.escapeRoute.routeName})");
+                                    }
                                 }
                             }
-                        }
                     }
                 }
             }
