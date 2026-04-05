@@ -9,6 +9,10 @@ namespace FunClass.Core
         public string studentId;
         public string studentName;
 
+        [Header("Visual")]
+        [Tooltip("FBX model name in Assets/Characters/ (e.g. 'character-male-a'). Leave blank to use Capsule fallback.")]
+        public string characterModel;
+
         [Header("Initial State")]
         public StudentState initialState = StudentState.Calm;
 

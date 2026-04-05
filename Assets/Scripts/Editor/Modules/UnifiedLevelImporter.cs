@@ -852,6 +852,10 @@ namespace FunClass.Editor.Modules
                     config.interactionRange = interactionRange;
                 }
 
+                // Character model
+                if (studentData != null && !string.IsNullOrEmpty(studentData.characterModel))
+                    config.characterModel = studentData.characterModel;
+
                 // Create asset on disk AFTER all fields are set (so defaults are never serialized)
                 AssetDatabase.CreateAsset(config, studentConfigPath);
                 EditorUtility.SetDirty(config);

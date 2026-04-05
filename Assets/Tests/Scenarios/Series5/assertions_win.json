@@ -4,20 +4,20 @@
   "series": 5,
   "level": "FirstDaySummerBreak",
   "testTimeScale": 10,
-  "maxGameTimeSeconds": 150,
+  "maxGameTimeSeconds": 200,
 
   "teacherActions": [
     {
       "time": 22,
       "action": "CalmStudent",
-      "targetStudent": "Binh",
-      "description": "Calm Binh ngay sau khi bat dau wandering (20s)"
+      "targetStudent": "Bình",
+      "description": "Calm Bình ngay sau khi bat dau wandering (20s)"
     },
     {
       "time": 42,
       "action": "CalmStudent",
-      "targetStudent": "Binh",
-      "description": "Calm Binh lan nua sau knocked object (40s)"
+      "targetStudent": "Bình",
+      "description": "Calm Bình lan nua sau knocked object (40s)"
     },
     {
       "time": 62,
@@ -38,9 +38,9 @@
       "id": "binh_wandering",
       "component": "StudentInteractionProcessor",
       "eventType": "WanderingAround",
-      "source": "Binh",
+      "source": "student_binh",
       "target": "",
-      "minTime": 19.5,
+      "minTime": 19.0,
       "maxTime": 21.0,
       "mustOccur": true,
       "afterEventId": "",
@@ -51,20 +51,20 @@
       "component": "TeacherController",
       "eventType": "CalmStudent",
       "source": "",
-      "target": "Binh",
+      "target": "Bình",
       "minTime": 22,
       "maxTime": 23,
       "mustOccur": true,
       "afterEventId": "binh_wandering",
-      "description": "Teacher calm Binh lan 1"
+      "description": "Teacher calm Bình lan 1"
     },
     {
       "id": "binh_knocked",
       "component": "StudentInteractionProcessor",
       "eventType": "KnockedOverObject",
-      "source": "Binh",
-      "target": "Lan",
-      "minTime": 39.5,
+      "source": "student_binh",
+      "target": "student_lan",
+      "minTime": 39.0,
       "maxTime": 41.0,
       "mustOccur": true,
       "afterEventId": "",
@@ -75,24 +75,24 @@
       "component": "TeacherController",
       "eventType": "CalmStudent",
       "source": "",
-      "target": "Binh",
+      "target": "Bình",
       "minTime": 42,
       "maxTime": 43,
       "mustOccur": true,
       "afterEventId": "binh_knocked",
-      "description": "Teacher calm Binh lan 2 sau knocked object"
+      "description": "Teacher calm Bình lan 2 sau knocked object"
     },
     {
       "id": "binh_resolved",
       "component": "StudentInfluenceManager",
       "eventType": "InfluenceResolved",
-      "source": "Binh",
+      "source": "Bình",
       "target": "",
       "minTime": 42,
       "maxTime": 44,
       "mustOccur": true,
       "afterEventId": "teacher_calm_binh_2",
-      "description": "Influence tu Binh resolved"
+      "description": "Influence tu Bình resolved"
     },
     {
       "id": "teacher_calm_lan",

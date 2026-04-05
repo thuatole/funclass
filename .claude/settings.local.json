@@ -10,7 +10,8 @@
       "Bash(mv PLAN_TEST_TIER1_UNIT.md Docs/)",
       "Bash(mv PLAN_TEST_TIER2_INTEGRATION.md Docs/)",
       "Bash(mv PLAN_TEST_TIER3_SCENARIO.md Docs/)",
-      "Bash(mv PLAN_TEST_TIER4_REGRESSION.md Docs/)"
+      "Bash(mv PLAN_TEST_TIER4_REGRESSION.md Docs/)",
+      "Bash(xargs grep:*)"
     ]
   }
 }

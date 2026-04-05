@@ -77,10 +77,11 @@ namespace FunClass.Editor.Data
         public string studentId;
         public string studentName;
         public string deskId; // Reference to specific desk if manual placement
-        
+        public string characterModel; // FBX name in Assets/Characters/ (e.g. "character-male-a")
+
         // Personality (if not provided, random within difficulty bounds)
         public PersonalityData personality;
-        
+
         // Behaviors (if not provided, default)
         public BehaviorData behaviors;
     }

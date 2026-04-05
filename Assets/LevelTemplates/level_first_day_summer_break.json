@@ -130,6 +130,7 @@
     {
       "studentId": "student_binh",
       "studentName": "Bình",
+      "characterModel": "character-male-a",
       "personality": {
         "patience": 0.3,
         "attentionSpan": 0.5,
@@ -160,6 +161,7 @@
     {
       "studentId": "student_lan",
       "studentName": "Lan",
+      "characterModel": "character-female-a",
       "personality": {
         "patience": 0.4,
         "attentionSpan": 0.6,
@@ -190,6 +192,7 @@
     {
       "studentId": "student_nam",
       "studentName": "Nam",
+      "characterModel": "character-male-b",
       "personality": {
         "patience": 0.5,
         "attentionSpan": 0.4,
@@ -220,6 +223,7 @@
     {
       "studentId": "student_mai",
       "studentName": "Mai",
+      "characterModel": "character-female-b",
       "personality": {
         "patience": 0.8,
         "attentionSpan": 0.9,

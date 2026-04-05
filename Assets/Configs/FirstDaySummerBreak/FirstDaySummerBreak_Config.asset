@@ -18,8 +18,8 @@ MonoBehaviour:
   students:
   - {fileID: 11400000, guid: 9bfb5f234ec90db46bb595b416b3ea2c, type: 2}
   - {fileID: 11400000, guid: 018d6336b222f7b408b02d401e96978e, type: 2}
-  - {fileID: 11400000, guid: 10a83d2f52a353b43a1328d9a7d9b8dd, type: 2}
   - {fileID: 11400000, guid: 59dd29ad7158a8b47b3251eb8da16bcc, type: 2}
+  - {fileID: 11400000, guid: 10a83d2f52a353b43a1328d9a7d9b8dd, type: 2}
   availableSequences: []
   studentInteractions:
   - id: interaction_1

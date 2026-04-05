@@ -384,12 +384,12 @@ namespace FunClass.Editor.Modules
         /// Configure StudentAgent component if it exists on the student prefab
         /// </summary>
         private static void ConfigureStudentComponent(
-            GameObject studentObj, 
+            GameObject studentObj,
             EnhancedStudentData studentConfig,
             string difficulty)
         {
             // Ensure student has all required components (compatible with old system)
-            EnsureStudentComponents(studentObj);
+            EnsureStudentComponents(studentObj, studentConfig?.characterModel);
             
             // Try to get StudentAgent component
             var studentAgent = studentObj.GetComponent<FunClass.Core.StudentAgent>();
@@ -421,7 +421,7 @@ namespace FunClass.Editor.Modules
         /// <summary>
         /// Ensure student GameObject has all required components (mimics old system)
         /// </summary>
-        private static void EnsureStudentComponents(GameObject studentObj)
+        private static void EnsureStudentComponents(GameObject studentObj, string characterModel = null)
         {
             Debug.Log($"[StudentPlacementManager] EnsureStudentComponents for {studentObj.name}, transform.childCount: {studentObj.transform.childCount}");
             
@@ -491,44 +491,71 @@ namespace FunClass.Editor.Modules
                 Debug.Log($"[StudentPlacementManager] Added InfluenceStatusIcon to {studentObj.name}");
             }
             
-            // Add visual capsule if no visual child exists
+            // Add visual child (FBX model or Capsule fallback) if none exists
             bool hasVisual = false;
-            int visualChildIndex = -1;
             GameObject visual = null;
             foreach (Transform child in studentObj.transform)
             {
-                if (child.name == "Visual" || child.gameObject.GetComponent<Renderer>() != null)
+                if (child.name == "Visual" || child.name == "Model" || child.gameObject.GetComponent<Renderer>() != null)
                 {
                     hasVisual = true;
-                    visualChildIndex = child.GetSiblingIndex();
                     visual = child.gameObject;
                     break;
                 }
             }
-            
+
             if (!hasVisual)
+            {
+                // Try to load FBX model
+                bool fbxLoaded = false;
+                if (!string.IsNullOrEmpty(characterModel))
                 {
-                    Debug.Log($"[StudentPlacementManager] No visual found for {studentObj.name}, creating capsule...");
+                    string fbxPath = $"Assets/Characters/{characterModel}.fbx";
+                    GameObject fbxAsset = AssetDatabase.LoadAssetAtPath<GameObject>(fbxPath);
+                    if (fbxAsset != null)
+                    {
+                        visual = Object.Instantiate(fbxAsset);
+                        visual.name = "Model";
+                        visual.transform.SetParent(studentObj.transform, false);
+                        visual.transform.localPosition = Vector3.zero;
+                        visual.transform.localRotation = Quaternion.identity;
+                        // Remove any colliders on the FBX (collision handled by root CapsuleCollider)
+                        foreach (var col in visual.GetComponentsInChildren<Collider>())
+                            Object.DestroyImmediate(col);
+                        fbxLoaded = true;
+                        Debug.Log($"[StudentPlacementManager] Loaded FBX model '{characterModel}' for {studentObj.name}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[StudentPlacementManager] FBX not found at {fbxPath}, falling back to Capsule");
+                    }
+                }
+
+                if (!fbxLoaded)
+                {
                     visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
                     visual.name = "Visual";
-                    visual.transform.SetParent(studentObj.transform, true);
+                    visual.transform.SetParent(studentObj.transform, false);
                     visual.transform.localPosition = Vector3.zero;
-                    Debug.Log($"[StudentPlacementManager] Created visual capsule for {studentObj.name}");
-                    Debug.Log($"[StudentPlacementManager]   - Visual world pos: {visual.transform.position}");
-                    Debug.Log($"[StudentPlacementManager]   - Visual local pos: {visual.transform.localPosition}");
-                    
-                    // Remove duplicate collider from primitive
-                var primitiveCollider = visual.GetComponent<Collider>();
-                if (primitiveCollider != null)
-                {
-                    Object.DestroyImmediate(primitiveCollider);
-                    Debug.Log($"[StudentPlacementManager] Removed duplicate collider from visual capsule");
+                    var primitiveCollider = visual.GetComponent<Collider>();
+                    if (primitiveCollider != null) Object.DestroyImmediate(primitiveCollider);
+                    Debug.Log($"[StudentPlacementManager] Created capsule visual for {studentObj.name}");
                 }
             }
             else
             {
-                Debug.Log($"[StudentPlacementManager] {studentObj.name} already has visual child at index {visualChildIndex}: {visual.name}");
+                Debug.Log($"[StudentPlacementManager] {studentObj.name} already has visual child: {visual.name}");
             }
+
+            // Add visual feedback components
+            if (studentObj.GetComponent<FunClass.Core.StudentStateVisual>() == null)
+                studentObj.AddComponent<FunClass.Core.StudentStateVisual>();
+            if (studentObj.GetComponent<FunClass.Core.StudentStateIndicator>() == null)
+                studentObj.AddComponent<FunClass.Core.StudentStateIndicator>();
+            if (studentObj.GetComponent<FunClass.Core.StudentBodyAnimation>() == null)
+                studentObj.AddComponent<FunClass.Core.StudentBodyAnimation>();
+            if (studentObj.GetComponent<FunClass.Core.StudentStateParticles>() == null)
+                studentObj.AddComponent<FunClass.Core.StudentStateParticles>();
             
             // Ensure visual is visible
             EnsureVisualVisibility(visual, studentObj.name);

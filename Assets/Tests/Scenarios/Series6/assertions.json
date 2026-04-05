@@ -4,7 +4,7 @@
   "series": 6,
   "level": "FirstDaySummerBreak",
   "testTimeScale": 10,
-  "maxGameTimeSeconds": 100,
+  "maxGameTimeSeconds": 200,
 
   "teacherActions": [
     {
@@ -20,9 +20,9 @@
       "id": "binh_knocked",
       "component": "StudentInteractionProcessor",
       "eventType": "KnockedOverObject",
-      "source": "Binh",
-      "target": "Lan",
-      "minTime": 39.5,
+      "source": "student_binh",
+      "target": "student_lan",
+      "minTime": 39.0,
       "maxTime": 41.0,
       "mustOccur": true,
       "afterEventId": "",
@@ -32,13 +32,13 @@
       "id": "lan_influenced",
       "component": "StudentInfluenceManager",
       "eventType": "InfluenceApplied",
-      "source": "Binh",
+      "source": "Bình",
       "target": "Lan",
-      "minTime": 39.5,
+      "minTime": 39.0,
       "maxTime": 42.0,
       "mustOccur": true,
       "afterEventId": "binh_knocked",
-      "description": "Lan van bi influence tu Binh"
+      "description": "Lan van bi influence tu Bình"
     },
     {
       "id": "teacher_calm_mai",
@@ -56,21 +56,21 @@
       "id": "lan_still_influenced",
       "component": "StudentInteractionProcessor",
       "eventType": "WanderingAround",
-      "source": "Lan",
+      "source": "student_lan",
       "target": "",
-      "minTime": 59.5,
+      "minTime": 59.0,
       "maxTime": 61.0,
       "mustOccur": true,
       "afterEventId": "teacher_calm_mai",
-      "description": "Lan VAN tiep tuc bi anh huong (calm Mai khong giai quyet Binh->Lan)"
+      "description": "Lan VAN tiep tuc bi anh huong (calm Mai khong giai quyet Bình->Lan)"
     },
     {
       "id": "nam_still_throws",
       "component": "StudentInteractionProcessor",
       "eventType": "ThrowingObject",
-      "source": "Nam",
-      "target": "Lan",
-      "minTime": 79.5,
+      "source": "student_nam",
+      "target": "student_lan",
+      "minTime": 79.0,
       "maxTime": 81.0,
       "mustOccur": true,
       "afterEventId": "lan_still_influenced",

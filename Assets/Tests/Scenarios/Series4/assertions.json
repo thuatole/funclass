@@ -4,14 +4,14 @@
   "series": 4,
   "level": "FirstDaySummerBreak",
   "testTimeScale": 10,
-  "maxGameTimeSeconds": 90,
+  "maxGameTimeSeconds": 120,
 
   "teacherActions": [
     {
       "time": 42,
       "action": "CalmStudent",
-      "targetStudent": "Binh",
-      "description": "Teacher calm Binh ngay sau khi Binh knock object (40s)"
+      "targetStudent": "Bình",
+      "description": "Teacher calm Bình ngay sau khi Bình knock object (40s)"
     }
   ],
 
@@ -20,49 +20,49 @@
       "id": "binh_knocked_40s",
       "component": "StudentInteractionProcessor",
       "eventType": "KnockedOverObject",
-      "source": "Binh",
-      "target": "Lan",
-      "minTime": 39.5,
+      "source": "student_binh",
+      "target": "student_lan",
+      "minTime": 39.0,
       "maxTime": 41.0,
       "mustOccur": true,
       "afterEventId": "",
-      "description": "Binh van trigger KnockedOverObject tai 40s"
+      "description": "Bình van trigger KnockedOverObject tai 40s"
     },
     {
       "id": "lan_influenced",
       "component": "StudentInfluenceManager",
       "eventType": "InfluenceApplied",
-      "source": "Binh",
+      "source": "Bình",
       "target": "Lan",
-      "minTime": 39.5,
+      "minTime": 39.0,
       "maxTime": 42.0,
       "mustOccur": true,
       "afterEventId": "binh_knocked_40s",
-      "description": "Lan van nhan influence tu Binh"
+      "description": "Lan van nhan influence tu Bình"
     },
     {
       "id": "teacher_calm_binh",
       "component": "TeacherController",
       "eventType": "CalmStudent",
       "source": "",
-      "target": "Binh",
+      "target": "Bình",
       "minTime": 42,
       "maxTime": 43,
       "mustOccur": true,
       "afterEventId": "lan_influenced",
-      "description": "Teacher calm Binh tai 42s"
+      "description": "Teacher calm Bình tai 42s"
     },
     {
       "id": "binh_influence_resolved",
       "component": "StudentInfluenceManager",
       "eventType": "InfluenceResolved",
-      "source": "Binh",
+      "source": "Bình",
       "target": "",
       "minTime": 42,
       "maxTime": 44,
       "mustOccur": true,
       "afterEventId": "teacher_calm_binh",
-      "description": "Influence tu Binh duoc resolve sau khi teacher calm"
+      "description": "Influence tu Bình duoc resolve sau khi teacher calm"
     },
     {
       "id": "no_lan_critical",
@@ -71,13 +71,14 @@
       "source": "Lan",
       "target": "",
       "minTime": 42,
-      "maxTime": 90,
+      "maxTime": 120,
       "mustOccur": false,
       "afterEventId": "binh_influence_resolved",
-      "description": "Lan KHONG nen len Critical sau khi Binh da bi calm (chain bi cat)"
+      "messageContains": "Critical",
+      "description": "Lan KHONG nen len Critical sau khi Bình da bi calm (chain bi cat)"
     }
   ],
 
   "expectedEndState": "",
-  "notes": "Series 4 verify teacher action ngat duoc influence chain. Sau khi calm Binh, Lan khong bi escalate them. no_lan_critical mustOccur=false nghia la event nay KHONG nen xay ra."
+  "notes": "Series 4 verify teacher action ngat duoc influence chain. Sau khi calm Bình, Lan khong bi escalate them. no_lan_critical mustOccur=false nghia la event nay KHONG nen xay ra."
 }

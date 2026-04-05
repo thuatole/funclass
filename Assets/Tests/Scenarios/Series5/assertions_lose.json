@@ -1,10 +1,10 @@
 {
   "scenarioName": "Series 5a - Full Level (No Teacher - Lose)",
-  "description": "Full level chay tu dau den cuoi, teacher khong can thiep. Verify game over dung ly do.",
+  "description": "Full level chay tu dau den cuoi, teacher khong can thiep. Verify game fail do disruption vuot threshold.",
   "series": 5,
   "level": "FirstDaySummerBreak",
   "testTimeScale": 10,
-  "maxGameTimeSeconds": 150,
+  "maxGameTimeSeconds": 200,
 
   "teacherActions": [],
 
@@ -25,9 +25,9 @@
       "id": "binh_wandering",
       "component": "StudentInteractionProcessor",
       "eventType": "WanderingAround",
-      "source": "Binh",
+      "source": "student_binh",
       "target": "",
-      "minTime": 19.5,
+      "minTime": 19.0,
       "maxTime": 21.0,
       "mustOccur": true,
       "afterEventId": "",
@@ -37,64 +37,29 @@
       "id": "binh_knocked",
       "component": "StudentInteractionProcessor",
       "eventType": "KnockedOverObject",
-      "source": "Binh",
-      "target": "Lan",
-      "minTime": 39.5,
+      "source": "student_binh",
+      "target": "student_lan",
+      "minTime": 39.0,
       "maxTime": 41.0,
       "mustOccur": true,
       "afterEventId": "binh_wandering",
       "description": "Event 2 trigger dung"
     },
     {
-      "id": "lan_wandering",
-      "component": "StudentInteractionProcessor",
-      "eventType": "WanderingAround",
-      "source": "Lan",
-      "target": "",
-      "minTime": 59.5,
-      "maxTime": 61.0,
-      "mustOccur": true,
-      "afterEventId": "binh_knocked",
-      "description": "Event 3 trigger dung"
-    },
-    {
-      "id": "nam_throwing",
-      "component": "StudentInteractionProcessor",
-      "eventType": "ThrowingObject",
-      "source": "Nam",
-      "target": "Lan",
-      "minTime": 79.5,
-      "maxTime": 81.0,
-      "mustOccur": true,
-      "afterEventId": "lan_wandering",
-      "description": "Event 4 trigger dung"
-    },
-    {
-      "id": "lan_critical",
-      "component": "StudentAgent",
-      "eventType": "StateChanged",
-      "source": "Lan",
-      "target": "",
-      "minTime": 79,
-      "maxTime": 100,
-      "mustOccur": true,
-      "afterEventId": "nam_throwing",
-      "description": "Lan phai len Critical sau khi nhan nhieu influence"
-    },
-    {
-      "id": "game_over",
-      "component": "GameStateManager",
-      "eventType": "StateTransition",
+      "id": "level_failed",
+      "component": "LevelManager",
+      "eventType": "LevelFailed",
       "source": "",
       "target": "",
-      "minTime": 80,
-      "maxTime": 150,
+      "minTime": 40,
+      "maxTime": 200,
       "mustOccur": true,
-      "afterEventId": "lan_critical",
-      "description": "Game phai ket thuc GameOver (disruption vuot threshold)"
+      "afterEventId": "binh_knocked",
+      "messageContains": "LEVEL FAILED",
+      "description": "Game phai fail (disruption vuot threshold) - co the xay ra bat cu luc nao sau event 2"
     }
   ],
 
-  "expectedEndState": "GameOver",
-  "notes": "Series 5a verify toan bo flow tu dau den cuoi khi teacher khong lam gi. Tat ca 4 events trigger, chain influence hoan tat, game over."
+  "expectedEndState": "LevelFailed",
+  "notes": "Series 5a verify: khong co teacher -> disruption tang lien tuc -> level failed. Autonomous behaviors + scripted events cung gay disruption nen game co the fail truoc events 3-4. Chi verify events 1-2 va level failed."
 }

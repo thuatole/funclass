@@ -659,7 +659,11 @@ namespace FunClass.Core
             }
 
             student.HandleTeacherAction(TeacherActionType.Calm);
-            
+
+            // Play calm reaction animation + sparkle particles
+            student.GetComponent<StudentBodyAnimation>()?.PlayCalmReaction();
+            student.GetComponent<StudentStateParticles>()?.PlayCalmSparkle();
+
             if (StudentEventManager.Instance != null)
             {
                 StudentEventManager.Instance.LogEvent(
