@@ -1,0 +1,100 @@
+{
+  "scenarioName": "Series 5a - Full Level (No Teacher - Lose)",
+  "description": "Full level chay tu dau den cuoi, teacher khong can thiep. Verify game over dung ly do.",
+  "series": 5,
+  "level": "FirstDaySummerBreak",
+  "testTimeScale": 10,
+  "maxGameTimeSeconds": 150,
+
+  "teacherActions": [],
+
+  "assertions": [
+    {
+      "id": "interactions_loaded",
+      "component": "StudentInteractionProcessor",
+      "eventType": "InteractionsLoaded",
+      "source": "",
+      "target": "",
+      "minTime": 0,
+      "maxTime": 5,
+      "mustOccur": true,
+      "afterEventId": "",
+      "description": "4 interactions phai load"
+    },
+    {
+      "id": "binh_wandering",
+      "component": "StudentInteractionProcessor",
+      "eventType": "WanderingAround",
+      "source": "Binh",
+      "target": "",
+      "minTime": 19.5,
+      "maxTime": 21.0,
+      "mustOccur": true,
+      "afterEventId": "",
+      "description": "Event 1 trigger dung"
+    },
+    {
+      "id": "binh_knocked",
+      "component": "StudentInteractionProcessor",
+      "eventType": "KnockedOverObject",
+      "source": "Binh",
+      "target": "Lan",
+      "minTime": 39.5,
+      "maxTime": 41.0,
+      "mustOccur": true,
+      "afterEventId": "binh_wandering",
+      "description": "Event 2 trigger dung"
+    },
+    {
+      "id": "lan_wandering",
+      "component": "StudentInteractionProcessor",
+      "eventType": "WanderingAround",
+      "source": "Lan",
+      "target": "",
+      "minTime": 59.5,
+      "maxTime": 61.0,
+      "mustOccur": true,
+      "afterEventId": "binh_knocked",
+      "description": "Event 3 trigger dung"
+    },
+    {
+      "id": "nam_throwing",
+      "component": "StudentInteractionProcessor",
+      "eventType": "ThrowingObject",
+      "source": "Nam",
+      "target": "Lan",
+      "minTime": 79.5,
+      "maxTime": 81.0,
+      "mustOccur": true,
+      "afterEventId": "lan_wandering",
+      "description": "Event 4 trigger dung"
+    },
+    {
+      "id": "lan_critical",
+      "component": "StudentAgent",
+      "eventType": "StateChanged",
+      "source": "Lan",
+      "target": "",
+      "minTime": 79,
+      "maxTime": 100,
+      "mustOccur": true,
+      "afterEventId": "nam_throwing",
+      "description": "Lan phai len Critical sau khi nhan nhieu influence"
+    },
+    {
+      "id": "game_over",
+      "component": "GameStateManager",
+      "eventType": "StateTransition",
+      "source": "",
+      "target": "",
+      "minTime": 80,
+      "maxTime": 150,
+      "mustOccur": true,
+      "afterEventId": "lan_critical",
+      "description": "Game phai ket thuc GameOver (disruption vuot threshold)"
+    }
+  ],
+
+  "expectedEndState": "GameOver",
+  "notes": "Series 5a verify toan bo flow tu dau den cuoi khi teacher khong lam gi. Tat ca 4 events trigger, chain influence hoan tat, game over."
+}

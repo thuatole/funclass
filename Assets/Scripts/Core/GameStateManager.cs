@@ -104,7 +104,7 @@ namespace FunClass.Core
             GameState oldState = CurrentState;
             CurrentState = newState;
 
-            GameLogger.Milestone("GameStateManager", $"STATE TRANSITION: {oldState} → {newState}");
+            GameLogger.Milestone("GameStateManager", $"STATE TRANSITION: {oldState} → {newState}", "StateTransition", oldState.ToString(), newState.ToString());
             
             int listenerCount = OnStateChanged?.GetInvocationList().Length ?? 0;
             GameLogger.Detail("GameStateManager", $"Notifying {listenerCount} listeners of state change");

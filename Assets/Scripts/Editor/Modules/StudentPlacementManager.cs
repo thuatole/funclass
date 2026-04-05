@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 using FunClass.Editor.Data;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -102,15 +103,25 @@ namespace FunClass.Editor.Modules
             }
             
             // 2. Instantiate and bind students
-            int studentIndex = 0;
-            for (int i = 0; i < Mathf.Min(desks.Count, schema.students); i++)
+            // Sort desks by deskId and configs by studentId so pairing is always deterministic.
+            var sortedDesks = desks.OrderBy(d => d.deskId).ToList();
+            var sortedConfigs = schema.studentConfigs != null
+                ? schema.studentConfigs.OrderBy(c => c.studentId ?? c.studentName ?? string.Empty).ToList()
+                : new List<EnhancedStudentData>();
+
+            Debug.Log($"[StudentPlacementManager] Desks sorted: {string.Join(", ", sortedDesks.Select(d => d.deskId))}");
+            Debug.Log($"[StudentPlacementManager] Configs sorted: {string.Join(", ", sortedConfigs.Select(c => c.studentId))}");
+
+            for (int i = 0; i < Mathf.Min(sortedDesks.Count, schema.students); i++)
             {
-                var desk = desks[i];
-                
-                Debug.Log($"[StudentPlacementManager] Processing desk {i}: {desk.deskId} at position {desk.position}");
-                
-                // Check if we have manual student config for this desk
-                EnhancedStudentData studentConfig = GetStudentConfigForDesk(schema, desk.deskId, studentIndex);
+                var desk = sortedDesks[i];
+
+                // Direct pairing: sortedDesks[i] → sortedConfigs[i]. No index indirection.
+                EnhancedStudentData studentConfig = i < sortedConfigs.Count
+                    ? sortedConfigs[i]
+                    : GenerateStudentConfig(schema, i, desk.deskId);
+
+                Debug.Log($"[StudentPlacementManager] Desk {i} ({desk.deskId}) → config '{studentConfig?.studentId}' ({studentConfig?.studentName})");
                 
                 try
                 {
@@ -138,18 +149,18 @@ namespace FunClass.Editor.Modules
                         studentObj = new GameObject();
                         studentObj.transform.position = studentPosition;
                         studentObj.transform.rotation = Quaternion.identity;
-                        Debug.Log($"[StudentPlacementManager] Created basic GameObject for student {studentIndex}");
+                        Debug.Log($"[StudentPlacementManager] Created basic GameObject for student {i}");
                     }
                     else
                     {
                         // Use Object.Instantiate with position to properly preserve position
                         studentObj = Object.Instantiate(studentPrefab, studentPosition, Quaternion.identity);
-                        Debug.Log($"[StudentPlacementManager] Instantiated prefab {studentPrefab.name} for student {studentIndex}");
+                        Debug.Log($"[StudentPlacementManager] Instantiated prefab {studentPrefab.name} for student {i}");
                     }
                     
                     // Determine student identifier (without "Student_" prefix)
-                    string studentIdentifier = studentConfig?.studentName ?? studentIndex.ToString();
-                    Debug.Log($"[StudentPlacementManager] Desk {desk.deskId}: studentConfig={studentConfig?.studentName ?? "NULL"} (id={studentConfig?.studentId ?? "NULL"}), studentIndex={studentIndex}, studentIdentifier='{studentIdentifier}'");
+                    string studentIdentifier = studentConfig?.studentName ?? i.ToString();
+                    Debug.Log($"[StudentPlacementManager] Desk {desk.deskId}: studentConfig={studentConfig?.studentName ?? "NULL"} (id={studentConfig?.studentId ?? "NULL"}), deskIndex={i}, studentIdentifier='{studentIdentifier}'");
                     // Remove "Student_" prefix if present in identifier
                     studentIdentifier = studentIdentifier.Replace("Student_", "");
                     Debug.Log($"[StudentPlacementManager] Desk {desk.deskId}: after replace studentIdentifier='{studentIdentifier}'");
@@ -184,7 +195,6 @@ namespace FunClass.Editor.Modules
                 {
                     Debug.LogError($"[StudentPlacementManager] ERROR creating student for desk {desk.deskId}: {e.Message}\n{e.StackTrace}");
                 }
-                studentIndex++;
             }
             
             // Check if we have more students than desks (should not happen due to validation)
@@ -218,28 +228,33 @@ namespace FunClass.Editor.Modules
         /// Get student configuration for a specific desk
         /// </summary>
         private static EnhancedStudentData GetStudentConfigForDesk(
-            EnhancedLevelSchema schema, 
-            string deskId, 
+            EnhancedLevelSchema schema,
+            string deskId,
             int studentIndex)
         {
-            // If schema has manual student configs, try to find one for this desk
             if (schema.studentConfigs != null && schema.studentConfigs.Count > 0)
             {
+                // Priority 1: explicit deskId match (manual placement).
                 foreach (var config in schema.studentConfigs)
                 {
-                    if (config.deskId == deskId)
-                    {
+                    if (!string.IsNullOrEmpty(config.deskId) && config.deskId == deskId)
                         return config;
-                    }
                 }
-                
-                // If we have configs but not enough for all desks, use sequential assignment
-                if (studentIndex < schema.studentConfigs.Count)
+
+                // Priority 2: positional match using studentId-sorted list for deterministic ordering.
+                // Sorting by studentId ensures the same config always maps to the same desk index
+                // regardless of how the JSON was parsed or how desks were generated.
+                var sorted = schema.studentConfigs
+                    .OrderBy(c => c.studentId ?? c.studentName ?? string.Empty)
+                    .ToList();
+
+                if (studentIndex < sorted.Count)
                 {
-                    return schema.studentConfigs[studentIndex];
+                    Debug.Log($"[StudentPlacementManager] GetStudentConfigForDesk: desk '{deskId}' index {studentIndex} → '{sorted[studentIndex].studentId}' ({sorted[studentIndex].studentName})");
+                    return sorted[studentIndex];
                 }
             }
-            
+
             // Auto-generate student config
             return GenerateStudentConfig(schema, studentIndex, deskId);
         }

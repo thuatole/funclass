@@ -1,0 +1,125 @@
+{
+  "scenarioName": "Series 5b - Full Level (Teacher Intervenes - Win)",
+  "description": "Full level chay tu dau den cuoi, teacher can thiep dung luc. Verify win condition.",
+  "series": 5,
+  "level": "FirstDaySummerBreak",
+  "testTimeScale": 10,
+  "maxGameTimeSeconds": 150,
+
+  "teacherActions": [
+    {
+      "time": 22,
+      "action": "CalmStudent",
+      "targetStudent": "Binh",
+      "description": "Calm Binh ngay sau khi bat dau wandering (20s)"
+    },
+    {
+      "time": 42,
+      "action": "CalmStudent",
+      "targetStudent": "Binh",
+      "description": "Calm Binh lan nua sau knocked object (40s)"
+    },
+    {
+      "time": 62,
+      "action": "CalmStudent",
+      "targetStudent": "Lan",
+      "description": "Calm Lan sau khi bat dau wandering (60s)"
+    },
+    {
+      "time": 82,
+      "action": "CalmStudent",
+      "targetStudent": "Nam",
+      "description": "Calm Nam sau khi throwing (80s)"
+    }
+  ],
+
+  "assertions": [
+    {
+      "id": "binh_wandering",
+      "component": "StudentInteractionProcessor",
+      "eventType": "WanderingAround",
+      "source": "Binh",
+      "target": "",
+      "minTime": 19.5,
+      "maxTime": 21.0,
+      "mustOccur": true,
+      "afterEventId": "",
+      "description": "Event 1 van trigger"
+    },
+    {
+      "id": "teacher_calm_binh_1",
+      "component": "TeacherController",
+      "eventType": "CalmStudent",
+      "source": "",
+      "target": "Binh",
+      "minTime": 22,
+      "maxTime": 23,
+      "mustOccur": true,
+      "afterEventId": "binh_wandering",
+      "description": "Teacher calm Binh lan 1"
+    },
+    {
+      "id": "binh_knocked",
+      "component": "StudentInteractionProcessor",
+      "eventType": "KnockedOverObject",
+      "source": "Binh",
+      "target": "Lan",
+      "minTime": 39.5,
+      "maxTime": 41.0,
+      "mustOccur": true,
+      "afterEventId": "",
+      "description": "Event 2 van trigger (scripted, khong phu thuoc state)"
+    },
+    {
+      "id": "teacher_calm_binh_2",
+      "component": "TeacherController",
+      "eventType": "CalmStudent",
+      "source": "",
+      "target": "Binh",
+      "minTime": 42,
+      "maxTime": 43,
+      "mustOccur": true,
+      "afterEventId": "binh_knocked",
+      "description": "Teacher calm Binh lan 2 sau knocked object"
+    },
+    {
+      "id": "binh_resolved",
+      "component": "StudentInfluenceManager",
+      "eventType": "InfluenceResolved",
+      "source": "Binh",
+      "target": "",
+      "minTime": 42,
+      "maxTime": 44,
+      "mustOccur": true,
+      "afterEventId": "teacher_calm_binh_2",
+      "description": "Influence tu Binh resolved"
+    },
+    {
+      "id": "teacher_calm_lan",
+      "component": "TeacherController",
+      "eventType": "CalmStudent",
+      "source": "",
+      "target": "Lan",
+      "minTime": 62,
+      "maxTime": 63,
+      "mustOccur": true,
+      "afterEventId": "",
+      "description": "Teacher calm Lan sau wandering"
+    },
+    {
+      "id": "teacher_calm_nam",
+      "component": "TeacherController",
+      "eventType": "CalmStudent",
+      "source": "",
+      "target": "Nam",
+      "minTime": 82,
+      "maxTime": 83,
+      "mustOccur": true,
+      "afterEventId": "",
+      "description": "Teacher calm Nam sau throwing"
+    }
+  ],
+
+  "expectedEndState": "Win",
+  "notes": "Series 5b verify teacher can thiep dung luc tai moi moc -> resolve influence -> disruption giam -> win. Neu expectedEndState khong match -> FAIL."
+}

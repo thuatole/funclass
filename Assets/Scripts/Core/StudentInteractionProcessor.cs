@@ -41,17 +41,16 @@ namespace FunClass.Core
             }
 
             Instance = this;
-            GameLogger.Milestone("StudentInteractionProcessor", "Awake - Instance created");
+            GameLogger.Milestone("StudentInteractionProcessor", "Awake - Instance created", "Initialized", "", "");
         }
 
         void Start()
         {
             GameLogger.Detail("StudentInteractionProcessor", $"Start - Interactions loaded: {interactions.Count}");
             
-            // Retry subscription if failed in OnEnable
+            // Only subscribe if not already subscribed from OnEnable
             if (!hasSubscribedToGameState && GameStateManager.Instance != null)
             {
-                GameStateManager.Instance.OnStateChanged -= HandleGameStateChanged;
                 GameStateManager.Instance.OnStateChanged += HandleGameStateChanged;
                 hasSubscribedToGameState = true;
                 GameLogger.Detail("StudentInteractionProcessor", $"Late subscription - Current state: {GameStateManager.Instance.CurrentState}");
@@ -62,7 +61,12 @@ namespace FunClass.Core
                     GameLogger.Detail("StudentInteractionProcessor", "Already in InLevel, activating processor");
                     isActive = true;
                     RefreshStudentList();
+                    GameLogger.Milestone("StudentInteractionProcessor", $"Activated - Found {studentsById.Count} students, {interactions.Count} interactions loaded", "Activated", "", "");
                 }
+            }
+            else if (GameStateManager.Instance != null && hasSubscribedToGameState)
+            {
+                GameLogger.Detail("StudentInteractionProcessor", "Already subscribed to GameStateManager from OnEnable");
             }
         }
 
@@ -111,7 +115,7 @@ namespace FunClass.Core
             if (isActive)
             {
                 RefreshStudentList();
-                GameLogger.Milestone("StudentInteractionProcessor", $"Activated - Found {studentsById.Count} students, {interactions.Count} interactions loaded");
+                GameLogger.Milestone("StudentInteractionProcessor", $"Activated - Found {studentsById.Count} students, {interactions.Count} interactions loaded", "Activated", "", "");
             }
             else
             {
@@ -154,7 +158,7 @@ namespace FunClass.Core
 
             interactions.AddRange(configs);
             interactionsLoaded = true;
-            GameLogger.Milestone("StudentInteractionProcessor", $"Loaded {interactions.Count} student interactions");
+            GameLogger.Milestone("StudentInteractionProcessor", $"Loaded {interactions.Count} student interactions", "InteractionsLoaded", "", "");
 
             foreach (var config in interactions)
             {
@@ -194,7 +198,7 @@ namespace FunClass.Core
             }
 
             interactionsLoaded = true;
-            GameLogger.Milestone("StudentInteractionProcessor", $"Loaded {interactions.Count} runtime student interactions");
+            GameLogger.Milestone("StudentInteractionProcessor", $"Loaded {interactions.Count} runtime student interactions", "InteractionsLoaded", "", "");
             
             foreach (var config in interactions)
             {
@@ -355,8 +359,9 @@ namespace FunClass.Core
 
             if (withinWindow)
             {
-                GameLogger.Milestone("StudentInteractionProcessor", 
-                    $"Time-based trigger: {interaction.sourceStudent} → {interaction.targetStudent} ({interaction.eventType}) at {elapsed:F1}s");
+                GameLogger.Milestone("StudentInteractionProcessor",
+                    $"Time-based trigger: {interaction.sourceStudent} → {interaction.targetStudent} ({interaction.eventType}) at {elapsed:F1}s",
+                    interaction.eventType, interaction.sourceStudent, interaction.targetStudent);
             }
             else
             {
@@ -368,20 +373,6 @@ namespace FunClass.Core
         }
 
         /// <summary>
-        /// Get trigger value from config (handles different field names)
-        /// </summary>
-        private float GetTriggerValue(StudentInteractionConfig interaction)
-        {
-            // Try customSeverity first (used in Editor config), then check for triggerValue
-            if (interaction.customSeverity > 0 && interaction.customSeverity < 1000)
-            {
-                return interaction.customSeverity;
-            }
-            // Default to 30 seconds if not specified
-            return 30f;
-        }
-
-        /// <summary>
         /// Trigger the interaction event
         /// </summary>
         private void TriggerInteraction(StudentInteractionConfig interaction)
@@ -389,8 +380,9 @@ namespace FunClass.Core
             string interactionKey = $"{interaction.sourceStudent}_{interaction.targetStudent}_{interaction.eventType}";
             triggeredInteractions.Add(interactionKey);
 
-            GameLogger.Milestone("StudentInteractionProcessor", 
-                $"Triggered: {interaction.sourceStudent} → {interaction.targetStudent} ({interaction.eventType})");
+            GameLogger.Milestone("StudentInteractionProcessor",
+                $"Triggered: {interaction.sourceStudent} → {interaction.targetStudent} ({interaction.eventType})",
+                interaction.eventType, interaction.sourceStudent, interaction.targetStudent);
 
             if (!TryGetStudent(interaction.sourceStudent, out StudentAgent source))
             {

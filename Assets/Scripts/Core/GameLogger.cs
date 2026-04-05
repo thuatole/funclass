@@ -1,8 +1,23 @@
 using UnityEngine;
+using System;
 using System.Collections.Generic;
 
 namespace FunClass.Core
 {
+    /// <summary>
+    /// Captured milestone event for automated scenario testing
+    /// </summary>
+    [Serializable]
+    public struct CapturedEvent
+    {
+        public string component;
+        public string eventType;
+        public string source;
+        public string target;
+        public float elapsed;
+        public string rawMessage;
+    }
+
     /// <summary>
     /// Unified logging system with 3 tiers: MILESTONE, DETAIL, TRACE
     /// All logs follow format: [ComponentName] symbol (elapsed-time) message
@@ -12,12 +27,20 @@ namespace FunClass.Core
         // Static flags controlled by GameLoggerConfig
         public static bool MilestoneEnabled = true;
         public static bool TraceEnabled = false;
-        
+
         // Per-component detail flags
         private static Dictionary<string, bool> detailFlags = new Dictionary<string, bool>();
-        
+
         // Reference to config for periodic summary
         private static GameLoggerConfig config;
+
+        // Captured events for automated scenario testing
+        private static List<CapturedEvent> capturedEvents = new List<CapturedEvent>();
+
+        /// <summary>
+        /// Event triggered when a milestone is logged - for ScenarioRunner to capture
+        /// </summary>
+        public static event Action<CapturedEvent> OnMilestoneLogged;
 
         /// <summary>
         /// Initialize the logger with a config reference
@@ -50,9 +73,61 @@ namespace FunClass.Core
         public static void Milestone(string componentName, string message)
         {
             if (!MilestoneEnabled) return;
-            
+
             float elapsed = GetElapsedTime();
             Debug.Log($"[{componentName}] ★ ({elapsed:F1}) {message}");
+
+            // Capture event for automated testing (backward compatibility - empty structured fields)
+            CaptureEvent(componentName, string.Empty, string.Empty, string.Empty, elapsed, message);
+        }
+
+        /// <summary>
+        /// MILESTONE with structured fields for automated scenario testing
+        /// </summary>
+        public static void Milestone(string componentName, string message, string eventType, string source, string target)
+        {
+            if (!MilestoneEnabled) return;
+
+            float elapsed = GetElapsedTime();
+            Debug.Log($"[{componentName}] ★ ({elapsed:F1}) {message}");
+
+            // Capture event with structured fields
+            CaptureEvent(componentName, eventType, source, target, elapsed, message);
+        }
+
+        /// <summary>
+        /// Capture a milestone event for automated testing
+        /// </summary>
+        private static void CaptureEvent(string component, string eventType, string source, string target, float elapsed, string rawMessage)
+        {
+            var capturedEvent = new CapturedEvent
+            {
+                component = component,
+                eventType = eventType,
+                source = source,
+                target = target,
+                elapsed = elapsed,
+                rawMessage = rawMessage
+            };
+
+            capturedEvents.Add(capturedEvent);
+            OnMilestoneLogged?.Invoke(capturedEvent);
+        }
+
+        /// <summary>
+        /// Clear all captured events - call at start of scenario test
+        /// </summary>
+        public static void ClearCapturedEvents()
+        {
+            capturedEvents.Clear();
+        }
+
+        /// <summary>
+        /// Get all captured events - for ScenarioAsserter validation
+        /// </summary>
+        public static List<CapturedEvent> GetCapturedEvents()
+        {
+            return new List<CapturedEvent>(capturedEvents);
         }
 
         /// <summary>

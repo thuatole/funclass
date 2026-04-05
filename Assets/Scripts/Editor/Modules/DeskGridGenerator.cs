@@ -18,7 +18,7 @@ namespace FunClass.Editor.Modules
             
             // Calculate grid dimensions
             int rows = schema.deskLayout.rows; // Always 2
-            int columns = schema.students / rows;
+            int columns = (schema.students + rows - 1) / rows;
             
             Debug.Log($"[DeskGridGenerator] Grid: {rows} rows x {columns} columns");
             
@@ -226,7 +226,7 @@ namespace FunClass.Editor.Modules
         public static Vector2 CalculateDeskGridBounds(EnhancedLevelSchema schema)
         {
             int rows = schema.deskLayout.rows;
-            int columns = schema.students / rows;
+            int columns = (schema.students + rows - 1) / rows;
             
             float totalGridDepth = (rows - 1) * schema.deskLayout.spacingZ;
             float aisleOffset = schema.deskLayout.aisleWidth / 2f;

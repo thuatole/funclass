@@ -1,0 +1,91 @@
+{
+  "levelId": "TestSeries1_Isolated",
+  "levelName": "Test Series 1 - Isolated Single Student",
+  "difficulty": "easy",
+  "description": "Test: 1 student, 0 interaction, verify systems khoi dong dung.",
+
+  "students": 1,
+
+  "deskLayout": {
+    "rows": 1,
+    "spacingX": 3.0,
+    "spacingZ": 3.0,
+    "aisleWidth": 1.5
+  },
+
+  "classroom": {
+    "width": 8,
+    "depth": 6,
+    "height": 3.5,
+    "doorPosition": null
+  },
+
+  "environment": {
+    "boardMaterial": "White",
+    "floorMaterial": "Floor",
+    "wallMaterial": "Wall",
+    "autoSetupLighting": true
+  },
+
+  "routeGeneration": {
+    "autoGenerateRoutes": true,
+    "escapeRouteSpeed": 5.0,
+    "returnRouteSpeed": 3.0
+  },
+
+  "goalSettings": {
+    "maxDisruptionThreshold": 70,
+    "catastrophicDisruptionLevel": 90,
+    "timeLimitSeconds": 60,
+    "requiredCalmDowns": 0,
+    "requiredResolvedProblems": 0,
+    "enableDisruptionTimeout": false,
+    "disruptionTimeoutThreshold": 70,
+    "disruptionTimeoutSeconds": 30,
+    "disruptionTimeoutWarningSeconds": 10,
+    "oneStarScore": 60,
+    "twoStarScore": 100,
+    "threeStarScore": 150
+  },
+
+  "influenceScopeSettings": {
+    "description": "Minimal config - no influence needed for series 1",
+    "disruptionPenaltyPerUnresolvedSource": 8.0,
+    "eventScopes": []
+  },
+
+  "studentInteractions": [],
+
+  "studentConfigs": [
+    {
+      "studentId": "student_binh",
+      "studentName": "Binh",
+      "personality": {
+        "patience": 0.3,
+        "attentionSpan": 0.5,
+        "impulsiveness": 0.6,
+        "influenceSusceptibility": 0.5,
+        "influenceResistance": 0.3,
+        "panicThreshold": 0.8
+      },
+      "behaviors": {
+        "canFidget": true,
+        "canLookAround": true,
+        "canStandUp": true,
+        "canMoveAround": true,
+        "canDropItems": true,
+        "canKnockOverObjects": true,
+        "canMakeNoiseWithObjects": true,
+        "canThrowObjects": true,
+        "canTouchObjects": true,
+        "minIdleTime": 5,
+        "maxIdleTime": 10,
+        "interactionRange": 0,
+        "calmInteractionChance": 0.03,
+        "distractedInteractionChance": 0.5,
+        "actingOutInteractionChance": 0.8,
+        "criticalInteractionChance": 1.0
+      }
+    }
+  ]
+}

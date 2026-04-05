@@ -752,135 +752,112 @@ namespace FunClass.Editor.Modules
                 Debug.Log($"[UnifiedLevelImporter] Creating StudentConfig at path: {studentConfigPath}");
                 Debug.Log($"[UnifiedLevelImporter] Pair values: studentId='{pair.studentId}', studentName='{pair.studentName}'");
                 
-                // Always delete and recreate to ensure clean state
+                // Always delete existing asset first (without SaveAssets to avoid triggering reimport)
                 if (AssetDatabase.LoadAssetAtPath<StudentConfig>(studentConfigPath) != null)
                 {
                     Debug.Log($"[UnifiedLevelImporter] Deleting existing StudentConfig at {studentConfigPath}");
                     AssetDatabase.DeleteAsset(studentConfigPath);
-                    AssetDatabase.SaveAssets();
                 }
-                
-                StudentConfig config = EditorUtils.CreateScriptableObject<StudentConfig>(studentConfigPath);
+
+                // Create instance WITHOUT saving to disk yet — set all fields first, then CreateAsset
+                string configDir = System.IO.Path.GetDirectoryName(studentConfigPath);
+                if (!string.IsNullOrEmpty(configDir) && !System.IO.Directory.Exists(configDir))
+                    System.IO.Directory.CreateDirectory(configDir);
+
+                StudentConfig config = ScriptableObject.CreateInstance<StudentConfig>();
                 if (config == null)
                 {
-                    Debug.LogError($"[UnifiedLevelImporter] FAILED to create StudentConfig at {studentConfigPath}");
+                    Debug.LogError($"[UnifiedLevelImporter] FAILED to create StudentConfig instance for {pair.studentName}");
                     continue;
                 }
                 
-                // Use SerializedObject to ensure proper serialization
-                var serializedConfig = new SerializedObject(config);
-                var studentIdProp = serializedConfig.FindProperty("studentId");
-                var studentNameProp = serializedConfig.FindProperty("studentName");
-                var initialStateProp = serializedConfig.FindProperty("initialState");
-                
-                if (studentIdProp == null) Debug.LogError($"[UnifiedLevelImporter] studentId property not found on StudentConfig!");
-                if (studentNameProp == null) Debug.LogError($"[UnifiedLevelImporter] studentName property not found on StudentConfig!");
-                if (initialStateProp == null) Debug.LogError($"[UnifiedLevelImporter] initialState property not found on StudentConfig!");
-                
-                if (studentIdProp != null) studentIdProp.stringValue = pair.studentId;
-                if (studentNameProp != null) studentNameProp.stringValue = pair.studentName;
-                if (initialStateProp != null) initialStateProp.enumValueIndex = (int)StudentState.Calm;
-                serializedConfig.ApplyModifiedProperties();
-                
-                // Verify the values were set
-                serializedConfig.Update();
-                string verifiedStudentId = studentIdProp != null ? studentIdProp.stringValue : "PROP_NOT_FOUND";
-                string verifiedStudentName = studentNameProp != null ? studentNameProp.stringValue : "PROP_NOT_FOUND";
-                Debug.Log($"[UnifiedLevelImporter] Set config fields via SerializedObject: studentId='{pair.studentId}'->'{verifiedStudentId}', studentName='{pair.studentName}'->'{verifiedStudentName}', path='{studentConfigPath}'");
-                
+                // Set fields directly on the ScriptableObject (most reliable for persistence)
+                config.studentId = pair.studentId;
+                config.studentName = pair.studentName;
+                config.initialState = StudentState.Calm;
+
                 if (studentData != null && studentData.personality != null)
                 {
-                    serializedConfig.FindProperty("patience").floatValue = studentData.personality.patience;
-                    serializedConfig.FindProperty("attentionSpan").floatValue = studentData.personality.attentionSpan;
-                    serializedConfig.FindProperty("impulsiveness").floatValue = studentData.personality.impulsiveness;
-                    serializedConfig.FindProperty("influenceSusceptibility").floatValue = studentData.personality.influenceSusceptibility;
-                    serializedConfig.FindProperty("influenceResistance").floatValue = studentData.personality.influenceResistance;
-                    serializedConfig.FindProperty("panicThreshold").floatValue = studentData.personality.panicThreshold;
+                    config.patience = studentData.personality.patience;
+                    config.attentionSpan = studentData.personality.attentionSpan;
+                    config.impulsiveness = studentData.personality.impulsiveness;
+                    config.influenceSusceptibility = studentData.personality.influenceSusceptibility;
+                    config.influenceResistance = studentData.personality.influenceResistance;
+                    config.panicThreshold = studentData.personality.panicThreshold;
                 }
                 else
                 {
-                    // Generate personality based on difficulty
-                    serializedConfig.FindProperty("patience").floatValue = Random.Range(0.4f, 0.7f);
-                    serializedConfig.FindProperty("attentionSpan").floatValue = Random.Range(0.3f, 0.7f);
-                    serializedConfig.FindProperty("impulsiveness").floatValue = Random.Range(0.3f, 0.7f);
-                    serializedConfig.FindProperty("influenceSusceptibility").floatValue = Random.Range(0.4f, 0.7f);
-                    serializedConfig.FindProperty("influenceResistance").floatValue = Random.Range(0.3f, 0.6f);
-                    serializedConfig.FindProperty("panicThreshold").floatValue = Random.Range(0.4f, 0.8f);
+                    config.patience = Random.Range(0.4f, 0.7f);
+                    config.attentionSpan = Random.Range(0.3f, 0.7f);
+                    config.impulsiveness = Random.Range(0.3f, 0.7f);
+                    config.influenceSusceptibility = Random.Range(0.4f, 0.7f);
+                    config.influenceResistance = Random.Range(0.3f, 0.6f);
+                    config.panicThreshold = Random.Range(0.4f, 0.8f);
                 }
-                serializedConfig.ApplyModifiedProperties();
-                
+
                 if (studentData != null && studentData.behaviors != null)
                 {
-                    serializedConfig.FindProperty("canFidget").boolValue = studentData.behaviors.canFidget;
-                    serializedConfig.FindProperty("canLookAround").boolValue = studentData.behaviors.canLookAround;
-                    serializedConfig.FindProperty("canStandUp").boolValue = studentData.behaviors.canStandUp;
-                    serializedConfig.FindProperty("canMoveAround").boolValue = studentData.behaviors.canMoveAround;
-                    serializedConfig.FindProperty("canDropItems").boolValue = studentData.behaviors.canDropItems;
-                    serializedConfig.FindProperty("canKnockOverObjects").boolValue = studentData.behaviors.canKnockOverObjects;
-                    serializedConfig.FindProperty("canMakeNoiseWithObjects").boolValue = studentData.behaviors.canMakeNoiseWithObjects;
-                    serializedConfig.FindProperty("canThrowObjects").boolValue = studentData.behaviors.canThrowObjects;
-                    serializedConfig.FindProperty("canTouchObjects").boolValue = studentData.behaviors.canTouchObjects;
-                    serializedConfig.FindProperty("minIdleTime").floatValue = studentData.behaviors.minIdleTime;
-                    serializedConfig.FindProperty("maxIdleTime").floatValue = studentData.behaviors.maxIdleTime;
-                    
-                    // Calculate interactionRange - auto from desk spacing if not specified
+                    config.canFidget = studentData.behaviors.canFidget;
+                    config.canLookAround = studentData.behaviors.canLookAround;
+                    config.canStandUp = studentData.behaviors.canStandUp;
+                    config.canMoveAround = studentData.behaviors.canMoveAround;
+                    config.canDropItems = studentData.behaviors.canDropItems;
+                    config.canKnockOverObjects = studentData.behaviors.canKnockOverObjects;
+                    config.canMakeNoiseWithObjects = studentData.behaviors.canMakeNoiseWithObjects;
+                    config.canThrowObjects = studentData.behaviors.canThrowObjects;
+                    config.canTouchObjects = studentData.behaviors.canTouchObjects;
+                    config.minIdleTime = studentData.behaviors.minIdleTime;
+                    config.maxIdleTime = studentData.behaviors.maxIdleTime;
+                    config.calmInteractionChance = studentData.behaviors.calmInteractionChance;
+                    config.distractedInteractionChance = studentData.behaviors.distractedInteractionChance;
+                    config.actingOutInteractionChance = studentData.behaviors.actingOutInteractionChance;
+                    config.criticalInteractionChance = studentData.behaviors.criticalInteractionChance;
+
                     float interactionRange = studentData.behaviors.interactionRange;
                     if (interactionRange <= 0f && schema.deskLayout != null)
                     {
-                        // Auto calculate: max(spacingX, spacingZ) + 1.0 buffer
                         float autoRange = Mathf.Max(schema.deskLayout.spacingX, schema.deskLayout.spacingZ) + 1.0f;
                         interactionRange = Mathf.Clamp(autoRange, 3.0f, 8.0f);
-                        Debug.Log($"[UnifiedLevelImporter] Auto-calculated interactionRange for {pair.studentName}: {interactionRange} (spacingX={schema.deskLayout.spacingX}, spacingZ={schema.deskLayout.spacingZ})");
                     }
                     else if (interactionRange <= 0f)
                     {
-                        interactionRange = 4.0f;  // Default fallback
+                        interactionRange = 4.0f;
                     }
-                    serializedConfig.FindProperty("interactionRange").floatValue = interactionRange;
-                    
-                    // State-based interaction chances
-                    serializedConfig.FindProperty("calmInteractionChance").floatValue = studentData.behaviors.calmInteractionChance;
-                    serializedConfig.FindProperty("distractedInteractionChance").floatValue = studentData.behaviors.distractedInteractionChance;
-                    serializedConfig.FindProperty("actingOutInteractionChance").floatValue = studentData.behaviors.actingOutInteractionChance;
-                    serializedConfig.FindProperty("criticalInteractionChance").floatValue = studentData.behaviors.criticalInteractionChance;
+                    config.interactionRange = interactionRange;
                 }
                 else
                 {
-                    // Default behaviors
-                    serializedConfig.FindProperty("canFidget").boolValue = true;
-                    serializedConfig.FindProperty("canLookAround").boolValue = true;
-                    serializedConfig.FindProperty("canStandUp").boolValue = Random.value < 0.5f;
-                    serializedConfig.FindProperty("canMoveAround").boolValue = Random.value < 0.4f;
-                    serializedConfig.FindProperty("canDropItems").boolValue = Random.value < 0.3f;
-                    serializedConfig.FindProperty("canKnockOverObjects").boolValue = Random.value < 0.3f;
-                    serializedConfig.FindProperty("canMakeNoiseWithObjects").boolValue = true;
-                    serializedConfig.FindProperty("canThrowObjects").boolValue = Random.value < 0.2f;
-                    serializedConfig.FindProperty("canTouchObjects").boolValue = true;
-                    serializedConfig.FindProperty("minIdleTime").floatValue = 2f;
-                    serializedConfig.FindProperty("maxIdleTime").floatValue = 8f;
-                    
-                    // Auto-calculate interactionRange from deskLayout
-                    float interactionRange = 4.0f;  // Default
+                    config.canFidget = true;
+                    config.canLookAround = true;
+                    config.canStandUp = Random.value < 0.5f;
+                    config.canMoveAround = Random.value < 0.4f;
+                    config.canDropItems = Random.value < 0.3f;
+                    config.canKnockOverObjects = Random.value < 0.3f;
+                    config.canMakeNoiseWithObjects = true;
+                    config.canThrowObjects = Random.value < 0.2f;
+                    config.canTouchObjects = true;
+                    config.minIdleTime = 2f;
+                    config.maxIdleTime = 8f;
+                    config.calmInteractionChance = 0.1f;
+                    config.distractedInteractionChance = 0.3f;
+                    config.actingOutInteractionChance = 0.6f;
+                    config.criticalInteractionChance = 0.9f;
+
+                    float interactionRange = 4.0f;
                     if (schema.deskLayout != null)
                     {
                         float autoRange = Mathf.Max(schema.deskLayout.spacingX, schema.deskLayout.spacingZ) + 1.0f;
                         interactionRange = Mathf.Clamp(autoRange, 3.0f, 8.0f);
                     }
-                    serializedConfig.FindProperty("interactionRange").floatValue = interactionRange;
-                    
-                    // Default state-based chances
-                    serializedConfig.FindProperty("calmInteractionChance").floatValue = 0.1f;
-                    serializedConfig.FindProperty("distractedInteractionChance").floatValue = 0.3f;
-                    serializedConfig.FindProperty("actingOutInteractionChance").floatValue = 0.6f;
-                    serializedConfig.FindProperty("criticalInteractionChance").floatValue = 0.9f;
+                    config.interactionRange = interactionRange;
                 }
-                serializedConfig.ApplyModifiedProperties();
-                
+
+                // Create asset on disk AFTER all fields are set (so defaults are never serialized)
+                AssetDatabase.CreateAsset(config, studentConfigPath);
                 EditorUtility.SetDirty(config);
                 studentConfigs.Add(config);
-                
-                // Force refresh and verify
-                AssetDatabase.Refresh();
+
+                // Verify in-memory (before SaveAssets - do NOT call Refresh here as it discards dirty state)
                 var verifiedConfig = AssetDatabase.LoadAssetAtPath<StudentConfig>(studentConfigPath);
                 if (verifiedConfig != null)
                 {
@@ -937,124 +914,55 @@ namespace FunClass.Editor.Modules
             int missingConfigCount = 0;
             int missingAgentCount = 0;
             
-            foreach (var pair in studentDeskPairs)
+            var configField = typeof(StudentAgent).GetField("config",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (configField == null)
             {
+                Debug.LogError($"[UnifiedLevelImporter] 'config' field not found on StudentAgent via reflection");
+                return;
+            }
+
+            int limit = Mathf.Min(studentDeskPairs.Count, studentConfigs.Count);
+            for (int i = 0; i < limit; i++)
+            {
+                var pair = studentDeskPairs[i];
+                var config = studentConfigs[i];
+
                 if (pair.studentObject == null)
                 {
-                    Debug.LogWarning($"[UnifiedLevelImporter] Student object is null for {pair.studentName}");
-                    continue;
-                }
-                
-                var studentAgent = pair.studentObject.GetComponent<StudentAgent>();
-                if (studentAgent == null)
-                {
-                    // Try to find in children
-                    studentAgent = pair.studentObject.GetComponentInChildren<StudentAgent>();
-                }
-                
-                if (studentAgent == null)
-                {
-                    Debug.LogWarning($"[UnifiedLevelImporter] StudentAgent component not found on {pair.studentObject.name}");
+                    Debug.LogWarning($"[UnifiedLevelImporter] [{i}] Student object is null, skipping");
                     missingAgentCount++;
                     continue;
                 }
-                
-                // Find matching config with detailed logging
-                StudentConfig config = null;
-                Debug.Log($"[UnifiedLevelImporter] Searching for config matching student '{pair.studentName}' (ID: {pair.studentId})");
-                for (int ci = 0; ci < studentConfigs.Count; ci++)
+
+                var studentAgent = pair.studentObject.GetComponent<StudentAgent>()
+                    ?? pair.studentObject.GetComponentInChildren<StudentAgent>();
+
+                if (studentAgent == null)
                 {
-                    var testConfig = studentConfigs[ci];
-                    bool idMatch = testConfig.studentId == pair.studentId;
-                    bool nameMatch = testConfig.studentName == pair.studentName;
-                    Debug.Log($"[UnifiedLevelImporter]   Checking config [{ci}]: '{testConfig.studentName}' (ID: {testConfig.studentId}) -> idMatch={idMatch}, nameMatch={nameMatch}");
-                    if (idMatch || nameMatch)
-                    {
-                        config = testConfig;
-                        Debug.Log($"[UnifiedLevelImporter]   MATCH found at index {ci}");
-                        break;
-                    }
-                }
-                
-                if (config == null)
-                {
-                    Debug.LogWarning($"[UnifiedLevelImporter] No matching StudentConfig found for {pair.studentName} (ID: {pair.studentId})");
-                    Debug.Log($"[UnifiedLevelImporter] Looking for config with studentName='{pair.studentName}' or studentId='{pair.studentId}'");
-                    missingConfigCount++;
+                    Debug.LogWarning($"[UnifiedLevelImporter] [{i}] StudentAgent not found on {pair.studentObject.name}");
+                    missingAgentCount++;
                     continue;
                 }
-                
-                Debug.Log($"[UnifiedLevelImporter] Found config '{config.studentName}' for student '{pair.studentName}'");
-                
-                // Check if config already assigned
-                if (studentAgent.Config != null)
-                {
-                    Debug.Log($"[UnifiedLevelImporter] StudentAgent already has config '{studentAgent.Config.studentName}', replacing with '{config.studentName}'");
-                }
-                
-                // Use SerializedObject to set serialized field (proper scene serialization)
+
                 try
                 {
-                    var serializedObject = new SerializedObject(studentAgent);
-                    var configProperty = serializedObject.FindProperty("config");
-                    if (configProperty != null)
-                    {
-                        configProperty.objectReferenceValue = config;
-                        serializedObject.ApplyModifiedProperties();
-                        
-                        // Also call Initialize to ensure runtime state is set
-                        studentAgent.Initialize(config);
-                        
-                        assignedCount++;
-                        Debug.Log($"[UnifiedLevelImporter] Successfully assigned StudentConfig '{config.studentName}' to {pair.studentObject.name} using SerializedObject + Initialize()");
-                    }
-                    else
-                    {
-                        Debug.LogError($"[UnifiedLevelImporter] Could not find 'config' property on StudentAgent");
-                        
-                        // Fallback to public Initialize method
-                        try
-                        {
-                            studentAgent.Initialize(config);
-                            assignedCount++;
-                            Debug.Log($"[UnifiedLevelImporter] Assigned StudentConfig '{config.studentName}' to {pair.studentObject.name} using Initialize() (no serialization)");
-                        }
-                        catch (System.Exception e2)
-                        {
-                            Debug.LogError($"[UnifiedLevelImporter] Failed to assign config via Initialize(): {e2.Message}");
-                        }
-                    }
+                    Undo.RecordObject(studentAgent, "Assign StudentConfig");
+                    configField.SetValue(studentAgent, config);
+                    EditorUtility.SetDirty(studentAgent);
+                    EditorUtility.SetDirty(pair.studentObject);
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(studentAgent);
+                    assignedCount++;
+                    Debug.Log($"[UnifiedLevelImporter] [{i}] Assigned '{config.studentName}' to {pair.studentObject.name}");
                 }
                 catch (System.Exception e)
                 {
-                    Debug.LogError($"[UnifiedLevelImporter] Error assigning config via SerializedObject: {e.Message}");
-                    
-                    // Last resort: reflection
-                    try
-                    {
-                        var configField = typeof(StudentAgent).GetField("config", 
-                            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                        if (configField != null)
-                        {
-                            configField.SetValue(studentAgent, config);
-                            assignedCount++;
-                            Debug.Log($"[UnifiedLevelImporter] Assigned StudentConfig '{config.studentName}' to {pair.studentObject.name} via reflection");
-                        }
-                    }
-                    catch (System.Exception e2)
-                    {
-                        Debug.LogError($"[UnifiedLevelImporter] Reflection also failed: {e2.Message}");
-                    }
+                    Debug.LogError($"[UnifiedLevelImporter] [{i}] Reflection assignment failed for {pair.studentObject.name}: {e.Message}");
                 }
-                
-                // Verify assignment
-                if (studentAgent.Config != null)
+
+                if (studentAgent.Config == null)
                 {
-                    Debug.Log($"[UnifiedLevelImporter] Verified: {pair.studentObject.name} now has config '{studentAgent.Config.studentName}'");
-                }
-                else
-                {
-                    Debug.LogError($"[UnifiedLevelImporter] FAILED: {pair.studentObject.name} still has null config after assignment!");
+                    Debug.LogError($"[UnifiedLevelImporter] [{i}] FAILED: {pair.studentObject.name} still has null config after assignment!");
                 }
             }
             
@@ -1533,29 +1441,45 @@ namespace FunClass.Editor.Modules
         /// </summary>
         private static void AssignLevelConfigToManagers(LevelConfig levelConfig)
         {
-            // Assign to LevelLoader
+            // Assign to LevelLoader via SerializedObject so the reference persists in the scene file.
             var levelLoader = Object.FindObjectOfType<LevelLoader>();
             if (levelLoader != null)
             {
-                var levelLoaderField = typeof(LevelLoader).GetField("currentLevel", 
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                if (levelLoaderField != null)
+                var so = new SerializedObject(levelLoader);
+                var prop = so.FindProperty("currentLevel");
+                if (prop != null)
                 {
-                    levelLoaderField.SetValue(levelLoader, levelConfig);
-                    Debug.Log($"[UnifiedLevelImporter] Assigned LevelConfig to LevelLoader");
+                    prop.objectReferenceValue = levelConfig;
+                    so.ApplyModifiedProperties();
+                    EditorUtility.SetDirty(levelLoader);
+                    Debug.Log($"[UnifiedLevelImporter] Assigned LevelConfig to LevelLoader (SerializedObject)");
+                }
+                else
+                {
+                    Debug.LogError("[UnifiedLevelImporter] LevelLoader: 'currentLevel' property not found via SerializedObject");
                 }
             }
-            
-            // Assign to ClassroomManager
+            else
+            {
+                Debug.LogWarning("[UnifiedLevelImporter] LevelLoader not found in scene — LevelConfig not assigned");
+            }
+
+            // Assign to ClassroomManager via SerializedObject.
             var classroomManager = Object.FindObjectOfType<ClassroomManager>();
             if (classroomManager != null)
             {
-                var classroomField = typeof(ClassroomManager).GetField("levelConfig", 
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                if (classroomField != null)
+                var so = new SerializedObject(classroomManager);
+                var prop = so.FindProperty("levelConfig");
+                if (prop != null)
                 {
-                    classroomField.SetValue(classroomManager, levelConfig);
-                    Debug.Log($"[UnifiedLevelImporter] Assigned LevelConfig to ClassroomManager");
+                    prop.objectReferenceValue = levelConfig;
+                    so.ApplyModifiedProperties();
+                    EditorUtility.SetDirty(classroomManager);
+                    Debug.Log($"[UnifiedLevelImporter] Assigned LevelConfig to ClassroomManager (SerializedObject)");
+                }
+                else
+                {
+                    Debug.LogError("[UnifiedLevelImporter] ClassroomManager: 'levelConfig' property not found via SerializedObject");
                 }
             }
             

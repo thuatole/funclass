@@ -1,0 +1,77 @@
+{
+  "scenarioName": "Series 1 - Isolated Single Student",
+  "description": "Verify 1 student hoat dong doc lap: spawn, state Calm, autonomous behavior, idle timer. Khong co influence, khong co scripted event.",
+  "series": 1,
+  "level": "TestSeries1_Isolated",
+  "levelConfig": "Assets/Tests/Scenarios/Series1/level_config.json",
+  "testTimeScale": 10,
+  "maxGameTimeSeconds": 30,
+
+  "teacherActions": [],
+
+  "assertions": [
+    {
+      "id": "student_activated",
+      "component": "StudentAgent",
+      "eventType": "Activated",
+      "source": "Binh",
+      "target": "",
+      "minTime": 0,
+      "maxTime": 5,
+      "mustOccur": true,
+      "afterEventId": "",
+      "description": "Binh duoc spawn va activated thanh cong"
+    },
+    {
+      "id": "student_initialized",
+      "component": "StudentAgent",
+      "eventType": "Initialized",
+      "source": "Binh",
+      "target": "",
+      "minTime": 0,
+      "maxTime": 5,
+      "mustOccur": true,
+      "afterEventId": "",
+      "description": "Binh duoc initialized voi dung config"
+    },
+    {
+      "id": "processor_activated",
+      "component": "StudentInteractionProcessor",
+      "eventType": "Initialized",
+      "source": "",
+      "target": "",
+      "minTime": 0,
+      "maxTime": 5,
+      "mustOccur": true,
+      "afterEventId": "",
+      "description": "Processor phai initialized khi game bat dau"
+    },
+    {
+      "id": "influence_activated",
+      "component": "StudentInfluenceManager",
+      "eventType": "Activated",
+      "source": "",
+      "target": "",
+      "minTime": 0,
+      "maxTime": 5,
+      "mustOccur": true,
+      "afterEventId": "",
+      "description": "Influence system phai activate khi game bat dau"
+    },
+    {
+      "id": "no_state_change_early",
+      "component": "StudentAgent",
+      "eventType": "StateChanged",
+      "source": "Binh",
+      "target": "",
+      "minTime": 0,
+      "maxTime": 15,
+      "mustOccur": false,
+      "afterEventId": "",
+      "description": "Binh khong nen thay doi state trong 15 giay dau (calmInteractionChance=0.03 + idle time 5-10s)"
+    }
+  ],
+
+  "expectedEndState": "",
+  "notes": "Series 1 chi verify systems khoi dong dung. Game khong can ket thuc - chay 30s roi dung."
+}

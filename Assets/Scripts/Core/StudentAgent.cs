@@ -151,7 +151,7 @@ namespace FunClass.Core
         {
             isActive = true;
             ScheduleNextBehavior();
-            GameLogger.Milestone("StudentAgent", $"{config?.studentName ?? gameObject.name} activated");
+            GameLogger.Milestone("StudentAgent", $"{config?.studentName ?? gameObject.name} activated", "Activated", config?.studentName ?? gameObject.name, "");
         }
 
         private void DeactivateStudent()
@@ -166,7 +166,7 @@ namespace FunClass.Core
             CurrentState = config.initialState;
             influenceSources = new StudentInfluenceSources(this);
             InitializeSequences();
-            GameLogger.Milestone("StudentAgent", $"{config.studentName} initialized - state: {CurrentState}");
+            GameLogger.Milestone("StudentAgent", $"{config.studentName} initialized - state: {CurrentState}", "Initialized", config.studentName, "");
         }
 
         private void InitializeSequences()
@@ -207,7 +207,7 @@ namespace FunClass.Core
             StudentState oldState = CurrentState;
             CurrentState = newState;
 
-            GameLogger.Milestone("StudentAgent", $"{config?.studentName ?? gameObject.name}: {oldState} → {newState}");
+            GameLogger.Milestone("StudentAgent", $"{config?.studentName ?? gameObject.name}: {oldState} → {newState}", "StateChanged", config?.studentName ?? gameObject.name, "");
             OnStateChanged?.Invoke(oldState, newState);
         }
 
@@ -392,7 +392,7 @@ namespace FunClass.Core
             
             if (nearbyObject != null)
             {
-                GameLogger.Milestone("StudentAgent", $"{config?.studentName} interacts with {nearbyObject.objectName}");
+                GameLogger.Milestone("StudentAgent", $"{config?.studentName} interacts with {nearbyObject.objectName}", "InteractedWithObject", config?.studentName, nearbyObject.objectName);
                 PerformObjectInteraction(nearbyObject);
             }
             else
@@ -663,7 +663,7 @@ namespace FunClass.Core
                 TriggerReaction(StudentReactionType.Apologize, 4f);
             }
 
-            GameLogger.Milestone("StudentAgent", $"{config?.studentName} returned to seat");
+            GameLogger.Milestone("StudentAgent", $"{config?.studentName} returned to seat", "ReturnedToSeat", config?.studentName, "");
         }
 
         public void TakeObjectAway(GameObject obj)

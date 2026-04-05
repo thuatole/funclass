@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mv Assets/LevelTemplates/test_series1_isolated.json Assets/Tests/Scenarios/Series1/level_config.json)",
+      "Bash(mv Assets/Tests/Scenarios/series1_isolated_single_student.json Assets/Tests/Scenarios/Series1/assertions.json)",
+      "Bash(mv Assets/LevelTemplates/test_series2_single_event.json Assets/Tests/Scenarios/Series2/level_config.json)",
+      "Bash(mv Assets/Tests/Scenarios/series2_single_scripted_event.json Assets/Tests/Scenarios/Series2/assertions.json)",
+      "Bash(mv Assets/LevelTemplates/test_series3_event_chain.json Assets/Tests/Scenarios/Series3/level_config.json)",
+      "Bash(mv PLAN_LOG_STRATEGY.md Docs/)",
+      "Bash(mv PLAN_TEST_TIER1_UNIT.md Docs/)",
+      "Bash(mv PLAN_TEST_TIER2_INTEGRATION.md Docs/)",
+      "Bash(mv PLAN_TEST_TIER3_SCENARIO.md Docs/)",
+      "Bash(mv PLAN_TEST_TIER4_REGRESSION.md Docs/)"
+    ]
+  }
+}

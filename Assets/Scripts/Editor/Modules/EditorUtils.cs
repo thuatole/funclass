@@ -40,14 +40,14 @@ namespace FunClass.Editor.Modules
         public static T CreateScriptableObject<T>(string path) where T : ScriptableObject
         {
             T asset = ScriptableObject.CreateInstance<T>();
-            
+
             // Ensure directory exists
             string directory = Path.GetDirectoryName(path);
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
             {
                 Directory.CreateDirectory(directory);
             }
-            
+
             AssetDatabase.CreateAsset(asset, path);
             return asset;
         }

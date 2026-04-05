@@ -94,7 +94,29 @@ namespace FunClass.Core
         {
             if (this != null && gameObject.activeInHierarchy)
             {
-                StartCoroutine(PeriodicSummaryRoutine());
+                // Stop any existing summary coroutine first
+                StopSummary();
+                
+                // Start a one-time summary
+                StartCoroutine(TriggerSummaryOnceRoutine());
+            }
+        }
+        
+        /// <summary>
+        /// Coroutine that triggers summary once and then restarts periodic summary if enabled
+        /// </summary>
+        private IEnumerator TriggerSummaryOnceRoutine()
+        {
+            // Output summary immediately
+            OutputScenarioSummary();
+            
+            // Wait one frame to ensure summary is output
+            yield return null;
+            
+            // Restart periodic summary if enabled
+            if (summaryEnabled)
+            {
+                summaryCoroutine = StartCoroutine(PeriodicSummaryRoutine());
             }
         }
 

@@ -434,7 +434,7 @@ namespace FunClass.Core
         private void WinLevel(float score)
         {
             levelEnded = true;
-            GameLogger.Milestone("LevelManager", $"=== LEVEL COMPLETE ===");
+            GameLogger.Milestone("LevelManager", $"=== LEVEL COMPLETE ===", "LevelComplete", "", "");
             GameLogger.Milestone("LevelManager", $"Final Score: {score:F0}");
             
             // Calculate stars
@@ -450,8 +450,8 @@ namespace FunClass.Core
         private void LoseLevel(string reason)
         {
             levelEnded = true;
-            GameLogger.Milestone("LevelManager", $"=== LEVEL FAILED ===");
-            GameLogger.Milestone("LevelManager", $"Reason: {reason}");
+            GameLogger.Milestone("LevelManager", $"=== LEVEL FAILED ===", "LevelFailed", "", "");
+            GameLogger.Milestone("LevelManager", $"Reason: {reason}", "LevelFailed", "", "");
             OnLevelLost?.Invoke(reason);
         }
     }

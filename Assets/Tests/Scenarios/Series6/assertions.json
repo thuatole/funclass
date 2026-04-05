@@ -1,0 +1,83 @@
+{
+  "scenarioName": "Series 6 - Edge Cases",
+  "description": "Verify cac truong hop bien: calm wrong target, influence blocked by distance, immunity after calm.",
+  "series": 6,
+  "level": "FirstDaySummerBreak",
+  "testTimeScale": 10,
+  "maxGameTimeSeconds": 100,
+
+  "teacherActions": [
+    {
+      "time": 42,
+      "action": "CalmStudent",
+      "targetStudent": "Mai",
+      "description": "Teacher calm Mai (KHONG phai nguon anh huong) - verify chain van tiep tuc"
+    }
+  ],
+
+  "assertions": [
+    {
+      "id": "binh_knocked",
+      "component": "StudentInteractionProcessor",
+      "eventType": "KnockedOverObject",
+      "source": "Binh",
+      "target": "Lan",
+      "minTime": 39.5,
+      "maxTime": 41.0,
+      "mustOccur": true,
+      "afterEventId": "",
+      "description": "Event 2 trigger binh thuong"
+    },
+    {
+      "id": "lan_influenced",
+      "component": "StudentInfluenceManager",
+      "eventType": "InfluenceApplied",
+      "source": "Binh",
+      "target": "Lan",
+      "minTime": 39.5,
+      "maxTime": 42.0,
+      "mustOccur": true,
+      "afterEventId": "binh_knocked",
+      "description": "Lan van bi influence tu Binh"
+    },
+    {
+      "id": "teacher_calm_mai",
+      "component": "TeacherController",
+      "eventType": "CalmStudent",
+      "source": "",
+      "target": "Mai",
+      "minTime": 42,
+      "maxTime": 43,
+      "mustOccur": true,
+      "afterEventId": "",
+      "description": "Teacher calm Mai"
+    },
+    {
+      "id": "lan_still_influenced",
+      "component": "StudentInteractionProcessor",
+      "eventType": "WanderingAround",
+      "source": "Lan",
+      "target": "",
+      "minTime": 59.5,
+      "maxTime": 61.0,
+      "mustOccur": true,
+      "afterEventId": "teacher_calm_mai",
+      "description": "Lan VAN tiep tuc bi anh huong (calm Mai khong giai quyet Binh->Lan)"
+    },
+    {
+      "id": "nam_still_throws",
+      "component": "StudentInteractionProcessor",
+      "eventType": "ThrowingObject",
+      "source": "Nam",
+      "target": "Lan",
+      "minTime": 79.5,
+      "maxTime": 81.0,
+      "mustOccur": true,
+      "afterEventId": "lan_still_influenced",
+      "description": "Nam van nem do (chain khong bi ngat vi calm sai target)"
+    }
+  ],
+
+  "expectedEndState": "GameOver",
+  "notes": "Series 6 verify: calm student khong phai nguon anh huong KHONG resolve influence. Chain van tiep tuc binh thuong, game van over. Day la edge case quan trong - teacher phai calm DUNG nguon moi co tac dung."
+}

@@ -109,14 +109,14 @@ namespace FunClass.Core
         {
             GameLogger.Detail("TeacherController", "Start called");
             
-            // Fallback subscription
-            if (GameStateManager.Instance != null)
+            // Only subscribe if not already subscribed from OnEnable
+            if (GameStateManager.Instance != null && !hasSubscribedToGameState)
             {
                 GameLogger.Detail("TeacherController", $"Current game state: {GameStateManager.Instance.CurrentState}");
                 
                 GameStateManager.Instance.OnStateChanged += HandleGameStateChanged;
                 hasSubscribedToGameState = true;
-                GameLogger.Detail("TeacherController", "Subscribed to OnStateChanged in Start()");
+                GameLogger.Detail("TeacherController", "Subscribed to OnStateChanged in Start() (fallback)");
                 
                 if (GameStateManager.Instance.CurrentState == GameState.InLevel)
                 {
@@ -124,9 +124,13 @@ namespace FunClass.Core
                     ActivateTeacher();
                 }
             }
-            else
+            else if (GameStateManager.Instance == null)
             {
                 GameLogger.Error("TeacherController", "GameStateManager.Instance is STILL null in Start()!");
+            }
+            else
+            {
+                GameLogger.Detail("TeacherController", "Already subscribed to GameStateManager from OnEnable");
             }
 
             // Hide cursor
@@ -192,7 +196,7 @@ namespace FunClass.Core
                 Cursor.visible = false;
             }
 
-            GameLogger.Milestone("TeacherController", "Activated - teacher control enabled");
+            GameLogger.Milestone("TeacherController", "Activated - teacher control enabled", "Activated", "", "");
         }
 
         private void DeactivateTeacher()
@@ -639,7 +643,7 @@ namespace FunClass.Core
         {
             if (student == null) return;
 
-            GameLogger.Milestone("TeacherController", $"Calming {student.Config?.studentName}");
+            GameLogger.Milestone("TeacherController", $"Calming {student.Config?.studentName}", "CalmStudent", "", student.Config?.studentName);
 
             StudentState originalState = student.CurrentState;
             if (originalState != StudentState.Calm)
@@ -676,7 +680,7 @@ namespace FunClass.Core
         {
             if (student == null) return;
 
-            GameLogger.Milestone("TeacherController", $"Calling {student.Config?.studentName} back to class");
+            GameLogger.Milestone("TeacherController", $"Calling {student.Config?.studentName} back to class", "CallStudentBack", "", student.Config?.studentName);
 
             StudentState originalState = student.CurrentState;
             if (originalState != StudentState.Calm)
@@ -748,7 +752,7 @@ namespace FunClass.Core
         {
             if (student == null) return;
 
-            GameLogger.Milestone("TeacherController", $"Escorting {student.Config?.studentName} back to seat");
+            GameLogger.Milestone("TeacherController", $"Escorting {student.Config?.studentName} back to seat", "EscortStudentBack", "", student.Config?.studentName);
 
             // Check if all influence sources are resolved
             if (student.InfluenceSources != null && !student.InfluenceSources.AreAllSourcesResolved())

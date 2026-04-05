@@ -1,0 +1,89 @@
+{
+  "scenarioName": "Series 3 - Event Chain",
+  "description": "Verify nhieu scripted events trigger theo thu tu, influence chain truyen tu student nay sang student khac dung.",
+  "series": 3,
+  "level": "TestSeries3_EventChain",
+  "levelConfig": "Assets/Tests/Scenarios/Series3/level_config.json",
+  "testTimeScale": 10,
+  "maxGameTimeSeconds": 55,
+
+  "teacherActions": [],
+
+  "assertions": [
+    {
+      "id": "binh_wandering_10s",
+      "component": "StudentInteractionProcessor",
+      "eventType": "WanderingAround",
+      "source": "student_binh",
+      "target": "",
+      "minTime": 9.5,
+      "maxTime": 11.0,
+      "mustOccur": true,
+      "afterEventId": "",
+      "description": "Event 1: Binh WanderingAround tai 10s"
+    },
+    {
+      "id": "binh_knocked_20s",
+      "component": "StudentInteractionProcessor",
+      "eventType": "KnockedOverObject",
+      "source": "student_binh",
+      "target": "student_lan",
+      "minTime": 19.5,
+      "maxTime": 21.0,
+      "mustOccur": true,
+      "afterEventId": "binh_wandering_10s",
+      "description": "Event 2: Binh KnockedOverObject -> Lan tai 20s"
+    },
+    {
+      "id": "lan_influenced_by_binh",
+      "component": "StudentInfluenceManager",
+      "eventType": "InfluenceApplied",
+      "source": "Binh",
+      "target": "Lan",
+      "minTime": 19.5,
+      "maxTime": 22.0,
+      "mustOccur": true,
+      "afterEventId": "binh_knocked_20s",
+      "description": "Chain link 1: Binh -> Lan influence applied"
+    },
+    {
+      "id": "lan_wandering_30s",
+      "component": "StudentInteractionProcessor",
+      "eventType": "WanderingAround",
+      "source": "student_lan",
+      "target": "",
+      "minTime": 29.5,
+      "maxTime": 31.0,
+      "mustOccur": true,
+      "afterEventId": "lan_influenced_by_binh",
+      "description": "Event 3: Lan WanderingAround tai 30s"
+    },
+    {
+      "id": "nam_throwing_40s",
+      "component": "StudentInteractionProcessor",
+      "eventType": "ThrowingObject",
+      "source": "student_nam",
+      "target": "student_lan",
+      "minTime": 39.5,
+      "maxTime": 41.0,
+      "mustOccur": true,
+      "afterEventId": "lan_wandering_30s",
+      "description": "Event 4: Nam ThrowingObject -> Lan tai 40s"
+    },
+    {
+      "id": "lan_influenced_by_nam",
+      "component": "StudentInfluenceManager",
+      "eventType": "InfluenceApplied",
+      "source": "Nam",
+      "target": "Lan",
+      "minTime": 39.5,
+      "maxTime": 42.0,
+      "mustOccur": true,
+      "afterEventId": "nam_throwing_40s",
+      "description": "Chain link 2: Nam -> Lan influence applied (Lan nhan 2 sources)"
+    }
+  ],
+
+  "expectedEndState": "",
+  "notes": "Series 3 verify toan bo 4 scripted events trigger dung thu tu 10->20->30->40s va influence chain Binh->Lan, Nam->Lan hoat dong. Timing rut ngan tu 20/40/60/80 xuong 10/20/30/40 de test nhanh. autonomous behavior tat hoan toan."
+}

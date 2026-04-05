@@ -1,0 +1,138 @@
+{
+  "levelId": "TestSeries2_SingleEvent",
+  "levelName": "Test Series 2 - Single Scripted Event",
+  "difficulty": "easy",
+  "description": "Test: 2 students, 1 scripted event (KnockedOverObject tai 10s), verify pipeline.",
+
+  "students": 2,
+
+  "deskLayout": {
+    "rows": 1,
+    "spacingX": 3.0,
+    "spacingZ": 3.0,
+    "aisleWidth": 1.5
+  },
+
+  "classroom": {
+    "width": 8,
+    "depth": 6,
+    "height": 3.5,
+    "doorPosition": null
+  },
+
+  "environment": {
+    "boardMaterial": "White",
+    "floorMaterial": "Floor",
+    "wallMaterial": "Wall",
+    "autoSetupLighting": true
+  },
+
+  "routeGeneration": {
+    "autoGenerateRoutes": true,
+    "escapeRouteSpeed": 5.0,
+    "returnRouteSpeed": 3.0
+  },
+
+  "goalSettings": {
+    "maxDisruptionThreshold": 70,
+    "catastrophicDisruptionLevel": 90,
+    "timeLimitSeconds": 120,
+    "requiredCalmDowns": 0,
+    "requiredResolvedProblems": 0,
+    "enableDisruptionTimeout": false,
+    "disruptionTimeoutThreshold": 70,
+    "disruptionTimeoutSeconds": 30,
+    "disruptionTimeoutWarningSeconds": 10,
+    "oneStarScore": 60,
+    "twoStarScore": 100,
+    "threeStarScore": 150
+  },
+
+  "influenceScopeSettings": {
+    "description": "SingleStudent scope for KnockedOverObject",
+    "disruptionPenaltyPerUnresolvedSource": 8.0,
+    "eventScopes": [
+      {
+        "eventTypeName": "KnockedOverObject",
+        "scope": "SingleStudent",
+        "baseSeverity": 0.8,
+        "description": "Knock affects target only"
+      }
+    ]
+  },
+
+  "studentInteractions": [
+    {
+      "id": "test_interaction_1",
+      "triggerCondition": "timeElapsed",
+      "triggerValue": 10,
+      "sourceStudentId": "student_binh",
+      "targetStudentId": "student_lan",
+      "eventType": "KnockedOverObject",
+      "description": "Binh knock object near Lan at 10s"
+    }
+  ],
+
+  "studentConfigs": [
+    {
+      "studentId": "student_binh",
+      "studentName": "Binh",
+      "personality": {
+        "patience": 0.3,
+        "attentionSpan": 0.5,
+        "impulsiveness": 0.6,
+        "influenceSusceptibility": 0.5,
+        "influenceResistance": 0.3,
+        "panicThreshold": 0.8
+      },
+      "behaviors": {
+        "canFidget": true,
+        "canLookAround": true,
+        "canStandUp": false,
+        "canMoveAround": false,
+        "canDropItems": false,
+        "canKnockOverObjects": false,
+        "canMakeNoiseWithObjects": false,
+        "canThrowObjects": false,
+        "canTouchObjects": false,
+        "minIdleTime": 15,
+        "maxIdleTime": 30,
+        "interactionRange": 0,
+        "calmInteractionChance": 0.0,
+        "distractedInteractionChance": 0.0,
+        "actingOutInteractionChance": 0.0,
+        "criticalInteractionChance": 0.0
+      }
+    },
+    {
+      "studentId": "student_lan",
+      "studentName": "Lan",
+      "personality": {
+        "patience": 0.4,
+        "attentionSpan": 0.6,
+        "impulsiveness": 0.2,
+        "influenceSusceptibility": 0.9,
+        "influenceResistance": 0.1,
+        "panicThreshold": 0.5
+      },
+      "behaviors": {
+        "canFidget": false,
+        "canLookAround": false,
+        "canStandUp": false,
+        "canMoveAround": false,
+        "canDropItems": false,
+        "canKnockOverObjects": false,
+        "canMakeNoiseWithObjects": false,
+        "canThrowObjects": false,
+        "canTouchObjects": false,
+        "minIdleTime": 15,
+        "maxIdleTime": 30,
+        "interactionRange": 0,
+        "calmInteractionChance": 0.0,
+        "distractedInteractionChance": 0.0,
+        "actingOutInteractionChance": 0.0,
+        "criticalInteractionChance": 0.0
+      }
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "scenarioName": "Series 2 - Single Scripted Event",
+  "description": "Verify 1 scripted event trigger dung thoi gian, dung source-target, influence apply thanh cong. Chi co 1 event duy nhat de isolate van de.",
+  "series": 2,
+  "level": "TestSeries2_SingleEvent",
+  "levelConfig": "Assets/Tests/Scenarios/Series2/level_config.json",
+  "testTimeScale": 10,
+  "maxGameTimeSeconds": 40,
+
+  "teacherActions": [],
+
+  "assertions": [
+    {
+      "id": "interactions_loaded",
+      "component": "StudentInteractionProcessor",
+      "eventType": "InteractionsLoaded",
+      "source": "",
+      "target": "",
+      "minTime": 0,
+      "maxTime": 5,
+      "mustOccur": true,
+      "afterEventId": "",
+      "description": "Scripted interactions phai load thanh cong"
+    },
+    {
+      "id": "binh_knocked_10s",
+      "component": "StudentInteractionProcessor",
+      "eventType": "KnockedOverObject",
+      "source": "student_binh",
+      "target": "student_lan",
+      "minTime": 9.5,
+      "maxTime": 11.0,
+      "mustOccur": true,
+      "afterEventId": "interactions_loaded",
+      "description": "Binh KnockedOverObject huong Lan tai 10s"
+    },
+    {
+      "id": "lan_influenced_by_binh",
+      "component": "StudentInfluenceManager",
+      "eventType": "InfluenceApplied",
+      "source": "Binh",
+      "target": "Lan",
+      "minTime": 9.5,
+      "maxTime": 12.0,
+      "mustOccur": true,
+      "afterEventId": "binh_knocked_10s",
+      "description": "Lan phai nhan influence tu Binh sau KnockedOverObject"
+    },
+    {
+      "id": "lan_state_changed",
+      "component": "StudentAgent",
+      "eventType": "StateChanged",
+      "source": "Lan",
+      "target": "",
+      "minTime": 9.5,
+      "maxTime": 15.0,
+      "mustOccur": true,
+      "afterEventId": "binh_knocked_10s",
+      "description": "Lan phai thay doi state (Calm -> Distracted hoac hon) sau khi bi influence"
+    }
+  ],
+
+  "expectedEndState": "",
+  "notes": "Series 2 verify pipeline: Processor trigger -> EventManager log -> InfluenceManager apply -> StudentAgent state change. Event tai 10s (thay vi 40s) de test nhanh. autonomous behavior tat hoan toan (calmInteractionChance=0) de isolate scripted event."
+}

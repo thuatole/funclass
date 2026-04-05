@@ -1,0 +1,83 @@
+{
+  "scenarioName": "Series 4 - Teacher Intervention",
+  "description": "Verify teacher calm student -> resolve influence -> ngan chain tiep tuc. Them bien so teacher action vao.",
+  "series": 4,
+  "level": "FirstDaySummerBreak",
+  "testTimeScale": 10,
+  "maxGameTimeSeconds": 90,
+
+  "teacherActions": [
+    {
+      "time": 42,
+      "action": "CalmStudent",
+      "targetStudent": "Binh",
+      "description": "Teacher calm Binh ngay sau khi Binh knock object (40s)"
+    }
+  ],
+
+  "assertions": [
+    {
+      "id": "binh_knocked_40s",
+      "component": "StudentInteractionProcessor",
+      "eventType": "KnockedOverObject",
+      "source": "Binh",
+      "target": "Lan",
+      "minTime": 39.5,
+      "maxTime": 41.0,
+      "mustOccur": true,
+      "afterEventId": "",
+      "description": "Binh van trigger KnockedOverObject tai 40s"
+    },
+    {
+      "id": "lan_influenced",
+      "component": "StudentInfluenceManager",
+      "eventType": "InfluenceApplied",
+      "source": "Binh",
+      "target": "Lan",
+      "minTime": 39.5,
+      "maxTime": 42.0,
+      "mustOccur": true,
+      "afterEventId": "binh_knocked_40s",
+      "description": "Lan van nhan influence tu Binh"
+    },
+    {
+      "id": "teacher_calm_binh",
+      "component": "TeacherController",
+      "eventType": "CalmStudent",
+      "source": "",
+      "target": "Binh",
+      "minTime": 42,
+      "maxTime": 43,
+      "mustOccur": true,
+      "afterEventId": "lan_influenced",
+      "description": "Teacher calm Binh tai 42s"
+    },
+    {
+      "id": "binh_influence_resolved",
+      "component": "StudentInfluenceManager",
+      "eventType": "InfluenceResolved",
+      "source": "Binh",
+      "target": "",
+      "minTime": 42,
+      "maxTime": 44,
+      "mustOccur": true,
+      "afterEventId": "teacher_calm_binh",
+      "description": "Influence tu Binh duoc resolve sau khi teacher calm"
+    },
+    {
+      "id": "no_lan_critical",
+      "component": "StudentAgent",
+      "eventType": "StateChanged",
+      "source": "Lan",
+      "target": "",
+      "minTime": 42,
+      "maxTime": 90,
+      "mustOccur": false,
+      "afterEventId": "binh_influence_resolved",
+      "description": "Lan KHONG nen len Critical sau khi Binh da bi calm (chain bi cat)"
+    }
+  ],
+
+  "expectedEndState": "",
+  "notes": "Series 4 verify teacher action ngat duoc influence chain. Sau khi calm Binh, Lan khong bi escalate them. no_lan_critical mustOccur=false nghia la event nay KHONG nen xay ra."
+}
