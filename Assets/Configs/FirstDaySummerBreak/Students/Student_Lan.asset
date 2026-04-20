@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: FunClass.Runtime::FunClass.Core.StudentConfig
   studentId: student_lan
   studentName: Lan
+  characterModel: character-female-a
   initialState: 0
   patience: 0.4
   attentionSpan: 0.6

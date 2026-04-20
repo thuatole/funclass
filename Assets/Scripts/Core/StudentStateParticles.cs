@@ -92,6 +92,7 @@ namespace FunClass.Core
             go.transform.localPosition = new Vector3(0, 1f, 0); // chest height
 
             var ps = go.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             var main = ps.main;
             main.loop              = false;
             main.duration          = 0.3f;
@@ -110,7 +111,6 @@ namespace FunClass.Core
             shape.shapeType        = ParticleSystemShapeType.Sphere;
             shape.radius           = 0.15f;
 
-            ps.Stop();
             return ps;
         }
 
@@ -121,6 +121,7 @@ namespace FunClass.Core
             go.transform.localPosition = new Vector3(0, 0.2f, 0); // near feet
 
             var ps = go.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             var main = ps.main;
             main.loop              = true;
             main.duration          = 1f;
@@ -138,7 +139,6 @@ namespace FunClass.Core
             shape.shapeType        = ParticleSystemShapeType.Circle;
             shape.radius           = 0.25f;
 
-            ps.Stop();
             return ps;
         }
 
@@ -149,6 +149,7 @@ namespace FunClass.Core
             go.transform.localPosition = new Vector3(0, 1.5f, 0);
 
             var ps = go.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             var main = ps.main;
             main.loop              = false;
             main.duration          = 0.5f;
@@ -168,7 +169,6 @@ namespace FunClass.Core
             shape.shapeType        = ParticleSystemShapeType.Sphere;
             shape.radius           = 0.1f;
 
-            ps.Stop();
             return ps;
         }
 

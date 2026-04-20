@@ -42,6 +42,8 @@ namespace FunClass.Core
         private StudentAgent currentStudentTarget;
         private MessObject currentMessTarget;
         private UI.StudentHighlight currentHighlight;
+        private string lastCalmedStudentId;
+        private float lastCalmedTime;
 
         public Camera PlayerCamera => playerCamera;
 
@@ -658,6 +660,9 @@ namespace FunClass.Core
                     $"{student.Config?.studentName} de-escalated: {originalState} → {student.CurrentState}");
             }
 
+            lastCalmedStudentId = student.Config?.studentId;
+            lastCalmedTime = Time.time;
+
             student.HandleTeacherAction(TeacherActionType.Calm);
 
             // Play calm reaction animation + sparkle particles
@@ -877,6 +882,14 @@ namespace FunClass.Core
         public MessObject GetCurrentMessTarget()
         {
             return currentMessTarget;
+        }
+
+        /// Returns true if the given student was calmed by the teacher within the last windowSeconds.
+        public bool WasRecentlyCalmed(string studentId, float windowSeconds = 3f)
+        {
+            return !string.IsNullOrEmpty(studentId)
+                && studentId == lastCalmedStudentId
+                && Time.time - lastCalmedTime < windowSeconds;
         }
     }
 }

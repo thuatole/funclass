@@ -188,6 +188,29 @@ namespace FunClass.Editor.Data
     }
 
     [Serializable]
+    public class DeskLoadoutData
+    {
+        public int perStudentMin = 2;
+        public int perStudentMax = 3;
+        // objectType keys: "Book", "Sheet", "Tray" — match ThrowablePrefabGenerator ids
+        public List<string> smallObjectPool = new List<string> { "Book", "Sheet" };
+        public float largeObjectChancePerDesk = 0.2f;
+        public List<string> largeObjectPool = new List<string> { "Laptop" };
+        // If true, pick random variant (book1-book16) instead of always index 0
+        public bool randomizeVariants = true;
+    }
+
+    [Serializable]
+    public class ClassroomPropsData
+    {
+        // objectType keys: "Speaker", "Projector", "Computer"
+        public List<string> sharedProps = new List<string> { "Speaker", "Projector" };
+        // Extra decorative props placed along walls
+        public int extraDecoCount = 4;
+        public bool autoPlace = true;
+    }
+
+    [Serializable]
     public class MessPrefabData
     {
         public string messType; // "Vomit", "Spill", "Trash", etc.

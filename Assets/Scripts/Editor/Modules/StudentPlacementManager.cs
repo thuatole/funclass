@@ -81,10 +81,8 @@ namespace FunClass.Editor.Modules
                 if (desk.studentSlot != null)
                 {
                     // Set parent first, then calculate local position relative to desk
-                    // studentSlot position = desk.position + (0, 0, 0.5)
-                    // So localPosition = (desk.position + 0.5) - desk.position = (0, 0, 0.5)
                     desk.studentSlot.transform.SetParent(deskObj.transform, true);
-                    desk.studentSlot.transform.localPosition = new Vector3(0, 0, 0.5f);
+                    desk.studentSlot.transform.localPosition = new Vector3(0, 0, 1.0f);
                     Debug.Log($"[StudentPlacementManager]   - StudentSlot parented to desk, localPosition: {desk.studentSlot.transform.localPosition}");
                 }
                 
@@ -132,29 +130,34 @@ namespace FunClass.Editor.Modules
                     GameObject studentObj;
                     
                     // Get student position - use desk.position + offset directly to avoid parent/child issues
-                    Vector3 studentPosition = desk.position + new Vector3(0, 0, 0.5f);
+                    Vector3 studentPosition = desk.position + new Vector3(0, 0, 1.0f);
                     Debug.Log($"[StudentPlacementManager] Desk {desk.deskId}: Student position {studentPosition}, studentSlot: {(desk.studentSlot != null ? "EXISTS" : "NULL")}, desk position: {desk.position}");
                     
-                    // Adjust height if too low (prevent underground students)
+                    // Height adjustment differs by visual type:
+                    // - Capsule: center at y=0.9, so minimum y=1 keeps feet on floor
+                    // - FBX model: origin at feet (y=0), so y=0 is correct
+                    bool hasFbxModel = !string.IsNullOrEmpty(studentConfig?.characterModel);
                     if (studentPosition.y < 0.5f)
                     {
-                        float newY = 1f; // Place capsule bottom at y=0 (capsule height is 2)
-                        Debug.Log($"[StudentPlacementManager] Adjusting student height from {studentPosition.y} to {newY} (capsule height: 2)");
+                        float newY = hasFbxModel ? 0f : 1f;
+                        Debug.Log($"[StudentPlacementManager] Adjusting student height from {studentPosition.y} to {newY} ({(hasFbxModel ? "FBX origin at feet" : "Capsule center offset")})");
                         studentPosition.y = newY;
                     }
-                    
+
+                    // Face toward board (board is at -Z), so rotate 180° around Y
+                    Quaternion facingBoard = Quaternion.Euler(0, 180f, 0);
+
                     if (studentPrefab == null)
                     {
                         Debug.LogWarning("[StudentPlacementManager] No student prefab found in asset map! Creating basic student GameObject.");
                         studentObj = new GameObject();
                         studentObj.transform.position = studentPosition;
-                        studentObj.transform.rotation = Quaternion.identity;
+                        studentObj.transform.rotation = facingBoard;
                         Debug.Log($"[StudentPlacementManager] Created basic GameObject for student {i}");
                     }
                     else
                     {
-                        // Use Object.Instantiate with position to properly preserve position
-                        studentObj = Object.Instantiate(studentPrefab, studentPosition, Quaternion.identity);
+                        studentObj = Object.Instantiate(studentPrefab, studentPosition, facingBoard);
                         Debug.Log($"[StudentPlacementManager] Instantiated prefab {studentPrefab.name} for student {i}");
                     }
                     
@@ -459,12 +462,22 @@ namespace FunClass.Editor.Modules
             // Add CapsuleCollider if missing
             var collider = studentObj.GetComponent<CapsuleCollider>();
             if (collider == null)
-            {
                 collider = studentObj.AddComponent<CapsuleCollider>();
+
+            // Size collider to match visual: FBX models are larger than the default Capsule
+            if (!string.IsNullOrEmpty(characterModel))
+            {
+                collider.radius = 0.42f;
+                collider.height = 2.6f;
+                collider.center = new Vector3(0, 1.3f, 0);
+                Debug.Log($"[StudentPlacementManager] CapsuleCollider sized for FBX on {studentObj.name} (r=0.42, h=2.6)");
+            }
+            else
+            {
                 collider.radius = 0.3f;
                 collider.height = 1.8f;
                 collider.center = new Vector3(0, 0.9f, 0);
-                Debug.Log($"[StudentPlacementManager] Added CapsuleCollider to {studentObj.name}");
+                Debug.Log($"[StudentPlacementManager] CapsuleCollider sized for Capsule on {studentObj.name} (r=0.3, h=1.8)");
             }
             
             // Add StudentMessCreator if missing
@@ -491,20 +504,28 @@ namespace FunClass.Editor.Modules
                 Debug.Log($"[StudentPlacementManager] Added InfluenceStatusIcon to {studentObj.name}");
             }
             
-            // Add visual child (FBX model or Capsule fallback) if none exists
-            bool hasVisual = false;
-            GameObject visual = null;
+            // Find existing visual child
+            GameObject existingVisual = null;
             foreach (Transform child in studentObj.transform)
             {
                 if (child.name == "Visual" || child.name == "Model" || child.gameObject.GetComponent<Renderer>() != null)
                 {
-                    hasVisual = true;
-                    visual = child.gameObject;
+                    existingVisual = child.gameObject;
                     break;
                 }
             }
 
-            if (!hasVisual)
+            // If characterModel is specified, destroy existing visual so FBX replaces it
+            if (!string.IsNullOrEmpty(characterModel) && existingVisual != null)
+            {
+                Debug.Log($"[StudentPlacementManager] Replacing existing visual '{existingVisual.name}' with FBX '{characterModel}' on {studentObj.name}");
+                Object.DestroyImmediate(existingVisual);
+                existingVisual = null;
+            }
+
+            GameObject visual = existingVisual;
+
+            if (visual == null)
             {
                 // Try to load FBX model
                 bool fbxLoaded = false;
@@ -527,7 +548,7 @@ namespace FunClass.Editor.Modules
                     }
                     else
                     {
-                        Debug.LogWarning($"[StudentPlacementManager] FBX not found at {fbxPath}, falling back to Capsule");
+                        Debug.LogWarning($"[StudentPlacementManager] FBX not found at Assets/Characters/{characterModel}.fbx, falling back to Capsule");
                     }
                 }
 
@@ -544,7 +565,7 @@ namespace FunClass.Editor.Modules
             }
             else
             {
-                Debug.Log($"[StudentPlacementManager] {studentObj.name} already has visual child: {visual.name}");
+                Debug.Log($"[StudentPlacementManager] {studentObj.name} keeping existing visual: {visual.name}");
             }
 
             // Add visual feedback components
@@ -598,50 +619,25 @@ namespace FunClass.Editor.Modules
                 Debug.Log($"[StudentPlacementManager] Activated visual for {studentName}");
             }
             
-            // Check and enable renderer
-            var renderer = visual.GetComponent<Renderer>();
+            // Check renderer — FBX models have renderer on child nodes, so use GetComponentInChildren
+            var renderer = visual.GetComponentInChildren<Renderer>(true);
             if (renderer == null)
             {
-                Debug.LogWarning($"[StudentPlacementManager] Visual for {studentName} has no Renderer component");
-                // Try to add a MeshRenderer if missing
-                renderer = visual.AddComponent<MeshRenderer>();
-                // Also need a MeshFilter with a mesh
-                var meshFilter = visual.GetComponent<MeshFilter>();
-                if (meshFilter == null)
-                {
-                    meshFilter = visual.AddComponent<MeshFilter>();
-                    meshFilter.mesh = Resources.GetBuiltinResource<Mesh>("Capsule.fbx");
-                }
-                Debug.Log($"[StudentPlacementManager] Added Renderer and MeshFilter to visual for {studentName}");
+                // No renderer anywhere in hierarchy — this is a plain empty root; add Capsule mesh
+                Debug.LogWarning($"[StudentPlacementManager] Visual for {studentName} has no Renderer in hierarchy, adding Capsule fallback");
+                var meshRenderer = visual.AddComponent<MeshRenderer>();
+                var meshFilter   = visual.AddComponent<MeshFilter>();
+                meshFilter.mesh  = Resources.GetBuiltinResource<Mesh>("Capsule.fbx");
+                renderer         = meshRenderer;
             }
-            
-            if (renderer != null)
+
+            // Enable all renderers in the visual hierarchy
+            foreach (var r in visual.GetComponentsInChildren<Renderer>(true))
             {
-                if (!renderer.enabled)
+                if (!r.enabled)
                 {
-                    renderer.enabled = true;
-                    Debug.Log($"[StudentPlacementManager] Enabled renderer for {studentName}");
-                }
-                
-                // Ensure material exists
-                if (renderer.sharedMaterial == null)
-                {
-                    // Try to get default material from asset map
-                    var assetMap = AssetDatabase.LoadAssetAtPath<AssetMapConfig>("Assets/Configs/DefaultAssetMap.asset");
-                    Material defaultMat = assetMap?.GetMaterial("Default");
-                    if (defaultMat != null)
-                    {
-                        renderer.sharedMaterial = defaultMat;
-                        Debug.Log($"[StudentPlacementManager] Set default material for {studentName}");
-                    }
-                    else
-                    {
-                        // Create a simple colored material
-                        Material newMat = new Material(Shader.Find("Standard"));
-                        newMat.color = Color.blue;
-                        renderer.sharedMaterial = newMat;
-                        Debug.Log($"[StudentPlacementManager] Created fallback material for {studentName}");
-                    }
+                    r.enabled = true;
+                    Debug.Log($"[StudentPlacementManager] Enabled renderer {r.gameObject.name} for {studentName}");
                 }
             }
             

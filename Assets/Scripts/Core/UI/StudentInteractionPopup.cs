@@ -180,9 +180,10 @@ namespace FunClass.Core.UI
             {
                 string studentName = student.Config?.studentName ?? "Student";
                 string state = student.CurrentState.ToString();
+                string stateVN = PopupTextLoader.Instance.GetStateNameVietnamese(state);
                 string emoji = PopupTextLoader.Instance.GetStateEmoji(state);
-                
-                headerText.text = $"{studentName} - {state} {emoji}";
+
+                headerText.text = $"{studentName} - {stateVN} {emoji}";
             }
         }
 
@@ -190,12 +191,15 @@ namespace FunClass.Core.UI
         {
             Debug.Log($"[Popup] GenerateTargetStudentPopup for {student.Config?.studentName}");
 
+            var influenceSources = GetInfluenceSources(student);
+
+            string stateKey = student.CurrentState.ToString();
             if (openingPhraseText != null)
             {
-                openingPhraseText.text = $"💬 \"{PopupTextLoader.Instance.GetTargetOpeningPhrase()}\"";
+                string context = DetermineContext(student, influenceSources.Count > 0);
+                string phrase = PopupTextLoader.Instance.GetOpeningPhrase(stateKey, context);
+                openingPhraseText.text = $"💬 \"{phrase}\"";
             }
-
-            var influenceSources = GetInfluenceSources(student);
 
             Debug.Log($"[Popup] This student is affected by {influenceSources.Count} sources");
             foreach (var src in influenceSources)
@@ -206,7 +210,8 @@ namespace FunClass.Core.UI
 
             if (influenceSources.Count == 0)
             {
-                CreateComplaintText(PopupTextLoader.Instance.GetTargetNoComplaints(), "😌");
+                string noComplaintCtx = DetermineContext(student, false);
+                CreateComplaintText(PopupTextLoader.Instance.GetTargetNoComplaints(noComplaintCtx), "😌");
             }
             else
             {
@@ -214,14 +219,13 @@ namespace FunClass.Core.UI
                 {
                     string sourceName = ExtractLetter(source.sourceStudent?.Config?.studentName);
                     string eventTypeStr = source.eventType.ToString();
-                    string complaint = PopupTextLoader.Instance.GetComplaint(eventTypeStr, sourceName);
                     string icon = PopupTextLoader.Instance.GetComplaintTemplate(eventTypeStr).icon;
 
-                    // Add checkmark prefix if source is resolved
+                    // Choose direct vs indirect complaint based on influence scope
+                    string complaint = GetComplaintByScope(source, sourceName, eventTypeStr);
+
                     if (source.isResolved)
-                    {
                         complaint = $"✓ {complaint}";
-                    }
 
                     CreateComplaintText(complaint, icon);
                 }
@@ -256,7 +260,9 @@ namespace FunClass.Core.UI
                 openingPhraseText.text = $"💬 \"{statement}\"";
             }
 
-            string impactMessage = PopupTextLoader.Instance.GetSourceImpactWholeClass(unresolvedCount);
+            string impactMessage = IsWholeClassAction(eventType)
+                ? PopupTextLoader.Instance.GetSourceImpactWholeClass(unresolvedCount)
+                : PopupTextLoader.Instance.GetSourceImpactIndividual(unresolvedCount);
             CreateComplaintText(impactMessage, "⚠️");
 
             CreateButton(PopupTextLoader.Instance.GetSourceCloseButton(), () => ClosePopup());
@@ -311,7 +317,7 @@ namespace FunClass.Core.UI
                     openingPhraseText.text = $"💬 \"{statement}\"";
                 }
 
-                CreateComplaintText(PopupTextLoader.Instance.GetSourceImpactIndividual(), "⚠️");
+                CreateComplaintText(PopupTextLoader.Instance.GetSourceImpactIndividual(targets.Count), "⚠️");
 
                 // Create target list with individual resolve buttons
                 foreach (var target in targets)
@@ -343,23 +349,22 @@ namespace FunClass.Core.UI
             {
                 if (openingPhraseText != null)
                 {
-                    openingPhraseText.text = $"💬 \"Cô ơi! Em bị ảnh hưởng...\"";
+                    string stateKey = student.CurrentState.ToString();
+                    string context = DetermineContext(student, true);
+                    string phrase = PopupTextLoader.Instance.GetOpeningPhrase(stateKey, context);
+                    openingPhraseText.text = $"💬 \"{phrase}\"";
                 }
 
-                // Show complaints about sources
                 CreateComplaintText("📋 Em đang bị ảnh hưởng bởi:", "😟");
                 foreach (var source in influenceSources)
                 {
                     string sourceName = ExtractLetter(source.sourceStudent?.Config?.studentName);
                     string eventTypeStr = source.eventType.ToString();
-                    string complaint = PopupTextLoader.Instance.GetComplaint(eventTypeStr, sourceName);
                     string icon = PopupTextLoader.Instance.GetComplaintTemplate(eventTypeStr).icon;
 
-                    // Add checkmark if resolved
+                    string complaint = GetComplaintByScope(source, sourceName, eventTypeStr);
                     if (source.isResolved)
-                    {
                         complaint = $"✓ {complaint}";
-                    }
 
                     CreateComplaintText(complaint, icon);
                 }
@@ -385,7 +390,7 @@ namespace FunClass.Core.UI
 
                     Debug.Log($"[Popup] Action group: {actionType} → {targets.Count} targets");
 
-                    CreateComplaintText(PopupTextLoader.Instance.GetSourceImpactIndividual(), "⚠️");
+                    CreateComplaintText(PopupTextLoader.Instance.GetSourceImpactIndividual(targets.Count), "⚠️");
 
                     // Create target list with individual resolve buttons
                     foreach (var target in targets)
@@ -398,6 +403,62 @@ namespace FunClass.Core.UI
             }
 
             CreateButton(PopupTextLoader.Instance.GetSourceCloseButton(), () => ClosePopup());
+        }
+
+        /// Returns context string for opening phrase: Default, AfterCalmed, SelfCaused, Influenced.
+        private string DetermineContext(StudentAgent s, bool hasExternalSources, bool isSelfCause = false)
+        {
+            if (s.CurrentState == StudentState.Calm)
+            {
+                if (TeacherController.Instance != null &&
+                    TeacherController.Instance.WasRecentlyCalmed(s.Config?.studentId))
+                    return "AfterCalmed";
+                return "Default";
+            }
+            if (hasExternalSources) return "Influenced";
+            if (isSelfCause)        return "SelfCaused";
+            return "Default";
+        }
+
+        /// Determine direct vs indirect complaint based on influence scope of the source event.
+        private string GetComplaintByScope(InfluenceSourceData source, string sourceName, string eventTypeStr)
+        {
+            InfluenceScope scope = DeriveScope(source);
+            string objectName = string.IsNullOrEmpty(source.sourceObjectName) ? null : source.sourceObjectName;
+            if (scope == InfluenceScope.SingleStudent)
+                return PopupTextLoader.Instance.GetDirectComplaint(eventTypeStr, sourceName, objectName);
+            return PopupTextLoader.Instance.GetIndirectComplaint(eventTypeStr, sourceName, objectName);
+        }
+
+        private InfluenceScope DeriveScope(InfluenceSourceData source)
+        {
+            // Check LevelConfig influenceScopeConfig first (authoritative)
+            if (LevelManager.Instance != null)
+            {
+                var levelConfig = LevelManager.Instance.GetCurrentLevelConfig();
+                if (levelConfig?.influenceScopeConfig != null)
+                {
+                    // GetScope returns string "SingleStudent"/"WholeClass"/"None"
+                    string scopeStr = levelConfig.influenceScopeConfig.GetScope(source.eventType.ToString());
+                    if (scopeStr == "SingleStudent") return InfluenceScope.SingleStudent;
+                    if (scopeStr == "WholeClass")    return InfluenceScope.WholeClass;
+                    if (scopeStr == "None")          return InfluenceScope.None;
+                    // scopeStr == "None" or unrecognized → fall through to event-based default
+                }
+            }
+            // Fallback: derive from event type the same way StudentEvent does
+            // Note: KnockedOverObject defaults to SingleStudent here because summer break
+            // config sets it to SingleStudent. WholeClass is the StudentEvent.cs default
+            // but that fires before per-level config is applied.
+            return source.eventType switch
+            {
+                StudentEventType.ThrowingObject    => InfluenceScope.SingleStudent,
+                StudentEventType.KnockedOverObject => InfluenceScope.SingleStudent,
+                StudentEventType.MessCreated       => InfluenceScope.WholeClass,
+                StudentEventType.MakingNoise       => InfluenceScope.WholeClass,
+                StudentEventType.WanderingAround   => InfluenceScope.WholeClass,
+                _                                  => InfluenceScope.WholeClass
+            };
         }
 
         private void CreateComplaintText(string text, string icon)
@@ -623,7 +684,8 @@ namespace FunClass.Core.UI
                     {
                         sourceStudent = source.sourceStudent,
                         eventType = source.eventType,
-                        isResolved = source.isResolved
+                        isResolved = source.isResolved,
+                        sourceObjectName = source.sourceObjectName
                     });
                     string resolvedStatus = source.isResolved ? "✓ resolved" : "✗ unresolved";
                     Debug.Log($"[Popup] - Source: {source.sourceStudent.Config?.studentName} ({source.eventType}) [{resolvedStatus}]");
@@ -707,11 +769,25 @@ namespace FunClass.Core.UI
 
         private bool IsWholeClassAction(StudentEventType eventType)
         {
+            // Authoritative: level config decides scope per event type
+            if (LevelManager.Instance != null)
+            {
+                var levelConfig = LevelManager.Instance.GetCurrentLevelConfig();
+                if (levelConfig?.influenceScopeConfig != null)
+                {
+                    string scopeStr = levelConfig.influenceScopeConfig.GetScope(eventType.ToString());
+                    if (scopeStr == "WholeClass")    return true;
+                    if (scopeStr == "SingleStudent") return false;
+                    // "None" or unrecognized → fall through to default
+                }
+            }
+
+            // Fallback: hardcoded defaults if no level config
             return eventType switch
             {
                 StudentEventType.MakingNoise => true,
                 StudentEventType.KnockedOverObject => true,
-                StudentEventType.WanderingAround => false, // Individual action - affects nearby students
+                StudentEventType.WanderingAround => false,
                 _ => false
             };
         }
@@ -855,5 +931,6 @@ namespace FunClass.Core.UI
         public StudentAgent sourceStudent;
         public StudentEventType eventType;
         public bool isResolved;
+        public string sourceObjectName;  // Vietnamese name of thrown/knocked object — may be null
     }
 }

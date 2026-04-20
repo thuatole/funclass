@@ -2,16 +2,16 @@
   "targetStudent": {
     "openingPhrase": "Cô ơi!",
     "noComplaints": "Em ổn rồi cô!",
-    "escortButtonEnabled": "🏠 Escort Back",
-    "escortButtonDisabled": "🏠 Escort Back",
-    "closeButton": "❌ Close"
+    "escortButtonEnabled": "🏠 Đưa về chỗ",
+    "escortButtonDisabled": "🔒 Đưa về chỗ (cần giải quyết trước)",
+    "closeButton": "❌ Đóng"
   },
   "sourceStudent": {
     "impactWholeClass": "⚠️ Đang ảnh hưởng cả lớp ({count} học sinh)",
     "impactIndividual": "⚠️ Đang ảnh hưởng:",
     "resolveWholeClassButton": "✅ Giải quyết cho cả lớp",
     "resolveIndividualButton": "✅ Giải quyết cho {studentName}",
-    "closeButton": "❌ Close"
+    "closeButton": "❌ Đóng"
   },
   "stateEmojis": {
     "Calm": "😌",

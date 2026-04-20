@@ -315,7 +315,8 @@ namespace FunClass.Core
                 if (influenceStrength > 0.01f)
                 {
                     // Add influence source tracking
-                    evt.targetStudent.InfluenceSources.AddSource(sourceStudent, evt.eventType, influenceStrength);
+                    string objName = evt.targetObject?.GetComponent<StudentInteractableObject>()?.DisplayNameOrFallback;
+                    evt.targetStudent.InfluenceSources.AddSource(sourceStudent, evt.eventType, influenceStrength, objName);
                     ApplyInfluence(evt.targetStudent, sourceStudent, influenceStrength, evt.eventType);
                     
                     // Update influence icons
@@ -440,7 +441,8 @@ namespace FunClass.Core
                 if (influenceStrength > 0.01f)
                 {
                     // Add influence source tracking
-                    targetStudent.InfluenceSources.AddSource(sourceStudent, evt.eventType, influenceStrength);
+                    string objNameWC = evt.targetObject?.GetComponent<StudentInteractableObject>()?.DisplayNameOrFallback;
+                    targetStudent.InfluenceSources.AddSource(sourceStudent, evt.eventType, influenceStrength, objNameWC);
                     ApplyInfluence(targetStudent, sourceStudent, influenceStrength, evt.eventType);
 
                     // Update influence icons

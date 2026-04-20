@@ -2,10 +2,10 @@
   "actions": {
     "resolveWholeClass": "✅ Giải quyết cho cả lớp",
     "resolveIndividual": "✅ Giải quyết cho {name}",
-    "escortBack": "🏠 Escort Back",
-    "close": "❌ Close",
-    "calm": "💙 Calm",
-    "punish": "⚡ Punish"
+    "escortBack": "🏠 Đưa về chỗ",
+    "close": "❌ Đóng",
+    "calm": "💙 Trấn tĩnh",
+    "punish": "⚡ Kỷ luật"
   },
   "tooltips": {
     "escortDisabled": "Cần giải quyết các nguồn gốc trước",

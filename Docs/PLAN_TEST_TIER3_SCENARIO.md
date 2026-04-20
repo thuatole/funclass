@@ -141,6 +141,18 @@ Biến số: 3 students, 4 scripted events (10s/20s/30s/40s), influence chain
 Verify: tất cả events trigger đúng thứ tự, influence chain Bình→Lan + Nam→Lan hoạt động.
 Nếu fail → bug ở timing, ordering, hoặc multi-source influence.
 
+### Series 3b - Throw Lifecycle (isolated throw pipeline)
+Folder: Assets/Tests/Scenarios/Series3b/
+- level_config.json (2 students khoảng cách >2m, 1 ThrowingObject scripted tại 10s)
+- assertions.json
+
+Biến số mới: ThrowAt pipeline (walk closer → attach trực tiếp lên target, không qua tay source)
+Verify:
+- `throwables_spawned` — ThrowablesSpawned tại 0-2s (level start)
+- `target_attach` — ObjectAttachedToTarget target=Lan tại 10-10.5s
+- `influence_applied` — InfluenceApplied source=Bình target=Lan tại 10-10.5s, afterEventId=target_attach
+Nếu fail → bug ở AttachToHead/AttachToDesk hoặc event log ordering
+
 ### Series 4 - Teacher Intervention (thêm teacher action)
 Folder: Assets/Tests/Scenarios/Series4/
 - assertions.json (level dùng level_first_day_summer_break.json)
@@ -254,6 +266,10 @@ Bước 1.3 [CODE] Refactor các component để gọi structured Milestone
 - StudentInfluenceManager: khi influence applied, gọi Milestone với eventType, source, target
 - StudentAgent: khi state changed, gọi Milestone với eventType="StateChanged", source=studentName
 - TeacherController: khi calm/escort, gọi Milestone với eventType, target
+- **StudentInteractableObject**: khi attach/detach object, gọi Milestone với:
+  - eventType="ObjectAttachedToTarget", target=targetStudentName (attach head hoặc desk — không có source phase)
+  - eventType="ObjectKnockedOver", source=studentName
+  - eventType="ThrowablesSpawned" (ThrowableSpawner, khi spawn xong lúc level start)
 - Chỉ refactor các MILESTONE calls quan trọng, không cần refactor Detail/Trace
 
 Bước 1.4 [UNITY EDITOR] Verify logs vẫn hoạt động
@@ -363,6 +379,9 @@ Bước 4.2 [UNITY EDITOR] Chạy batch
 ---
 
 ## Lưu ý
+
+### Throw và timeScale
+ExecuteThrowAt là synchronous (không coroutine, không WaitForSeconds). Attach object xảy ra ngay trong cùng frame với event log → assertions có thể dùng window nhỏ (±0.1s). Parent re-attach frame-based, an toàn với mọi timeScale.
 
 ### timeScale và NavMesh
 Mặc định dùng timeScale = 10 (không phải 20). Lý do: NavMeshAgent ở timeScale quá cao có thể teleport qua walls hoặc miss waypoints.

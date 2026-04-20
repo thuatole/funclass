@@ -181,14 +181,37 @@ namespace FunClass.Core
                 }
 
                 LoadStudentInteractions();
+                SpawnThrowables(LevelLoader.Instance.CurrentLevel);
             }
 
             GameLogger.Milestone("LevelManager", $"Level started - {LevelLoader.Instance?.CurrentLevel?.levelId ?? "Unknown"}");
             if (currentGoal != null)
             {
-                GameLogger.Milestone("LevelManager", 
+                GameLogger.Milestone("LevelManager",
                     $"Goal: {currentGoal.timeLimitSeconds}s, disruption ≤ {currentGoal.maxDisruptionThreshold}%, calmDowns: {currentGoal.requiredCalmDowns}");
             }
+        }
+
+        private void SpawnThrowables(LevelConfig levelConfig)
+        {
+            // No pre-spawn — objects only appear when student interactions fire (at target).
+            // We just ensure ThrowableSpawner + MessSpawner singletons exist for on-demand spawning.
+
+            if (ThrowableSpawner.Instance == null)
+            {
+                GameObject spawnerObj = new GameObject("ThrowableSpawner");
+                spawnerObj.AddComponent<ThrowableSpawner>();
+                DontDestroyOnLoad(spawnerObj);
+            }
+
+            if (MessSpawner.Instance == null)
+            {
+                GameObject messObj = new GameObject("MessSpawner");
+                messObj.AddComponent<MessSpawner>();
+                DontDestroyOnLoad(messObj);
+            }
+
+            ThrowableSpawner.Instance.SetCurrentLevelConfig(levelConfig);
         }
 
         private void HandleOutsideStudentCountChanged(int count)
@@ -208,6 +231,8 @@ namespace FunClass.Core
         private void EndLevel()
         {
             IsLevelActive = false;
+            ThrowableSpawner.Instance?.DespawnAll();
+            MessSpawner.Instance?.ClearAll();
             GameLogger.Detail("LevelManager", "Level ended");
         }
 
@@ -234,7 +259,9 @@ namespace FunClass.Core
                 GameLogger.Milestone("LevelManager", $"Loaded {levelConfig.studentInteractions.Count} student interactions");
             }
 
-            SetupDesksForInteraction();
+            // SetupDesksForInteraction REMOVED — desks không còn là interactable objects.
+            // Chỉ scripted/on-demand throw mới spawn visual at target. Tránh autonomous knock-over của bàn
+            // dẫn tới popup vô lý "Bình đẩy bàn của con".
         }
         
         private void SetupDesksForInteraction()
@@ -283,10 +310,12 @@ namespace FunClass.Core
             StudentInteractableObject interactable = deskObj.AddComponent<StudentInteractableObject>();
             
             interactable.objectName = deskObj.name;
+            interactable.displayName = "bàn";
             interactable.canBeKnockedOver = true;
             interactable.canBeThrown = false;
             interactable.canMakeNoise = false;
             interactable.canBeDropped = false;
+            interactable.knockMessType = MessType.None;  // bàn knock không sinh kính vỡ
             
             Collider collider = deskObj.GetComponent<Collider>();
             if (collider != null)

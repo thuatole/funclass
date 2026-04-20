@@ -38,6 +38,13 @@ namespace FunClass.Core
         [Header("Influence Settings")]
         [Tooltip("Influence scope configuration for this level")]
         public InfluenceScopeConfig influenceScopeConfig;
+
+        [Header("Throwable Objects")]
+        [Tooltip("Desk loadout config — null = use defaults (2-3 books/sheets per student)")]
+        public DeskLoadoutConfig deskLoadout;
+
+        [Tooltip("Classroom shared props — null = use defaults (Speaker + Projector)")]
+        public ClassroomPropsConfig classroomProps;
     
         [Header("Key Locations")]
         [Tooltip("Classroom door position")]

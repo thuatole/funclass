@@ -15,14 +15,16 @@ namespace FunClass.Core
         public float influenceStrength;         // Strength of influence
         public float timestamp;                 // When influence started
         public bool isResolved;                 // Whether source has been resolved (calmed down)
+        public string sourceObjectName;         // Vietnamese display name of thrown/knocked object
 
-        public InfluenceSource(StudentAgent source, StudentEventType type, float strength)
+        public InfluenceSource(StudentAgent source, StudentEventType type, float strength, string objectName = null)
         {
             sourceStudent = source;
             eventType = type;
             influenceStrength = strength;
             timestamp = Time.time;
             isResolved = false;
+            sourceObjectName = objectName;
         }
 
         public override string ToString()
@@ -48,7 +50,7 @@ namespace FunClass.Core
         /// <summary>
         /// Add a new influence source
         /// </summary>
-        public void AddSource(StudentAgent sourceStudent, StudentEventType eventType, float strength)
+        public void AddSource(StudentAgent sourceStudent, StudentEventType eventType, float strength, string sourceObjectName = null)
         {
             string targetName = targetStudent?.Config?.studentName ?? "Unknown";
             string sourceName = sourceStudent?.Config?.studentName ?? "Unknown";
@@ -64,6 +66,10 @@ namespace FunClass.Core
 
             if (existing != null)
             {
+                // Always update objectName to latest thrown object
+                if (!string.IsNullOrEmpty(sourceObjectName))
+                    existing.sourceObjectName = sourceObjectName;
+
                 // Update strength if stronger
                 if (strength > existing.influenceStrength)
                 {
@@ -79,7 +85,7 @@ namespace FunClass.Core
             else
             {
                 // Add new source
-                var newSource = new InfluenceSource(sourceStudent, eventType, strength);
+                var newSource = new InfluenceSource(sourceStudent, eventType, strength, sourceObjectName);
                 activeSources.Add(newSource);
                 
                 Debug.Log($"[InfluenceSources] ✓ Added NEW source to {targetName}: {newSource}");

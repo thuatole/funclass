@@ -406,19 +406,41 @@ namespace FunClass.Core
             // Create event - target can be null for self-events or WholeClass scope
             InfluenceScope scope = target != null ? InfluenceScope.SingleStudent : InfluenceScope.WholeClass;
 
+            // For interactions involving a target student, spawn a throwable visual at the target
+            // BEFORE logging the event so that targetObject (with displayName) flows into influence + dialogue.
+            GameObject thrownVisual = null;
+            if (target != null && ShouldSpawnVisualForEvent(eventType))
+            {
+                SizeCategory size = PickSizeForEvent(eventType);
+                thrownVisual = ThrowableSpawner.Instance?.SpawnAtTarget(target, size);
+            }
+
             if (StudentEventManager.Instance != null)
             {
                 StudentEvent evt = new StudentEvent(
                     source,
                     eventType,
                     interaction.description ?? $"{interaction.sourceStudent} {interaction.eventType}",
-                    targetObject: null,
+                    targetObject: thrownVisual,
                     targetStudent: target,
                     scope: scope
                 );
 
                 StudentEventManager.Instance.LogEvent(evt);
             }
+        }
+
+        private static bool ShouldSpawnVisualForEvent(StudentEventType eventType)
+        {
+            return eventType == StudentEventType.ThrowingObject
+                || eventType == StudentEventType.KnockedOverObject;
+        }
+
+        private static SizeCategory PickSizeForEvent(StudentEventType eventType)
+        {
+            return eventType == StudentEventType.KnockedOverObject
+                ? SizeCategory.Large
+                : SizeCategory.Small;
         }
     }
 

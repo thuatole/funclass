@@ -656,6 +656,26 @@ namespace FunClass.Editor.Modules
                 AssetDatabase.SaveAssets();
                 Debug.Log($"[UnifiedLevelImporter] Assigned InfluenceScopeConfig to LevelConfig");
             }
+
+            // 4b. Create DeskLoadoutConfig from schema.deskLoadout
+            if (schema.deskLoadout != null)
+            {
+                DeskLoadoutConfig deskLoadout = CreateDeskLoadoutConfigFromSchema(schema);
+                levelConfig.deskLoadout = deskLoadout;
+                EditorUtility.SetDirty(levelConfig);
+                AssetDatabase.SaveAssets();
+                Debug.Log($"[UnifiedLevelImporter] Assigned DeskLoadoutConfig to LevelConfig");
+            }
+
+            // 4c. Create ClassroomPropsConfig from schema.classroomProps
+            if (schema.classroomProps != null)
+            {
+                ClassroomPropsConfig classroomProps = CreateClassroomPropsConfigFromSchema(schema);
+                levelConfig.classroomProps = classroomProps;
+                EditorUtility.SetDirty(levelConfig);
+                AssetDatabase.SaveAssets();
+                Debug.Log($"[UnifiedLevelImporter] Assigned ClassroomPropsConfig to LevelConfig");
+            }
             
             // 5. Create StudentConfigs (if studentDeskPairs provided)
             if (studentDeskPairs != null && studentDeskPairs.Count > 0)
@@ -861,6 +881,10 @@ namespace FunClass.Editor.Modules
                 EditorUtility.SetDirty(config);
                 studentConfigs.Add(config);
 
+                // Pre-render thumbnail so StudentIntroScreen can show character preview
+                if (!string.IsNullOrEmpty(config.characterModel))
+                    CharacterThumbnailRenderer.RenderAndSave(config.studentId, config.characterModel);
+
                 // Verify in-memory (before SaveAssets - do NOT call Refresh here as it discards dirty state)
                 var verifiedConfig = AssetDatabase.LoadAssetAtPath<StudentConfig>(studentConfigPath);
                 if (verifiedConfig != null)
@@ -1021,6 +1045,39 @@ namespace FunClass.Editor.Modules
             return goalConfig;
         }
         
+        private static DeskLoadoutConfig CreateDeskLoadoutConfigFromSchema(UnifiedLevelSchema schema)
+        {
+            string path = $"Assets/Configs/{schema.levelId}/{schema.levelId}_DeskLoadout.asset";
+            DeskLoadoutConfig config = EditorUtils.CreateScriptableObject<DeskLoadoutConfig>(path);
+            DeskLoadoutData data = schema.deskLoadout;
+
+            config.perStudentMin        = data.perStudentMin;
+            config.perStudentMax        = data.perStudentMax;
+            config.smallObjectPool      = data.smallObjectPool ?? new System.Collections.Generic.List<string> { "Book", "Sheet" };
+            config.largeObjectChancePerDesk = data.largeObjectChancePerDesk;
+            config.largeObjectPool      = data.largeObjectPool ?? new System.Collections.Generic.List<string>();
+            config.randomizeVariants    = data.randomizeVariants;
+
+            EditorUtility.SetDirty(config);
+            AssetDatabase.SaveAssets();
+            return config;
+        }
+
+        private static ClassroomPropsConfig CreateClassroomPropsConfigFromSchema(UnifiedLevelSchema schema)
+        {
+            string path = $"Assets/Configs/{schema.levelId}/{schema.levelId}_ClassroomProps.asset";
+            ClassroomPropsConfig config = EditorUtils.CreateScriptableObject<ClassroomPropsConfig>(path);
+            ClassroomPropsData data = schema.classroomProps;
+
+            config.sharedProps    = data.sharedProps ?? new System.Collections.Generic.List<string> { "Speaker", "Projector" };
+            config.extraDecoCount = data.extraDecoCount;
+            config.autoPlace      = data.autoPlace;
+
+            EditorUtility.SetDirty(config);
+            AssetDatabase.SaveAssets();
+            return config;
+        }
+
         /// <summary>
         /// Create LevelConfig and assign LevelGoalConfig
         /// </summary>

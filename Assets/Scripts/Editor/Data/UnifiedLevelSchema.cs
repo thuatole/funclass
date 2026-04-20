@@ -70,6 +70,8 @@ namespace FunClass.Editor.Data
         public LevelGoalData goalSettings;
         public InfluenceScopeSettingsData influenceScopeSettings;
         public List<StudentInteractionData> studentInteractions;
+        public DeskLoadoutData deskLoadout;
+        public ClassroomPropsData classroomProps;
         
         // Manual route overrides (Enhanced field)
         public List<RouteData> routes; // Overrides auto-generated routes
