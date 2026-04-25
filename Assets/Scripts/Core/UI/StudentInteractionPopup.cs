@@ -183,8 +183,113 @@ namespace FunClass.Core.UI
                 string stateVN = PopupTextLoader.Instance.GetStateNameVietnamese(state);
                 string emoji = PopupTextLoader.Instance.GetStateEmoji(state);
 
-                headerText.text = $"{studentName} - {stateVN} {emoji}";
+                Color stateColor = GetStateColor(student.CurrentState);
+                string hexColor = ColorUtility.ToHtmlStringRGB(stateColor);
+                headerText.text = $"{studentName}  <color=#{hexColor}>[{emoji} {stateVN}]</color>";
+                headerText.supportRichText = true;
             }
+
+            // Auto-configure containers if not already set up
+            EnsureVerticalLayout(complaintListContainer, 8, new RectOffset(0, 0, 4, 4));
+            EnsureVerticalLayout(targetListContainer, 6, new RectOffset(0, 0, 4, 4));
+            EnsureHorizontalLayout(buttonContainer, 10, new RectOffset(0, 0, 6, 6));
+        }
+
+        // ──────────────────────────────────────────────────────────────────
+        // Design system helpers
+        // ──────────────────────────────────────────────────────────────────
+
+        private static Color GetStateColor(StudentState state) => state switch
+        {
+            StudentState.Calm       => new Color(0.20f, 0.78f, 0.60f),
+            StudentState.Distracted => new Color(0.95f, 0.75f, 0.20f),
+            StudentState.ActingOut  => new Color(0.95f, 0.50f, 0.15f),
+            StudentState.Critical   => new Color(0.90f, 0.25f, 0.25f),
+            _                       => new Color(0.60f, 0.65f, 0.75f)
+        };
+
+        // Name-based consistent avatar color (same student always same color)
+        private static Color GetAvatarColor(string name)
+        {
+            int hash = 0;
+            foreach (char c in (name ?? "")) hash = hash * 31 + c;
+            float h = Mathf.Abs(hash % 360) / 360f;
+            return Color.HSVToRGB(h, 0.60f, 0.75f);
+        }
+
+        private static Color CardBg    => new Color(0.12f, 0.14f, 0.24f, 0.92f);
+        private static Color DividerColor => new Color(0.30f, 0.33f, 0.48f, 0.50f);
+        private static Color TextPrimary  => new Color(0.92f, 0.93f, 0.97f);
+        private static Color TextSecondary => new Color(0.60f, 0.65f, 0.78f);
+
+        private enum ButtonStyle { Resolve, ResolveWhole, Close, Disabled }
+
+        private static Color GetButtonColor(ButtonStyle style, bool enabled) => style switch
+        {
+            ButtonStyle.Resolve      => enabled ? new Color(0.13f, 0.65f, 0.38f) : new Color(0.25f, 0.35f, 0.30f),
+            ButtonStyle.ResolveWhole => enabled ? new Color(0.10f, 0.52f, 0.78f) : new Color(0.20f, 0.30f, 0.40f),
+            ButtonStyle.Close        => new Color(0.20f, 0.22f, 0.34f),
+            _                        => new Color(0.25f, 0.25f, 0.30f)
+        };
+
+        private void EnsureVerticalLayout(Transform t, int spacing, RectOffset padding)
+        {
+            if (t == null) return;
+            var vlg = t.GetComponent<VerticalLayoutGroup>() ?? t.gameObject.AddComponent<VerticalLayoutGroup>();
+            vlg.spacing = spacing;
+            vlg.padding = padding;
+            vlg.childAlignment = TextAnchor.UpperCenter;
+            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandHeight = false;
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = true;
+            var csf = t.GetComponent<ContentSizeFitter>() ?? t.gameObject.AddComponent<ContentSizeFitter>();
+            csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        }
+
+        private void EnsureHorizontalLayout(Transform t, int spacing, RectOffset padding)
+        {
+            if (t == null) return;
+            var hlg = t.GetComponent<HorizontalLayoutGroup>() ?? t.gameObject.AddComponent<HorizontalLayoutGroup>();
+            hlg.spacing = spacing;
+            hlg.padding = padding;
+            hlg.childAlignment = TextAnchor.MiddleCenter;
+            hlg.childForceExpandWidth = false;
+            hlg.childForceExpandHeight = false;
+            // Must be true so HLG honors LayoutElement.preferredWidth/Height of buttons.
+            // With false, HLG ignores LayoutElement and uses RectTransform.sizeDelta (which is 0×0
+            // since BuildButton doesn't set sizeDelta) → buttons render with 0 width and disappear.
+            hlg.childControlWidth = true;
+            hlg.childControlHeight = true;
+        }
+
+        // Add card background image to a container
+        private Image AddCardBackground(GameObject go, Color color, float cornerPad = 0)
+        {
+            Image img = go.AddComponent<Image>();
+            img.color = color;
+            return img;
+        }
+
+        // Create a left-side accent bar on a container.
+        // Uses LayoutElement.ignoreLayout = true so the parent's HorizontalLayoutGroup
+        // doesn't reposition this overlay — bar stays anchored full-height on the left edge.
+        private void AddAccentBar(GameObject parent, Color color, float width = 3f)
+        {
+            GameObject bar = new GameObject("AccentBar");
+            bar.transform.SetParent(parent.transform, false);
+            RectTransform rt = bar.AddComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0, 0);
+            rt.anchorMax = new Vector2(0, 1);
+            rt.pivot = new Vector2(0, 0.5f);
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = new Vector2(width, 0);
+            Image img = bar.AddComponent<Image>();
+            img.color = color;
+
+            // Keep bar out of the parent layout flow
+            LayoutElement le = bar.AddComponent<LayoutElement>();
+            le.ignoreLayout = true;
         }
 
         private void GenerateTargetStudentPopup()
@@ -317,7 +422,7 @@ namespace FunClass.Core.UI
                     openingPhraseText.text = $"💬 \"{statement}\"";
                 }
 
-                CreateComplaintText(PopupTextLoader.Instance.GetSourceImpactIndividual(targets.Count), "⚠️");
+                CreateSectionLabel(PopupTextLoader.Instance.GetSourceImpactIndividual(targets.Count));
 
                 // Create target list with individual resolve buttons
                 foreach (var target in targets)
@@ -355,7 +460,7 @@ namespace FunClass.Core.UI
                     openingPhraseText.text = $"💬 \"{phrase}\"";
                 }
 
-                CreateComplaintText("📋 Em đang bị ảnh hưởng bởi:", "😟");
+                CreateSectionLabel("📋 Đang bị ảnh hưởng bởi:");
                 foreach (var source in influenceSources)
                 {
                     string sourceName = ExtractLetter(source.sourceStudent?.Config?.studentName);
@@ -372,6 +477,7 @@ namespace FunClass.Core.UI
 
             // PART 2: Show who THIS student affects (Source role)
             var affectedStudents = GetAffectedStudents(student);
+            if (affectedStudents.Count > 0 && influenceSources.Count > 0) CreateDivider();
 
             Debug.Log($"[Popup] PART 2 - This student is affecting {affectedStudents.Count} students");
             foreach (var t in affectedStudents)
@@ -390,9 +496,8 @@ namespace FunClass.Core.UI
 
                     Debug.Log($"[Popup] Action group: {actionType} → {targets.Count} targets");
 
-                    CreateComplaintText(PopupTextLoader.Instance.GetSourceImpactIndividual(targets.Count), "⚠️");
+                    CreateSectionLabel(PopupTextLoader.Instance.GetSourceImpactIndividual(targets.Count));
 
-                    // Create target list with individual resolve buttons
                     foreach (var target in targets)
                     {
                         string targetName = ExtractLetter(target.Config?.studentName);
@@ -461,171 +566,235 @@ namespace FunClass.Core.UI
             };
         }
 
+        // ──────────────────────────────────────────────────────────────────
+        // UI factory methods (new design)
+        // ──────────────────────────────────────────────────────────────────
+
         private void CreateComplaintText(string text, string icon)
         {
             if (complaintListContainer == null) return;
 
+            // Strip duplicate icon — text from pools already contains emoji prefix
+            string display = text;
+
             GameObject item = new GameObject("ComplaintItem");
             item.transform.SetParent(complaintListContainer, false);
 
-            RectTransform itemRect = item.AddComponent<RectTransform>();
-            itemRect.sizeDelta = new Vector2(0, 50);
+            // Subtle card background
+            Image bg = item.AddComponent<Image>();
+            bg.color = CardBg;
 
-            Text textComponent = item.AddComponent<Text>();
-            textComponent.text = $"{icon} {text}";
-            textComponent.font = GetDefaultFont();
-            textComponent.fontSize = 16;
-            textComponent.color = new Color(1f, 1f, 1f, 1f);  // Pure white for better contrast
-            textComponent.alignment = TextAnchor.UpperLeft;
-            textComponent.horizontalOverflow = HorizontalWrapMode.Wrap;
-            textComponent.verticalOverflow = VerticalWrapMode.Overflow;
+            HorizontalLayoutGroup row = item.AddComponent<HorizontalLayoutGroup>();
+            row.spacing = 8;
+            row.padding = new RectOffset(10, 10, 8, 8);
+            row.childAlignment = TextAnchor.MiddleLeft;
+            row.childForceExpandWidth = false;
+            row.childControlWidth = true;
+            row.childControlHeight = true;
+            row.childForceExpandHeight = false;
 
-            UnityEngine.UI.LayoutElement layoutElement = item.AddComponent<UnityEngine.UI.LayoutElement>();
-            layoutElement.minHeight = 50;
-            layoutElement.preferredHeight = -1;  // Auto height based on content
-            layoutElement.flexibleHeight = 1;
+            // Text
+            GameObject textGO = new GameObject("Text");
+            textGO.transform.SetParent(item.transform, false);
+            Text t = textGO.AddComponent<Text>();
+            t.text = display;
+            t.font = GetDefaultFont();
+            t.fontSize = 15;
+            t.color = TextPrimary;
+            t.alignment = TextAnchor.MiddleLeft;
+            t.horizontalOverflow = HorizontalWrapMode.Wrap;
+            t.verticalOverflow = VerticalWrapMode.Overflow;
+            t.supportRichText = true;
+
+            LayoutElement le = textGO.AddComponent<LayoutElement>();
+            le.flexibleWidth = 1;
+
+            LayoutElement itemLE = item.AddComponent<LayoutElement>();
+            itemLE.minHeight = 36;
+            itemLE.preferredHeight = -1;
+            itemLE.flexibleHeight = 0;
         }
-        
-        private Font GetDefaultFont()
+
+        private void CreateSectionLabel(string text)
         {
-            Font font = Resources.Load<Font>("Fonts/DefaultFont");
-            if (font == null)
-            {
-                font = Font.CreateDynamicFontFromOSFont("Arial", 14);
-            }
-            return font;
+            if (complaintListContainer == null) return;
+
+            GameObject go = new GameObject("SectionLabel");
+            go.transform.SetParent(complaintListContainer, false);
+
+            Text t = go.AddComponent<Text>();
+            t.text = text.ToUpper();
+            t.font = GetDefaultFont();
+            t.fontSize = 11;
+            t.color = TextSecondary;
+            t.alignment = TextAnchor.MiddleLeft;
+
+            LayoutElement le = go.AddComponent<LayoutElement>();
+            le.preferredHeight = 20;
+            le.minHeight = 20;
         }
 
-        private void CreateTargetActionItem(StudentAgent target, string targetName, System.Action onResolve)
+        private void CreateDivider()
         {
-            if (targetListContainer == null) return;
+            if (complaintListContainer == null) return;
 
-            GameObject item = new GameObject($"TargetItem_{targetName}");
-            item.transform.SetParent(targetListContainer, false);
+            GameObject go = new GameObject("Divider");
+            go.transform.SetParent(complaintListContainer, false);
 
-            RectTransform itemRect = item.AddComponent<RectTransform>();
-            itemRect.sizeDelta = new Vector2(0, 25);
+            Image img = go.AddComponent<Image>();
+            img.color = DividerColor;
 
-            Text nameText = item.AddComponent<Text>();
-            nameText.text = $"• {targetName}";
-            nameText.font = GetDefaultFont();
-            nameText.fontSize = 14;
-            nameText.color = Color.white;
-            nameText.alignment = TextAnchor.MiddleLeft;
-
-            string buttonLabel = PopupTextLoader.Instance.GetSourceResolveIndividualButton(targetName);
-            CreateButton(buttonLabel, onResolve);
+            LayoutElement le = go.AddComponent<LayoutElement>();
+            le.preferredHeight = 1;
+            le.minHeight = 1;
+            le.flexibleWidth = 1;
         }
 
         private void CreateTargetActionItemWithButton(StudentAgent target, string targetName, System.Action onResolve)
         {
             if (targetListContainer == null) return;
 
-            // Create horizontal container for target name + button
-            GameObject item = new GameObject($"TargetItem_{targetName}");
-            item.transform.SetParent(targetListContainer, false);
+            Color avatarColor = GetAvatarColor(targetName);
 
-            RectTransform itemRect = item.AddComponent<RectTransform>();
-            itemRect.sizeDelta = new Vector2(0, 60);
+            // Card container
+            GameObject card = new GameObject($"TargetCard_{targetName}");
+            card.transform.SetParent(targetListContainer, false);
 
-            // Add horizontal layout
-            UnityEngine.UI.HorizontalLayoutGroup layout = item.AddComponent<UnityEngine.UI.HorizontalLayoutGroup>();
-            layout.spacing = 10;
-            layout.childAlignment = TextAnchor.MiddleLeft;
-            layout.childForceExpandWidth = false;
-            layout.childControlWidth = true;
-            layout.padding = new RectOffset(10, 10, 5, 5);
+            Image cardBg = card.AddComponent<Image>();
+            cardBg.color = CardBg;
 
-            // Create name text
-            GameObject nameGO = new GameObject("NameText");
-            nameGO.transform.SetParent(item.transform, false);
+            // Left accent bar
+            AddAccentBar(card, avatarColor, 3f);
 
+            HorizontalLayoutGroup row = card.AddComponent<HorizontalLayoutGroup>();
+            row.spacing = 10;
+            row.padding = new RectOffset(14, 10, 8, 8);
+            row.childAlignment = TextAnchor.MiddleLeft;
+            row.childForceExpandWidth = false;
+            row.childControlWidth = true;
+            row.childControlHeight = false;
+            row.childForceExpandHeight = false;
+
+            LayoutElement cardLE = card.AddComponent<LayoutElement>();
+            cardLE.minHeight = 48;
+            cardLE.preferredHeight = 48;
+
+            // Avatar circle
+            GameObject avatarGO = new GameObject("Avatar");
+            avatarGO.transform.SetParent(card.transform, false);
+
+            Image avatarImg = avatarGO.AddComponent<Image>();
+            avatarImg.color = avatarColor;
+
+            LayoutElement avatarLE = avatarGO.AddComponent<LayoutElement>();
+            avatarLE.preferredWidth = 32;
+            avatarLE.preferredHeight = 32;
+            avatarLE.minWidth = 32;
+            avatarLE.flexibleWidth = 0;
+
+            // Avatar initial letter
+            GameObject initGO = new GameObject("Initial");
+            initGO.transform.SetParent(avatarGO.transform, false);
+            RectTransform initRT = initGO.AddComponent<RectTransform>();
+            initRT.anchorMin = Vector2.zero;
+            initRT.anchorMax = Vector2.one;
+            initRT.sizeDelta = Vector2.zero;
+            Text initText = initGO.AddComponent<Text>();
+            initText.text = targetName.Length > 0 ? targetName[0].ToString().ToUpper() : "?";
+            initText.font = GetDefaultFont();
+            initText.fontSize = 14;
+            initText.fontStyle = FontStyle.Bold;
+            initText.color = Color.white;
+            initText.alignment = TextAnchor.MiddleCenter;
+
+            // Name
+            GameObject nameGO = new GameObject("Name");
+            nameGO.transform.SetParent(card.transform, false);
             Text nameText = nameGO.AddComponent<Text>();
-            nameText.text = $"• {targetName}";
+            nameText.text = targetName;
             nameText.font = GetDefaultFont();
-            nameText.fontSize = 16;
-            nameText.color = Color.white;
+            nameText.fontSize = 15;
+            nameText.fontStyle = FontStyle.Bold;
+            nameText.color = TextPrimary;
             nameText.alignment = TextAnchor.MiddleLeft;
+            LayoutElement nameLE = nameGO.AddComponent<LayoutElement>();
+            nameLE.flexibleWidth = 1;
 
-            UnityEngine.UI.LayoutElement nameLayout = nameGO.AddComponent<UnityEngine.UI.LayoutElement>();
-            nameLayout.preferredWidth = 150;
-            nameLayout.flexibleWidth = 0;
-
-            // Create resolve button inline
-            string buttonLabel = PopupTextLoader.Instance.GetSourceResolveIndividualButton(targetName);
-
-            GameObject buttonGO = new GameObject($"ResolveButton_{targetName}");
-            buttonGO.transform.SetParent(item.transform, false);
-
-            RectTransform buttonRect = buttonGO.AddComponent<RectTransform>();
-            buttonRect.sizeDelta = new Vector2(200, 50);
-
-            UnityEngine.UI.Image buttonBg = buttonGO.AddComponent<UnityEngine.UI.Image>();
-            buttonBg.color = new Color(0.2f, 0.7f, 0.3f, 1f); // Green for action
-
-            Button button = buttonGO.AddComponent<Button>();
-            button.interactable = true;
-            button.onClick.AddListener(() => onResolve?.Invoke());
-
-            GameObject btnTextGO = new GameObject("Text");
-            btnTextGO.transform.SetParent(buttonGO.transform, false);
-            RectTransform btnTextRect = btnTextGO.AddComponent<RectTransform>();
-            btnTextRect.anchorMin = Vector2.zero;
-            btnTextRect.anchorMax = Vector2.one;
-            btnTextRect.sizeDelta = Vector2.zero;
-
-            Text buttonText = btnTextGO.AddComponent<Text>();
-            buttonText.text = buttonLabel;
-            buttonText.font = GetDefaultFont();
-            buttonText.fontSize = 14;
-            buttonText.color = Color.white;
-            buttonText.alignment = TextAnchor.MiddleCenter;
-
-            UnityEngine.UI.LayoutElement buttonLayoutElem = buttonGO.AddComponent<UnityEngine.UI.LayoutElement>();
-            buttonLayoutElem.preferredWidth = 200;
-            buttonLayoutElem.preferredHeight = 50;
-            buttonLayoutElem.flexibleWidth = 0;
+            // Resolve button compact — load label from PopupTextLoader (data-driven, supports localization).
+            // Caller targetName context already shown via avatar+name, so button only needs short verb.
+            string resolveLabel = PopupTextLoader.Instance.GetSourceResolveIndividualButton(targetName);
+            BuildButton(card.transform, resolveLabel, GetButtonColor(ButtonStyle.Resolve, true), 120, 34, onResolve, true);
         }
 
         private void CreateButton(string label, System.Action onClick, bool enabled = true)
         {
             if (buttonContainer == null) return;
 
-            GameObject buttonGO = new GameObject($"Button_{label}");
-            buttonGO.transform.SetParent(buttonContainer, false);
+            bool isClose = label.Contains("Đóng") || label.Contains("Close") || label.Contains("❌");
+            bool isResolveWhole = label.Contains("cả lớp") || label.Contains("Giải quyết cho cả");
 
-            RectTransform buttonRect = buttonGO.AddComponent<RectTransform>();
-            buttonRect.sizeDelta = new Vector2(200, 60);  // Increased width and height
+            ButtonStyle style = isClose ? ButtonStyle.Close
+                              : isResolveWhole ? ButtonStyle.ResolveWhole
+                              : ButtonStyle.Resolve;
 
-            UnityEngine.UI.Image buttonBg = buttonGO.AddComponent<UnityEngine.UI.Image>();
-            buttonBg.color = enabled ? new Color(0.2f, 0.5f, 0.8f, 1f) : new Color(0.3f, 0.3f, 0.3f, 1f);
+            int btnWidth = isClose ? 110 : isResolveWhole ? 180 : 150;
 
-            Button button = buttonGO.AddComponent<Button>();
-            button.interactable = enabled;
-            button.onClick.AddListener(() => onClick?.Invoke());
+            BuildButton(buttonContainer, label, GetButtonColor(style, enabled), btnWidth, 38, onClick, enabled);
+        }
+
+        // Shared button builder used by both inline (target card) and footer buttons
+        private void BuildButton(Transform parent, string label, Color bgColor, int width, int height, System.Action onClick, bool enabled)
+        {
+            GameObject go = new GameObject($"Btn_{label}");
+            go.transform.SetParent(parent, false);
+
+            Image bg = go.AddComponent<Image>();
+            bg.color = enabled ? bgColor : new Color(bgColor.r, bgColor.g, bgColor.b, 0.45f);
+
+            Button btn = go.AddComponent<Button>();
+            btn.interactable = enabled;
+            btn.onClick.AddListener(() => onClick?.Invoke());
+
+            ColorBlock colors = btn.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = new Color(1.1f, 1.1f, 1.1f);
+            colors.pressedColor = new Color(0.85f, 0.85f, 0.85f);
+            colors.fadeDuration = 0.1f;
+            btn.colors = colors;
+            btn.targetGraphic = bg;
 
             GameObject textGO = new GameObject("Text");
-            textGO.transform.SetParent(buttonGO.transform, false);
-            RectTransform textRect = textGO.AddComponent<RectTransform>();
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.sizeDelta = Vector2.zero;
+            textGO.transform.SetParent(go.transform, false);
+            RectTransform textRT = textGO.AddComponent<RectTransform>();
+            textRT.anchorMin = Vector2.zero;
+            textRT.anchorMax = Vector2.one;
+            textRT.sizeDelta = Vector2.zero;
+            textRT.offsetMin = new Vector2(6, 0);
+            textRT.offsetMax = new Vector2(-6, 0);
 
-            Text buttonText = textGO.AddComponent<Text>();
-            buttonText.text = label;
-            buttonText.font = GetDefaultFont();
-            buttonText.fontSize = 16;
-            buttonText.color = Color.white;
-            buttonText.alignment = TextAnchor.MiddleCenter;
-            buttonText.horizontalOverflow = HorizontalWrapMode.Overflow;
-            buttonText.verticalOverflow = VerticalWrapMode.Truncate;
-            buttonText.resizeTextForBestFit = false;
+            Text t = textGO.AddComponent<Text>();
+            t.text = label;
+            t.font = GetDefaultFont();
+            t.fontSize = 13;
+            t.fontStyle = FontStyle.Bold;
+            t.color = enabled ? Color.white : new Color(1f, 1f, 1f, 0.5f);
+            t.alignment = TextAnchor.MiddleCenter;
+            t.horizontalOverflow = HorizontalWrapMode.Wrap;
+            t.verticalOverflow = VerticalWrapMode.Overflow;
 
-            // Add LayoutElement to control button size in horizontal layout
-            UnityEngine.UI.LayoutElement buttonLayout = buttonGO.AddComponent<UnityEngine.UI.LayoutElement>();
-            buttonLayout.preferredWidth = 200;
-            buttonLayout.preferredHeight = 60;
-            buttonLayout.flexibleWidth = 0;
+            LayoutElement le = go.AddComponent<LayoutElement>();
+            le.preferredWidth = width;
+            le.minWidth = width;
+            le.preferredHeight = height;
+            le.minHeight = height;
+            le.flexibleWidth = 0;
+        }
+
+        private Font GetDefaultFont()
+        {
+            Font font = Resources.Load<Font>("Fonts/DefaultFont");
+            if (font == null) font = Font.CreateDynamicFontFromOSFont("Arial", 14);
+            return font;
         }
 
         private List<StudentAgent> GetAffectedStudents(StudentAgent source)

@@ -135,14 +135,6 @@ namespace FunClass.Editor.Modules
             interactable.objectName = def.id;
             interactable.displayName = def.displayName;
             interactable.sizeCategory = def.sizeCategory;
-            interactable.canBeThrown = true;
-            interactable.canBeKnockedOver = def.sizeCategory == SizeCategory.Large;
-            interactable.canMakeNoise = def.sizeCategory == SizeCategory.Large;
-            interactable.canBeDropped = def.sizeCategory == SizeCategory.Small;
-            // Large knock → kính/đồ vỡ, Small knock (hiếm) → giấy vò
-            interactable.knockMessType = def.sizeCategory == SizeCategory.Large
-                ? MessType.BrokenGlass
-                : MessType.TornPaper;
 
             // Ensure trigger collider for interaction detection
             Collider col = go.GetComponent<Collider>();

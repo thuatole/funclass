@@ -73,10 +73,6 @@ namespace FunClass.Editor.Modules
                 Debug.Log($"[StudentPlacementManager]   - Local position (deskObj.transform.localPosition): {deskObj.transform.localPosition}");
                 Debug.Log($"[StudentPlacementManager]   - Parent (desksGroup) position: {desksGroup.transform.position}");
                 
-                // Add StudentInteractableObject component so students can interact with desks
-                // NOTE: Moved to runtime (LevelManager) to avoid import-time serialization issues
-                // AddDeskInteractableComponent(deskObj);
-                
                 // Parent student and mess slots to desk
                 if (desk.studentSlot != null)
                 {
@@ -657,47 +653,5 @@ namespace FunClass.Editor.Modules
             Debug.Log($"[StudentPlacementManager] Visual '{visual.name}' for {studentName}: active={visual.activeSelf}, renderer={(renderer != null ? $"enabled={renderer.enabled}, material={renderer.sharedMaterial?.name}" : "NULL")}, scale={visual.transform.localScale}, position={visual.transform.position}, localPosition={visual.transform.localPosition}");
         }
         
-        /// <summary>
-        /// Add StudentInteractableObject component to desk so students can interact with it
-        /// </summary>
-        private static void AddDeskInteractableComponent(GameObject deskObj)
-        {
-            // Check if component already exists
-            if (deskObj.GetComponent<StudentInteractableObject>() != null)
-            {
-                Debug.Log($"[StudentPlacementManager] Desk {deskObj.name} already has StudentInteractableObject");
-                return;
-            }
-            
-            // Add the component
-            StudentInteractableObject interactable = deskObj.AddComponent<StudentInteractableObject>();
-            
-            // Configure the desk as an interactable object
-            interactable.objectName = deskObj.name;
-            interactable.canBeKnockedOver = true;
-            interactable.canBeThrown = false;
-            interactable.canMakeNoise = false;
-            interactable.canBeDropped = false;
-            
-            // Ensure desk has a non-trigger collider for OverlapSphere detection
-            Collider collider = deskObj.GetComponent<Collider>();
-            if (collider != null)
-            {
-                if (collider.isTrigger)
-                {
-                    collider.isTrigger = false;
-                    Debug.Log($"[StudentPlacementManager] Disabled isTrigger on desk {deskObj.name} collider for OverlapSphere detection");
-                }
-            }
-            else
-            {
-                // Add BoxCollider if no collider exists
-                BoxCollider boxCollider = deskObj.AddComponent<BoxCollider>();
-                boxCollider.isTrigger = false;
-                Debug.Log($"[StudentPlacementManager] Added BoxCollider to desk {deskObj.name} for OverlapSphere detection");
-            }
-            
-            Debug.Log($"[StudentPlacementManager] Added StudentInteractableObject to desk {deskObj.name}");
-        }
     }
 }

@@ -18,7 +18,6 @@ namespace FunClass.Core
         private Vector3 originalPosition;
         private Quaternion originalRotation;
         private bool isPerformingSequence = false;
-        private StudentInteractableObject targetObject;
         private StudentReactionType currentReaction = StudentReactionType.None;
         private float reactionEndTime = 0f;
         private StudentInteractionSequence currentSequence = null;
@@ -222,11 +221,9 @@ namespace FunClass.Core
             GameLogger.Detail("StudentAgent", 
                 $"{config?.studentName}: behavior check - state={CurrentState}, chance={interactionChance:F2}, roll={roll:F2}, interact={shouldInteractWithObject}");
 
-            if (shouldInteractWithObject)
-            {
-                TryInteractWithNearbyObject();
-                return;
-            }
+            // Autonomous object interaction was removed — no scene objects exist now
+            // (no pre-spawn, desks not interactable, dynamic spawns not interactable).
+            // Behavior just falls through to state-based actions (LookAround, Fidget, etc.).
 
             if (CurrentState == StudentState.Calm)
             {
@@ -384,156 +381,6 @@ namespace FunClass.Core
                 StudentState.Critical => config.criticalInteractionChance,
                 _ => 0f
             };
-        }
-
-        private void TryInteractWithNearbyObject()
-        {
-            StudentInteractableObject nearbyObject = FindNearbyInteractableObject();
-            
-            if (nearbyObject != null)
-            {
-                GameLogger.Milestone("StudentAgent", $"{config?.studentName} interacts with {nearbyObject.objectName}", "InteractedWithObject", config?.studentName, nearbyObject.objectName);
-                PerformObjectInteraction(nearbyObject);
-            }
-            else
-            {
-                GameLogger.Detail("StudentAgent", 
-                    $"{config?.studentName} no nearby objects found (range: {config?.interactionRange})");
-            }
-        }
-
-        private StudentInteractableObject FindNearbyInteractableObject()
-        {
-            if (config == null) return null;
-
-            Collider[] colliders = Physics.OverlapSphere(transform.position, config.interactionRange);
-            
-            foreach (Collider col in colliders)
-            {
-                StudentInteractableObject interactable = col.GetComponent<StudentInteractableObject>();
-                if (interactable != null && interactable.gameObject != gameObject)
-                {
-                    return interactable;
-                }
-            }
-
-            return null;
-        }
-
-        private enum ObjectInteractionType
-        {
-            KnockOver,
-            MakeNoise,
-            Throw,
-            Drop,
-            Touch
-        }
-
-        private void PerformObjectInteraction(StudentInteractableObject obj)
-        {
-            if (config == null || obj == null) return;
-
-            float roll = UnityEngine.Random.value;
-            GameLogger.Detail("StudentAgent", 
-                $"{config?.studentName} interaction roll: {roll:F2}");
-
-            if (config.canKnockOverObjects && obj.canBeKnockedOver && roll < 0.3f)
-            {
-                GameLogger.Detail("StudentAgent", $"{config?.studentName} will knock over {obj.objectName}");
-                WalkToObjectAndInteract(obj, ObjectInteractionType.KnockOver);
-            }
-            else if (config.canMakeNoiseWithObjects && obj.canMakeNoise && roll < 0.5f)
-            {
-                GameLogger.Detail("StudentAgent", $"{config?.studentName} will make noise with {obj.objectName}");
-                WalkToObjectAndInteract(obj, ObjectInteractionType.MakeNoise);
-            }
-            else if (config.canThrowObjects && obj.canBeThrown && roll < 0.7f)
-            {
-                GameLogger.Detail("StudentAgent", $"{config?.studentName} will throw {obj.objectName}");
-                WalkToObjectAndInteract(obj, ObjectInteractionType.Throw);
-            }
-            else if (config.canDropItems && obj.canBeDropped && roll < 0.85f)
-            {
-                GameLogger.Detail("StudentAgent", $"{config?.studentName} will drop {obj.objectName}");
-                WalkToObjectAndInteract(obj, ObjectInteractionType.Drop);
-            }
-            else if (config.canTouchObjects)
-            {
-                GameLogger.Detail("StudentAgent", $"{config?.studentName} will touch {obj.objectName}");
-                WalkToObjectAndInteract(obj, ObjectInteractionType.Touch);
-            }
-            else
-            {
-                GameLogger.Detail("StudentAgent", 
-                    $"{config?.studentName} no valid interaction with {obj.objectName} (roll: {roll:F2})");
-            }
-        }
-
-        private void WalkToObjectAndInteract(StudentInteractableObject obj, ObjectInteractionType interactionType)
-        {
-            if (obj == null)
-            {
-                GameLogger.Warning("StudentAgent", $"{config?.studentName} WalkToObjectAndInteract called with null obj!");
-                return;
-            }
-
-            GameLogger.Detail("StudentAgent", $"{config?.studentName} walking to {obj.objectName}");
-
-            targetObject = obj;
-            isPerformingSequence = true;
-
-            if (StudentEventManager.Instance != null)
-            {
-                StudentEventManager.Instance.LogEvent(
-                    this,
-                    StudentEventType.WanderingAround,
-                    $"is walking toward {obj.objectName}",
-                    obj.gameObject
-                );
-            }
-
-            Vector3 targetPosition = obj.transform.position;
-            Vector3 direction = (targetPosition - transform.position).normalized;
-            
-            if (direction != Vector3.zero)
-            {
-                transform.rotation = Quaternion.LookRotation(direction);
-            }
-
-            Vector3 moveToPosition = targetPosition + (-direction * 1f);
-            transform.position = moveToPosition;
-
-            GameLogger.Detail("StudentAgent", $"{config?.studentName} performing {interactionType} on {obj.objectName}");
-            
-            try
-            {
-                switch (interactionType)
-                {
-                    case ObjectInteractionType.KnockOver:
-                        obj.KnockOver(this);
-                        break;
-                    case ObjectInteractionType.MakeNoise:
-                        obj.MakeNoise(this);
-                        break;
-                    case ObjectInteractionType.Throw:
-                        obj.Throw(this);
-                        break;
-                    case ObjectInteractionType.Drop:
-                        obj.Drop(this);
-                        break;
-                    case ObjectInteractionType.Touch:
-                        obj.Touch(this);
-                        break;
-                }
-                GameLogger.Detail("StudentAgent", $"{config?.studentName} completed {interactionType}");
-            }
-            catch (System.Exception e)
-            {
-                GameLogger.Error("StudentAgent", $"{config?.studentName} {interactionType} failed: {e.Message}");
-            }
-
-            isPerformingSequence = false;
-            targetObject = null;
         }
 
         public void LeaveSeat()

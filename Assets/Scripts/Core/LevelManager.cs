@@ -121,7 +121,11 @@ namespace FunClass.Core
 
                 if (LevelTimeRemaining <= 0)
                 {
-                    CheckWinConditions();
+                    CheckWinConditions();  // time up → final evaluation
+                }
+                else
+                {
+                    CheckEarlyWinConditions();  // resolved everything before time → win immediately
                 }
             }
             else if (Time.time - lastProgressLogTime >= 5f)
@@ -131,6 +135,27 @@ namespace FunClass.Core
             }
 
             CheckLoseConditions();
+        }
+
+        private void CheckEarlyWinConditions()
+        {
+            if (levelEnded || currentGoal == null) return;
+
+            float disruption = ClassroomManager.Instance?.DisruptionLevel ?? 0f;
+            ScoreSummary summary = TeacherScoreManager.Instance?.GetScoreSummary() ?? new ScoreSummary();
+
+            if (!currentGoal.MeetsWinConditions(disruption, summary.resolvedProblems, summary.calmDowns))
+                return;
+
+            // Also require: no unresolved influence sources anywhere → "all problems resolved"
+            StudentAgent[] all = FindObjectsOfType<StudentAgent>();
+            foreach (var s in all)
+            {
+                if (s.InfluenceSources != null && !s.InfluenceSources.AreAllSourcesResolved())
+                    return;
+            }
+
+            WinLevel(summary.totalScore);
         }
 
         private void LogProgress()
@@ -259,81 +284,6 @@ namespace FunClass.Core
                 GameLogger.Milestone("LevelManager", $"Loaded {levelConfig.studentInteractions.Count} student interactions");
             }
 
-            // SetupDesksForInteraction REMOVED — desks không còn là interactable objects.
-            // Chỉ scripted/on-demand throw mới spawn visual at target. Tránh autonomous knock-over của bàn
-            // dẫn tới popup vô lý "Bình đẩy bàn của con".
-        }
-        
-        private void SetupDesksForInteraction()
-        {
-            GameLogger.Detail("LevelManager", "Setting up desks with StudentInteractableObject at runtime");
-            
-            Transform desksGroup = GameObject.Find("Desks")?.transform;
-            
-            if (desksGroup != null)
-            {
-                GameLogger.Detail("LevelManager", $"Found Desks group with {desksGroup.childCount} children");
-                
-                foreach (Transform desk in desksGroup)
-                {
-                    SetupDeskComponent(desk.gameObject);
-                }
-            }
-            else
-            {
-                GameObject[] allObjects = FindObjectsOfType<GameObject>();
-                int deskCount = 0;
-                
-                foreach (GameObject obj in allObjects)
-                {
-                    if (obj.name.Contains("Desk") || obj.CompareTag("Desk"))
-                    {
-                        SetupDeskComponent(obj);
-                        deskCount++;
-                    }
-                }
-                
-                GameLogger.Detail("LevelManager", $"Found {deskCount} desks by tag/name search");
-            }
-        }
-        
-        private void SetupDeskComponent(GameObject deskObj)
-        {
-            if (deskObj == null) return;
-            
-            if (deskObj.GetComponent<StudentInteractableObject>() != null)
-            {
-                GameLogger.Detail("LevelManager", $"Desk {deskObj.name} already has StudentInteractableObject");
-                return;
-            }
-            
-            StudentInteractableObject interactable = deskObj.AddComponent<StudentInteractableObject>();
-            
-            interactable.objectName = deskObj.name;
-            interactable.displayName = "bàn";
-            interactable.canBeKnockedOver = true;
-            interactable.canBeThrown = false;
-            interactable.canMakeNoise = false;
-            interactable.canBeDropped = false;
-            interactable.knockMessType = MessType.None;  // bàn knock không sinh kính vỡ
-            
-            Collider collider = deskObj.GetComponent<Collider>();
-            if (collider != null)
-            {
-                if (collider.isTrigger)
-                {
-                    collider.isTrigger = false;
-                    GameLogger.Detail("LevelManager", $"Disabled isTrigger on desk {deskObj.name}");
-                }
-            }
-            else
-            {
-                BoxCollider boxCollider = deskObj.AddComponent<BoxCollider>();
-                boxCollider.isTrigger = false;
-                GameLogger.Detail("LevelManager", $"Added BoxCollider to desk {deskObj.name}");
-            }
-            
-            GameLogger.Detail("LevelManager", $"Added StudentInteractableObject to desk {deskObj.name}");
         }
 
         private void HandleStudentEvent(StudentEvent evt)

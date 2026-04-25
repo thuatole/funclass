@@ -242,20 +242,6 @@ namespace FunClass.Core
             StartCoroutine(MoveToTargetCoroutine(student, targetPosition, stopDistance, onReached));
         }
 
-        /// <summary>
-        /// Moves a student toward another student with a callback when close enough
-        /// </summary>
-        public void MoveToStudent(StudentAgent source, StudentAgent target, float stopDistance, System.Action onReached)
-        {
-            if (source == null || target == null)
-            {
-                Debug.LogWarning("[StudentMovementManager] Cannot move - source or target is null");
-                return;
-            }
-
-            MoveToTarget(source, target.transform.position, stopDistance, onReached);
-        }
-
         private System.Collections.IEnumerator MoveToTargetCoroutine(StudentAgent student, Vector3 targetPosition, float stopDistance, System.Action onReached)
         {
             var navAgent = student.GetComponent<UnityEngine.AI.NavMeshAgent>();

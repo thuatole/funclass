@@ -368,9 +368,6 @@ namespace FunClass.Editor.Modules
                         desk.deskObject = Object.Instantiate(deskPrefab, desk.position, desk.rotation);
                         desk.deskObject.name = $"Desk_Manual_{i}";
                         desk.deskObject.transform.SetParent(desksGroup.transform);
-                        
-                        // Add StudentInteractableObject for student interactions
-                        AddDeskInteractableComponent(desk.deskObject);
                     }
                 }
                 
@@ -1687,49 +1684,5 @@ namespace FunClass.Editor.Modules
             }
         }
         
-        /// <summary>
-        /// Add StudentInteractableObject component to desk so students can interact with it
-        /// </summary>
-        private static void AddDeskInteractableComponent(GameObject deskObj)
-        {
-            if (deskObj == null) return;
-            
-            // Check if component already exists
-            if (deskObj.GetComponent<StudentInteractableObject>() != null)
-            {
-                Debug.Log($"[UnifiedLevelImporter] Desk {deskObj.name} already has StudentInteractableObject");
-                return;
-            }
-            
-            // Add the component
-            StudentInteractableObject interactable = deskObj.AddComponent<StudentInteractableObject>();
-            
-            // Configure the desk as an interactable object
-            interactable.objectName = deskObj.name;
-            interactable.canBeKnockedOver = true;
-            interactable.canBeThrown = false;
-            interactable.canMakeNoise = false;
-            interactable.canBeDropped = false;
-            
-            // Ensure desk has a non-trigger collider for OverlapSphere detection
-            Collider collider = deskObj.GetComponent<Collider>();
-            if (collider != null)
-            {
-                if (collider.isTrigger)
-                {
-                    collider.isTrigger = false;
-                    Debug.Log($"[UnifiedLevelImporter] Disabled isTrigger on desk {deskObj.name} collider for OverlapSphere detection");
-                }
-            }
-            else
-            {
-                // Add BoxCollider if no collider exists
-                BoxCollider boxCollider = deskObj.AddComponent<BoxCollider>();
-                boxCollider.isTrigger = false;
-                Debug.Log($"[UnifiedLevelImporter] Added BoxCollider to desk {deskObj.name} for OverlapSphere detection");
-            }
-            
-            Debug.Log($"[UnifiedLevelImporter] Added StudentInteractableObject to desk {deskObj.name}");
-        }
     }
 }
